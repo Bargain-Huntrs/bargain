@@ -1,4 +1,0 @@
-# Rewrite all /deals/:id requests to the static deal detail page
-# The client component reads the deal ID from the URL pathname
-/deals/:id /deals/detail/ 200
-/deals/:id/ /deals/detail/ 200

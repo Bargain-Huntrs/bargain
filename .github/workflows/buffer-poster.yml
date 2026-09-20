@@ -8,6 +8,12 @@ on:
     - cron: '0 13,17,21 * * *'
   workflow_dispatch:
 
+# Never run two posting cycles at once — delayed scheduled runs
+# would otherwise overlap and double-post.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

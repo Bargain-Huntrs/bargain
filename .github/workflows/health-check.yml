@@ -2,9 +2,19 @@ name: Health Check & Keep-Alive
 
 on:
   schedule:
-    # Every 10 minutes — keeps Render free-tier services awake
-    - cron: '*/10 * * * *'
+    # Every 6 hours — periodic health monitoring.
+    # NOTE: GitHub does not reliably run crons more often than ~hourly
+    # (a previous */10 schedule was throttled to ~7 runs/day anyway).
+    # For actual Render free-tier keep-alive (15-min idle timeout), use a
+    # free external pinger such as cron-job.org or UptimeRobot — zero
+    # Actions minutes and far more reliable.
+    - cron: '0 */6 * * *'
   workflow_dispatch:
+
+# Cancel superseded runs — delayed scheduled pings would otherwise stack up.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

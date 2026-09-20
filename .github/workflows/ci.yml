@@ -3,8 +3,21 @@ name: CI
 on:
   push:
     branches: [main]
+    # Skip CI for docs-only commits
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+# Cancel superseded runs so rapid successive pushes to main and updated
+# PRs don't stack up full CI runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:

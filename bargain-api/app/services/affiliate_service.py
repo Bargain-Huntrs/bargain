@@ -217,7 +217,11 @@ def add_affiliate_tag(url: str, retailer: str = "", asin: str = "") -> str:
 
     # Try Impact.com first (covers Walmart, ADOR, Eufy, Lenovo, etc.)
     try:
-        from app.services.impact_affiliate import add_impact_affiliate
+        from app.services.impact_affiliate import add_impact_affiliate, is_impact_link
+        # Already an Impact tracking link — return as-is so the deep link
+        # isn't destroyed by re-wrapping or direct-tag appending.
+        if is_impact_link(url):
+            return url
         impact_url = add_impact_affiliate(url, detected)
         if impact_url != url:
             return impact_url

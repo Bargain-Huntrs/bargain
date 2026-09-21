@@ -155,6 +155,48 @@ def create_impact_deeplink(tracking_link: str, destination_url: str) -> str:
     return f"{tracking_link}{separator}u={quote(destination_url, safe='')}"
 
 
+def _tracking_link_domains() -> set[str]:
+    """Hostnames of all Impact tracking links in the campaign data."""
+    domains: set[str] = set()
+    for campaign in _campaigns:
+        link = campaign.get("tracking_link", "")
+        if link:
+            try:
+                host = urlparse(link).netloc.lower()
+                if host:
+                    domains.add(host)
+            except Exception:
+                pass
+    return domains
+
+
+_TRACKING_DOMAINS: set[str] | None = None
+
+
+def is_impact_link(url: str) -> bool:
+    """True if the URL is already an Impact affiliate tracking link.
+
+    Covers every tracking domain in the campaign data (goto.walmart.com,
+    *.sjv.io, *.7eer.net, branded Impact hosts, etc.) plus the generic
+    Impact short-domain suffixes as a safety net.
+    """
+    global _TRACKING_DOMAINS
+    if _TRACKING_DOMAINS is None:
+        _TRACKING_DOMAINS = _tracking_link_domains()
+    try:
+        host = urlparse(url).netloc.lower()
+    except Exception:
+        return False
+    if not host:
+        return False
+    if host in _TRACKING_DOMAINS:
+        return True
+    return any(
+        host == d or host.endswith("." + d)
+        for d in ("sjv.io", "7eer.net", "pxf.io", "evyy.net")
+    )
+
+
 def add_impact_affiliate(url: str, retailer: str = "") -> str:
     """Wrap a URL with an Impact.com affiliate tracking link.
 
@@ -169,6 +211,12 @@ def add_impact_affiliate(url: str, retailer: str = "") -> str:
     if not url:
         return url
 
+    # Already an Impact tracking link — don't double-wrap. Re-wrapping
+    # nests the link inside another tracking URL and loses the deep
+    # link, sending clicks to the merchant homepage instead of the product.
+    if is_impact_link(url):
+        return url
+
     # Try to find a matching campaign
     campaign = _find_campaign_for_url(url)
     if not campaign and retailer:
@@ -179,10 +227,6 @@ def add_impact_affiliate(url: str, retailer: str = "") -> str:
 
     tracking_link = campaign.get("tracking_link", "")
     if not tracking_link:
-        return url
-
-    # If the URL is already an affiliate link, don't double-wrap
-    if "sjv.io" in url or "7eer.net" in url or "pxf.io" in url or "evyy.net" in url:
         return url
 
     # If deeplinking is enabled, create a deeplink to the specific product

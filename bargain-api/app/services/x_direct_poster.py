@@ -323,6 +323,7 @@ async def post_deal_to_x_direct(
         retailer=retailer,
         deal_url=deal_url,
         deal_tier=deal_tier,
+        utm_source="twitter",
     )
 
     return await post_tweet(tweet_text, image_url)

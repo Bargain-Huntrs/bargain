@@ -133,6 +133,7 @@ async def post_deal_to_instagram(
         retailer=retailer,
         deal_url=deal_url,
         deal_tier=deal_tier,
+        utm_source="instagram",
     )
 
     # Instagram requires an image — use fallback if none provided

@@ -426,6 +426,7 @@ def _format_deal_tweet(
     retailer: str,
     deal_url: str,
     deal_tier: str = "clearance",
+    utm_source: str = "twitter",
 ) -> str:
     """Format a deal into a tweet (max 280 characters) with varied formatting."""
     retailer_names = {
@@ -471,9 +472,9 @@ def _format_deal_tweet(
     # Random CTA ~30% of the time
     cta = f" — {random.choice(CTA_LINES)}" if random.random() < 0.3 else ""
 
-    # Tag outgoing deal link with UTM parameters for X/Twitter tracking
+    # Tag outgoing deal link with UTM parameters for the target platform
     campaign = f"deal_alert_{datetime.utcnow().strftime('%Y-%m-%d')}"
-    deal_url = add_utm_parameters(deal_url, "twitter", "social", campaign)
+    deal_url = add_utm_parameters(deal_url, utm_source, "social", campaign)
 
     tweet = f"{prefix}\n{short_title}\n{price_line}{cta}\n\n{deal_url}\n\n{hashtags}"
 
@@ -607,6 +608,17 @@ async def _post_to_channel(api_key: str, channel_id: str, text: str, image_url: 
         return {"status": "error", "error": str(e), "channel_id": channel_id, "service": service}
 
 
+def _retag_utm_source(text: str, service: str) -> str:
+    """Point utm_source at the actual Buffer channel.
+
+    Buffer posts one text to X/IG/FB; swap the twitter tag for the real
+    service so Instagram/Facebook clicks aren't attributed to Twitter.
+    """
+    if service == "twitter":
+        return text
+    return text.replace("utm_source=twitter", f"utm_source={service}")
+
+
 async def post_to_buffer(tweet_text: str, image_url: Optional[str] = None) -> dict:
     """Post to all configured Buffer channels (X, Instagram, Facebook).
 
@@ -676,8 +688,13 @@ async def post_to_buffer(tweet_text: str, image_url: Optional[str] = None) -> di
                 "error": f"Buffer queue full for all active channels",
             }
 
-    # Post to all healthy channels concurrently
-    tasks = [_post_to_channel(api_key, cid, tweet_text, image_url, svc) for cid, svc in channels]
+    # Post to all healthy channels concurrently. Buffer shares one text
+    # across channels, so retag utm_source per channel for accurate
+    # attribution (the deal URL is the only link in the text).
+    tasks = [
+        _post_to_channel(api_key, cid, _retag_utm_source(tweet_text, svc), image_url, svc)
+        for cid, svc in channels
+    ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     successes = [r for r in results if isinstance(r, dict) and r.get("status") == "success"]
@@ -720,10 +737,10 @@ async def post_deal_to_x(
     """
     # Use short link if we have a deal_id, otherwise use full affiliate URL
     if deal_id:
-        short_url = f"https://api.bargainhuntrs.com/api/v1/arbitrage/d/{deal_id}"
-        # Add UTM params to the short link
+        from app.services.utm_service import public_deal_url
+        # Add UTM params to the branded short link
         campaign = f"deal_alert_{datetime.utcnow().strftime('%Y-%m-%d')}"
-        deal_url = add_utm_parameters(short_url, "twitter", "social", campaign)
+        deal_url = add_utm_parameters(public_deal_url(deal_id), "twitter", "social", campaign)
     else:
         # Ensure deal URL has affiliate tag
         try:

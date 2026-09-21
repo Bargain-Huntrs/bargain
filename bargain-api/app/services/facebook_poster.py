@@ -109,6 +109,7 @@ async def post_deal_to_facebook(
         retailer=retailer,
         deal_url=deal_url,
         deal_tier=deal_tier,
+        utm_source="facebook",
     )
 
     # Facebook allows longer posts, but keep it consistent with X for now

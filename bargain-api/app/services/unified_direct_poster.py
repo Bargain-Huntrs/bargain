@@ -76,20 +76,18 @@ async def post_deal_to_all_platforms(
         is_configured as buffer_is_configured,
         _format_deal_tweet,
     )
-    from app.services.utm_service import add_utm_parameters
-    from datetime import datetime
+    from app.services.utm_service import public_deal_url
 
     results: dict = {}
     posted = 0
     failed = 0
     platforms_used: list[str] = []
 
-    # Use short redirect link if we have a deal_id
+    # Use the branded short link if we have a deal_id. UTM source is left
+    # untagged here — each platform's formatter adds its own utm_source.
     effective_url = deal_url
     if deal_id:
-        short_url = f"https://api.bargainhuntrs.com/api/v1/arbitrage/d/{deal_id}"
-        campaign = f"deal_alert_{datetime.utcnow().strftime('%Y-%m-%d')}"
-        effective_url = add_utm_parameters(short_url, "twitter", "social", campaign)
+        effective_url = public_deal_url(deal_id)
     else:
         try:
             from app.services.affiliate_service import add_affiliate_tag

@@ -59,6 +59,8 @@ async def main():
     logger.info("=== Step 3: Posting deals to X ===")
 
     from app.services.x_browser_poster import post_deal_to_x, is_configured
+    from app.services.utm_service import add_utm_parameters, public_deal_url
+    from datetime import datetime
 
     if not is_configured():
         logger.error("X browser automation not configured. Exiting.")
@@ -92,13 +94,18 @@ async def main():
         discount = deal.get("_discount", 0)
         logger.info(f"Posting: {title[:60]} ({discount}% off)")
 
+        campaign = f"deal_alert_{datetime.utcnow().strftime('%Y-%m-%d')}"
+        share_url = add_utm_parameters(
+            public_deal_url(deal["id"]), "twitter", "social", campaign
+        )
+
         result = await post_deal_to_x(
             title=title,
             deal_price=float(deal.get("buy_price", 0)),
             original_price=float(deal.get("historical_avg", 0)) if deal.get("historical_avg") else None,
             discount_percent=discount,
             retailer=deal.get("retailer", "amazon"),
-            deal_url=deal.get("buy_url", ""),
+            deal_url=share_url,
             deal_tier=deal.get("deal_tier", "clearance"),
             image_url=deal.get("image_url"),
         )

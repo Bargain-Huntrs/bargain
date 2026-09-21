@@ -33,3 +33,22 @@ def add_utm_parameters(url: str, source: str, medium: str, campaign: str) -> str
 
     new_query = urlencode(query)
     return urlunparse(parsed._replace(query=new_query))
+
+
+def public_deal_url(deal_id: str) -> str:
+    """Public short link for a deal, e.g. https://bargainhuntrs.com/d/{id}.
+
+    The frontend /d/{id} route redirects to the API click-tracking
+    endpoint (/api/v1/arbitrage/d/{id}), so posts show a clean branded
+    URL while clicks are still tracked.
+
+    Uses FRONTEND_URL but falls back to the production domain when it is
+    unset or points at localhost, so posts never leak a localhost or
+    api.* URL.
+    """
+    from app.core.config import settings
+
+    base = (getattr(settings, "FRONTEND_URL", "") or "").rstrip("/")
+    if not base or "localhost" in base or "127.0.0.1" in base:
+        base = "https://bargainhuntrs.com"
+    return f"{base}/d/{deal_id}"

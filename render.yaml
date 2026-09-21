@@ -1,5 +1,6 @@
 # Render Blueprint — BargainHuntrs
-# Reproducible infrastructure for both frontend and backend services.
+# Reproducible infrastructure for the backend API service.
+# The frontend (bargain-web) is deployed to Cloudflare Workers via OpenNext.
 # Database is managed separately via the Render dashboard (PostgreSQL).
 # See: https://render.com/docs/blueprint-spec
 
@@ -87,27 +88,6 @@ services:
         sync: false
       - key: SCRAPER_PROXY_URL
         sync: false
-
-  # ─── Frontend (Next.js) ───────────────────────────────────────────
-  - type: web
-    name: bargain-web
-    runtime: node
-    plan: free
-    region: oregon
-    rootDir: bargain-web
-    buildCommand: pnpm install --frozen-lockfile; pnpm run build
-    startCommand: pnpm start
-    healthCheckPath: /
-    autoDeploy: true
-    envVars:
-      - key: NODE_VERSION
-        value: "22"
-      - key: NEXT_PUBLIC_API_URL
-        value: https://api.bargainhuntrs.com
-      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-        sync: false
-      - key: PORT
-        value: "3030"
 
 # ─── Database (PostgreSQL) ──────────────────────────────────────────
 databases:

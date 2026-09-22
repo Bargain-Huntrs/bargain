@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Numeric, Boolean, JSON, ForeignKey, Integer, LargeBinary, Float, Text, UniqueConstraint
+from sqlalchemy import Column, String, DateTime, Date, Numeric, Boolean, JSON, ForeignKey, Integer, LargeBinary, Float, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 from app.db.session import Base
@@ -418,3 +418,48 @@ class NewsletterSubscriber(Base):
     unsubscribed_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     source = Column(String(255), nullable=True)
+
+
+class Property(Base):
+    """Distressed / off-market investment property aggregated from public sources.
+
+    Phase 1 real-estate expansion: populated by property_aggregator from
+    HUD Home Store (bank REO) and later HomePath/HomeSteps/auction feeds.
+    """
+    __tablename__ = "properties"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source = Column(String(50), nullable=False, index=True)  # hud_homestore, homepath, ...
+    source_id = Column(String(100), nullable=False)  # e.g. HUD case number
+    address = Column(String(300), nullable=False)
+    city = Column(String(120), index=True)
+    state = Column(String(2), index=True)
+    zip = Column(String(10), index=True)
+    county = Column(String(120))
+    address_hash = Column(String(64), index=True)  # normalized address dedup key
+    list_price = Column(Numeric(12, 2))
+    bedrooms = Column(Numeric(4, 1))
+    bathrooms = Column(Numeric(4, 1))
+    sqft = Column(Integer)
+    year_built = Column(Integer)
+    property_type = Column(String(100))
+    status = Column(String(50))  # New Listing, Extended, Under Contract, ...
+    listing_period = Column(String(50))
+    fha_financing = Column(String(50))
+    eligible_bidders = Column(String(150))
+    list_date = Column(Date)
+    bid_open_date = Column(Date)
+    period_deadline = Column(Date)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    image_url = Column(String(1000))
+    detail_url = Column(String(1000), nullable=False)
+    is_active = Column(Boolean, default=True, index=True)
+    first_seen_at = Column(DateTime, default=datetime.utcnow)
+    last_seen_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("source", "source_id", name="uq_properties_source_source_id"),
+    )

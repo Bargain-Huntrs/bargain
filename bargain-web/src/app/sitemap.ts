@@ -31,6 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/coupons`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
     { url: `${BASE_URL}/real-estate`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE_URL}/real-estate/deals`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/tools/profit-calculator`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE_URL}/tools/real-estate-calculator`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE_URL}/tools/listing-generator`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },

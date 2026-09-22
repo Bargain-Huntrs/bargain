@@ -844,3 +844,76 @@ export async function bulkSubmitSellerDeals(
 export async function getSellerSubmissions(token: string) {
   return fetchWithAuth("/api/v1/seller/submissions", token) as Promise<any[]>;
 }
+// ─── Real-estate properties (aggregated public listings) ────────────────────
+
+export interface Property {
+  id: string;
+  source: string;
+  source_id: string;
+  address: string;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  county: string | null;
+  list_price: string | null;
+  bedrooms: string | null;
+  bathrooms: string | null;
+  sqft: number | null;
+  year_built: number | null;
+  property_type: string | null;
+  status: string | null;
+  listing_period: string | null;
+  fha_financing: string | null;
+  eligible_bidders: string | null;
+  list_date: string | null;
+  bid_open_date: string | null;
+  period_deadline: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  image_url: string | null;
+  detail_url: string;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+}
+
+export interface PropertyListResponse {
+  items: Property[];
+  total: number;
+  page: number;
+  per_page: number;
+  pages: number;
+}
+
+export interface PropertyFilters {
+  state?: string;
+  city?: string;
+  zip?: string;
+  q?: string;
+  source?: string;
+  property_type?: string;
+  min_price?: number;
+  max_price?: number;
+  min_beds?: number;
+  sort?: "newest" | "price_asc" | "price_desc" | "sqft_desc";
+  page?: number;
+  per_page?: number;
+}
+
+export async function getProperties(filters: PropertyFilters = {}): Promise<PropertyListResponse> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
+  }
+  const res = await fetch(`${API_URL}/api/v1/properties?${params.toString()}`);
+  if (!res.ok) throw new Error(`Failed to fetch properties: ${res.status}`);
+  return res.json();
+}
+
+export async function getPropertyStates(): Promise<{
+  states: { state: string; count: number }[];
+  supported: string[];
+}> {
+  const res = await fetch(`${API_URL}/api/v1/properties/states`);
+  if (!res.ok) throw new Error(`Failed to fetch property states: ${res.status}`);
+  return res.json();
+}

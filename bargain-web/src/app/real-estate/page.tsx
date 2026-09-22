@@ -119,16 +119,16 @@ export default function RealEstateLandingPage() {
           </p>
           <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/tools/real-estate-calculator"
+              href="/real-estate/deals"
               className="rounded-xl bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
             >
-              Open the deal calculator
+              Browse live deals
             </Link>
             <Link
-              href="/signup"
+              href="/tools/real-estate-calculator"
               className="rounded-xl border border-zinc-300 px-7 py-3.5 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
-              Get deal alerts free
+              Open the deal calculator
             </Link>
           </div>
         </section>

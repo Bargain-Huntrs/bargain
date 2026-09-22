@@ -13,16 +13,26 @@
 - Backend (bargain-api): Python with pip, FastAPI
 - Frontend (bargain-web): Next.js with pnpm (NEVER use npm)
 
-## Deployment: Render ONLY
+## Deployment
 
-**NEVER reference Railway.** The project has migrated from Railway to **Render** for both backend and frontend.
+**NEVER reference Railway.** The project has migrated from Railway.
+
+### Frontend: Cloudflare Workers (OpenNext)
+
+- Frontend (`bargain-web`) deploys to **Cloudflare Workers** via OpenNext (`@opennextjs/cloudflare`)
+- Account: `b1bbb4b15c23a085297612bcb6800edb` (Bargain4huntrs@gmail.com's Account)
+- Worker: `bargain-web` — serves `bargainhuntrs.com`, `www.bargainhuntrs.com`, `bargain-web.bargain4huntrs.workers.dev`
+- Deploy: `cd bargain-web && CLOUDFLARE_API_TOKEN=<token> pnpm run deploy` (use `pnpm run deploy`, NOT bare `pnpm deploy` — that collides with pnpm's workspace deploy command)
+- Token lives in `bargain-web/.env.cloudflare` (gitignored via `.env*`)
+- The old Render `bargain-web` service is suspended — do not redeploy it
+
+### Backend: Render
 
 - Backend: Render (Docker-based, Python 3.11, port 4030)
-- Frontend: Render (Next.js, port 3030)
 - Database: Render PostgreSQL
 - Backend URL: `https://api.bargainhuntrs.com`
-- Frontend URL: `https://bargain-web.onrender.com`
-- Configured via `Dockerfile` (backend) and `render.yaml` (frontend)
+- Frontend URL: `https://bargainhuntrs.com`
+- Configured via `Dockerfile` (backend) and `render.yaml` (backend only)
 - Render auto-deploys from `main` branch
 
 ## SQL Logging

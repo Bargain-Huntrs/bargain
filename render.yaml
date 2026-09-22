@@ -30,8 +30,8 @@ services:
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "10080"
-      - key: CORS_ORIGINS
-        value: https://www.bargainhuntrs.com,https://bargainhuntrs.com,https://bargain-web.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: '["https://www.bargainhuntrs.com","https://bargainhuntrs.com","https://bargain-web.bargain4huntrs.workers.dev","https://bargain-web.onrender.com","http://localhost:3030"]'
       - key: FRONTEND_URL
         value: https://bargainhuntrs.com
       - key: SQL_ECHO

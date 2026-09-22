@@ -36,6 +36,7 @@ class Settings(BaseSettings):
         "http://localhost:3030",
         "https://www.bargainhuntrs.com",
         "https://bargainhuntrs.com",
+        "https://bargain-web.bargain4huntrs.workers.dev",
         "https://bargain-mhi3.onrender.com",
         "https://bargain-web.onrender.com",
     ]

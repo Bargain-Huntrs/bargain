@@ -48,6 +48,8 @@ export default function RealEstateCalculatorPage() {
   const [rehab, setRehab] = useState<string>("");
   const [rulePct, setRulePct] = useState<string>("70");
   const [assignmentFee, setAssignmentFee] = useState<string>("");
+  const [desiredProfit, setDesiredProfit] = useState<string>("");
+  const [maoSellPct, setMaoSellPct] = useState<string>("8");
 
   // Flip tab state
   const [buyPrice, setBuyPrice] = useState<string>("");
@@ -80,14 +82,27 @@ export default function RealEstateCalculatorPage() {
     const multiplier = num(rulePct) / 100;
     const repairs = num(rehab);
     const fee = num(assignmentFee);
-    const maxOffer =
+    const targetProfit = num(desiredProfit);
+    const sellCosts = (effectiveArv * num(maoSellPct)) / 100;
+    // Two modes: fixed rule % (default) or desired-profit — when a target
+    // profit is set, the offer is backed out of ARV − profit − costs.
+    const ruleOffer =
       effectiveArv > 0 ? effectiveArv * multiplier - repairs - fee : 0;
+    const profitOffer =
+      effectiveArv > 0 && targetProfit > 0
+        ? effectiveArv - sellCosts - repairs - fee - targetProfit
+        : 0;
+    const maxOffer = targetProfit > 0 ? profitOffer : ruleOffer;
     return {
       compAvg,
       effectiveArv,
       multiplier,
       repairs,
       fee,
+      targetProfit,
+      sellCosts,
+      ruleOffer,
+      profitOffer,
       maxOffer: Math.max(0, maxOffer),
       profitRoom: Math.max(
         0,
@@ -95,7 +110,7 @@ export default function RealEstateCalculatorPage() {
       ),
       hasInput: effectiveArv > 0,
     };
-  }, [arv, comp1, comp2, comp3, rehab, rulePct, assignmentFee]);
+  }, [arv, comp1, comp2, comp3, rehab, rulePct, assignmentFee, desiredProfit, maoSellPct]);
 
   // ── Flip math ─────────────────────────────────────────────────────────────
   const flip = useMemo(() => {
@@ -123,6 +138,10 @@ export default function RealEstateCalculatorPage() {
     const roi = cashInvested > 0 ? (netProfit / cashInvested) * 100 : 0;
     const months = num(holdMonths);
     const annualizedRoi = months > 0 ? (roi / months) * 12 : roi;
+    // Sale price where net profit = 0: sale(1 − sellPct) = totalProjectCost
+    const sellDenom = 1 - num(sellClosingPct) / 100;
+    const breakEven =
+      sellDenom > 0 ? totalProjectCost / sellDenom : totalProjectCost;
     return {
       buy,
       repairs,
@@ -139,6 +158,7 @@ export default function RealEstateCalculatorPage() {
       netProfit,
       roi,
       annualizedRoi,
+      breakEven,
       hasInput: buy > 0 || sale > 0,
     };
   }, [buyPrice, flipRehab, holdMonths, monthlyHolding, buyClosingPct, sellClosingPct, salePrice, loanLtvPct, loanPointsPct, loanRatePct]);
@@ -324,6 +344,26 @@ export default function RealEstateCalculatorPage() {
                         className={inputCls}
                       />
                     </Field>
+                    <div className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-800/40">
+                      <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-3">
+                        Or back into the offer from a profit target
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block">
+                          <span className="block text-[10px] text-zinc-500 dark:text-zinc-500 mb-1">Desired profit ($)</span>
+                          <input type="number" inputMode="decimal" min="0" step="1000" value={desiredProfit} onChange={(e) => setDesiredProfit(e.target.value)} placeholder="30000" className={inputCls} />
+                        </label>
+                        <label className="block">
+                          <span className="block text-[10px] text-zinc-500 dark:text-zinc-500 mb-1">Selling costs %</span>
+                          <input type="number" inputMode="decimal" min="0" step="0.5" value={maoSellPct} onChange={(e) => setMaoSellPct(e.target.value)} placeholder="8" className={inputCls} />
+                        </label>
+                      </div>
+                      {mao.targetProfit > 0 && (
+                        <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                          Profit-target mode active — overrides the {rulePct}% rule
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -353,11 +393,24 @@ export default function RealEstateCalculatorPage() {
 
                   <dl className="space-y-2.5 text-sm">
                     <Row label="After-Repair Value" value={fmt(mao.effectiveArv)} />
-                    <Row label={`× ${rulePct}% rule`} value={fmt(mao.effectiveArv * mao.multiplier)} />
-                    <Row label="− Rehab estimate" value={`- ${fmt(mao.repairs)}`} />
-                    {mao.fee > 0 && <Row label="− Assignment fee" value={`- ${fmt(mao.fee)}`} />}
-                    <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
-                    <Row label="Investor profit room" value={fmt(mao.profitRoom)} />
+                    {mao.targetProfit > 0 ? (
+                      <>
+                        <Row label="− Selling costs" value={`- ${fmt(mao.sellCosts)}`} />
+                        <Row label="− Desired profit" value={`- ${fmt(mao.targetProfit)}`} />
+                        <Row label="− Rehab estimate" value={`- ${fmt(mao.repairs)}`} />
+                        {mao.fee > 0 && <Row label="− Assignment fee" value={`- ${fmt(mao.fee)}`} />}
+                        <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
+                        <Row label={`${rulePct}% rule offer`} value={fmt(mao.ruleOffer)} />
+                      </>
+                    ) : (
+                      <>
+                        <Row label={`× ${rulePct}% rule`} value={fmt(mao.effectiveArv * mao.multiplier)} />
+                        <Row label="− Rehab estimate" value={`- ${fmt(mao.repairs)}`} />
+                        {mao.fee > 0 && <Row label="− Assignment fee" value={`- ${fmt(mao.fee)}`} />}
+                        <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
+                        <Row label="Investor profit room" value={fmt(mao.profitRoom)} />
+                      </>
+                    )}
                   </dl>
 
                   <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
@@ -471,10 +524,13 @@ export default function RealEstateCalculatorPage() {
                   </dl>
 
                   <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
-                    <p className="text-xs font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400">Reality check</p>
+                    <p className="text-xs font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400">Break-even sale price</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-amber-900 dark:text-amber-300">
+                      {flip.hasInput ? fmt(flip.breakEven) : "—"}
+                    </p>
                     <p className="mt-1 text-xs text-amber-700/80 dark:text-amber-400/70 leading-relaxed">
-                      Most flippers want 15%+ ROI minimum. Under 10% and one surprise —
-                      a bad roof, a slow market — wipes out the whole margin.
+                      Sell below this and you lose money. Most flippers want 15%+ ROI
+                      minimum — under 10% one surprise wipes out the margin.
                     </p>
                   </div>
                 </div>

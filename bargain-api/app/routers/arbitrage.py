@@ -109,12 +109,10 @@ async def list_public_deals(
         ArbitrageDeal.status == "active",
         ArbitrageDeal.historical_avg != None,
         ArbitrageDeal.buy_price > 0,
-    ).filter(
-        ArbitrageDeal.historical_avg > ArbitrageDeal.buy_price
+        # 20%+ discount pushed into SQL: buy_price <= historical_avg * 0.8
+        ArbitrageDeal.buy_price <= ArbitrageDeal.historical_avg * Decimal("0.8"),
     )
 
-    # Filter to 40%+ discount: buy_price <= historical_avg * 0.60
-    # Using Python-side filter since SQL division with Numeric can be tricky
     if tier:
         query = query.filter(ArbitrageDeal.deal_tier == tier)
 
@@ -136,17 +134,12 @@ async def list_public_deals(
         ]
         query = query.filter(ArbitrageDeal.retailer.in_(nearby_retailers))
 
+    # Bounded scan: dedup/language filters shrink the set, so fetch a
+    # generous window instead of the whole table (was query.all() → 86s).
     query = query.order_by(ArbitrageDeal.net_profit.desc())
-    all_deals = query.all()
+    all_deals = query.limit(min(offset + limit * 6, 600)).all()
 
-    # Apply 20%+ discount filter in Python (lowered from 40% to include
-    # Impact.com/Walmart deals which typically have 20-40% discounts)
-    min_discount = Decimal("0.20")
-    filtered = [
-        d for d in all_deals
-        if d.historical_avg and d.buy_price
-        and (Decimal(str(d.historical_avg)) - Decimal(str(d.buy_price))) / Decimal(str(d.historical_avg)) >= min_discount
-    ]
+    filtered = [d for d in all_deals if d.historical_avg and d.buy_price]
 
     # Filter out non-English (French/German/Spanish/Italian) product titles.
     # These slip in from ADOR's localized catalog entries despite scrape-time
@@ -165,10 +158,9 @@ async def list_public_deals(
             unique_deals.append(d)
 
     deals = unique_deals[offset:offset + limit]
-    return [_deal_to_response(d, db) for d in deals]
-
-
-@router.get("/deals/public/{deal_id}", response_model=DealResponse)
+    # One coupon query for the whole page instead of N+1 per deal.
+    best_coupons = _best_coupons_batch(deals, db)
+    return [_deal_to_response(d, db=None, best_coupon=best_coupons.get(str(d.id))) for d in deals]
 async def get_public_deal(
     deal_id: UUID = Path(..., description="Public deal ID"),
     db: Session = Depends(get_db),
@@ -1862,19 +1854,19 @@ def _save_opportunity(db: Session, opp: ArbitrageOpportunity) -> ArbitrageDeal:
     return deal
 
 
-def _deal_to_response(deal: ArbitrageDeal, db: Session = None) -> DealResponse:
+def _deal_to_response(deal: ArbitrageDeal, db: Session = None, best_coupon: Optional[dict] = None) -> DealResponse:
     """Convert an ArbitrageDeal model to a DealResponse.
 
     When a db session is provided, auto-matches the best applicable coupon
     for the deal's retailer and includes the effective price after coupon.
+    Pass `best_coupon` to skip the per-deal lookup (batch path).
     """
     image_url = deal.image_url
     # Don't filter out Amazon image URLs — ASIN-based URLs like
     # https://m.media-amazon.com/images/I/B0HCRVD7VP._AC_SL240_.jpg
     # are valid image URLs that Amazon serves correctly.
 
-    best_coupon = None
-    if db is not None:
+    if best_coupon is None and db is not None:
         best_coupon = _find_best_coupon_for_deal(deal, db)
 
     return DealResponse(
@@ -1902,6 +1894,80 @@ def _deal_to_response(deal: ArbitrageDeal, db: Session = None) -> DealResponse:
         detected_at=deal.detected_at.isoformat() if deal.detected_at else "",
         best_coupon=best_coupon,
     )
+
+
+def _best_coupons_batch(deals: list, db: Session) -> dict:
+    """Match best coupons for a page of deals with a single DB query.
+
+    Returns {deal_id_str: best_coupon_dict}. Replaces the per-deal
+    `_find_best_coupon_for_deal` lookups which were an N+1 (~50 queries).
+    """
+    if not deals:
+        return {}
+    try:
+        from app.db.models import CouponCode
+        from app.services.coupon_scraper import calculate_discounted_price, ScrapedCoupon
+        from collections import defaultdict
+
+        # Collect every retailer variant across the page
+        variants = set()
+        deal_retailers = {}
+        for d in deals:
+            r = (getattr(d, "retailer", None) or d.buy_platform or "amazon").lower()
+            deal_retailers[str(d.id)] = r
+            variants.add(r)
+            variants.add(r.replace("_", ""))
+
+        coupons = db.query(CouponCode).filter(
+            CouponCode.retailer.in_(list(variants)),
+            CouponCode.status == "active",
+            (CouponCode.expires_at.is_(None)) | (CouponCode.expires_at > datetime.utcnow()),
+        ).order_by(CouponCode.discount_value.desc()).all()
+
+        by_retailer = defaultdict(list)
+        for c in coupons:
+            by_retailer[c.retailer].append(c)
+
+        results = {}
+        for d in deals:
+            retailer = deal_retailers[str(d.id)]
+            candidates = (
+                by_retailer.get(retailer, []) + by_retailer.get(retailer.replace("_", ""), [])
+            )
+            if d.category:
+                cat = d.category.lower()
+                candidates = [c for c in candidates if c.category is None or c.category == cat]
+
+            best, best_savings = None, Decimal("0")
+            for coupon in candidates[:5]:
+                scraped = ScrapedCoupon(
+                    code=coupon.code,
+                    retailer=coupon.retailer,
+                    title=coupon.title,
+                    discount_type=coupon.discount_type,
+                    discount_value=coupon.discount_value or Decimal("0"),
+                    min_purchase=coupon.min_purchase,
+                    max_discount=coupon.max_discount,
+                )
+                effective_price, savings = calculate_discounted_price(
+                    Decimal(str(d.buy_price)), scraped
+                )
+                if savings > best_savings:
+                    best_savings = savings
+                    best = {
+                        "id": str(coupon.id),
+                        "code": coupon.code,
+                        "discount_type": coupon.discount_type,
+                        "discount_value": float(coupon.discount_value) if coupon.discount_value else 0,
+                        "effective_price": float(effective_price),
+                        "savings": float(savings),
+                        "title": coupon.title[:100],
+                    }
+            if best:
+                results[str(d.id)] = best
+        return results
+    except Exception:
+        return {}
 
 
 def _find_best_coupon_for_deal(deal: ArbitrageDeal, db: Session) -> Optional[dict]:

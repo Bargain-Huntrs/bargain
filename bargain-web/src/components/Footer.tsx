@@ -87,12 +87,12 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/community"
                   className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors"
                 >
-                  Discord Community
-                </a>
+                  Community
+                </Link>
               </li>
             </ul>
           </div>
@@ -101,8 +101,9 @@ export default function Footer() {
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-50 mb-4">Account</h4>
             <ul className="space-y-2.5 text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-              <li><Link href="/signup" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Get started</Link></li>
-              <li><Link href="/login" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Sign in</Link></li>
+              <li><Link href="/dashboard" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Dashboard</Link></li>
+              <li><Link href="/settings/notifications" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Notifications</Link></li>
+              <li><Link href="/referrals" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Referrals</Link></li>
             </ul>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-50 mb-4">Legal</h4>
             <ul className="space-y-2.5 text-sm text-zinc-500 dark:text-zinc-400">

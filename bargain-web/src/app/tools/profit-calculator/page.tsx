@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -72,6 +72,19 @@ export default function ProfitCalculatorPage() {
   const [cogs, setCogs] = useState<string>("");
   const [salesTax, setSalesTax] = useState<string>("");
   const [copied, setCopied] = useState(false);
+
+  // Prefill from query params (e.g. linked from dashboard haul items)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const buy = q.get("buy");
+    const sell = q.get("sell");
+    const platform = q.get("platform");
+    if (buy) setBuyPrice(buy);
+    if (sell) setSellPrice(sell);
+    if (platform && PLATFORMS.some((p) => p.key === platform)) {
+      setPlatformKey(platform as PlatformKey);
+    }
+  }, []);
 
   const platform = PLATFORMS.find((p) => p.key === platformKey)!;
 

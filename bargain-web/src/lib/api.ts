@@ -43,6 +43,8 @@ async function fetchWithAuth(endpoint: string, token: string | null, options: Re
     throw new Error(error.detail || `Request failed with ${response.status}`);
   }
 
+  if (response.status === 204) return null;
+
   return response.json();
 }
 
@@ -1014,4 +1016,123 @@ export async function getListingStates(): Promise<{
   const res = await fetch(`${API_URL}/api/v1/listings/states`);
   if (!res.ok) throw new Error(`Failed to fetch listing states: ${res.status}`);
   return res.json();
+}
+
+// ─── Dashboard: haul (deal claims) + user lists ─────────────────────────────
+
+export interface DealClaim {
+  id: string;
+  deal_id: string | null;
+  title: string;
+  image_url: string | null;
+  buy_url: string | null;
+  buy_platform: string | null;
+  sell_platform: string | null;
+  quantity: number;
+  buy_price: string;
+  est_sell_price: string | null;
+  est_net_profit: string | null;
+  status: "bought" | "listed" | "sold";
+  listing_url: string | null;
+  sold_price: string | null;
+  purchased_at: string | null;
+  listed_at: string | null;
+  sold_at: string | null;
+  notes: string | null;
+  created_at: string | null;
+}
+
+export interface UserListItem {
+  id: string;
+  list_type: "shopping" | "wishlist" | "bolo";
+  title: string;
+  url: string | null;
+  target_price: string | null;
+  notes: string | null;
+  matched_deal_id: string | null;
+  matched_at: string | null;
+  is_active: boolean;
+  created_at: string | null;
+}
+
+export interface ProfitSummary {
+  total_spent: number;
+  realized_profit: number;
+  potential_profit: number;
+  realized_roi: number;
+  items_bought: number;
+  items_listed: number;
+  items_sold: number;
+  series: { date: string; realized: number; potential: number }[];
+}
+
+export async function getHaul(token: string, status?: string): Promise<DealClaim[]> {
+  const qs = status ? `?status=${status}` : "";
+  return fetchWithAuth(`/api/v1/dashboard/haul${qs}`, token) as Promise<DealClaim[]>;
+}
+
+export async function createClaim(
+  token: string,
+  body: { deal_id?: string; title?: string; buy_price?: number; quantity?: number; notes?: string }
+): Promise<DealClaim> {
+  return fetchWithAuth("/api/v1/dashboard/haul", token, {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<DealClaim>;
+}
+
+export async function updateClaim(
+  token: string,
+  claimId: string,
+  body: {
+    status?: string;
+    sold_price?: number;
+    listing_url?: string;
+    buy_price?: number;
+    quantity?: number;
+    notes?: string;
+  }
+): Promise<DealClaim> {
+  return fetchWithAuth(`/api/v1/dashboard/haul/${claimId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  }) as Promise<DealClaim>;
+}
+
+export async function deleteClaim(token: string, claimId: string): Promise<void> {
+  await fetchWithAuth(`/api/v1/dashboard/haul/${claimId}`, token, { method: "DELETE" });
+}
+
+export async function getListItems(token: string, listType?: string): Promise<UserListItem[]> {
+  const qs = listType ? `?list_type=${listType}` : "";
+  return fetchWithAuth(`/api/v1/dashboard/lists${qs}`, token) as Promise<UserListItem[]>;
+}
+
+export async function createListItem(
+  token: string,
+  body: { list_type: string; title: string; url?: string; target_price?: number; notes?: string }
+): Promise<UserListItem> {
+  return fetchWithAuth("/api/v1/dashboard/lists", token, {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<UserListItem>;
+}
+
+export async function updateListItem(
+  token: string,
+  itemId: string,
+  body: { title?: string; url?: string; target_price?: number; notes?: string; is_active?: boolean }
+): Promise<UserListItem> {
+  return fetchWithAuth(`/api/v1/dashboard/lists/${itemId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  }) as Promise<UserListItem>;
+}
+
+export async function deleteListItem(token: string, itemId: string): Promise<void> {
+  await fetchWithAuth(`/api/v1/dashboard/lists/${itemId}`, token, { method: "DELETE" });
+}
+
+export async function getProfitSummary(token: string): Promise<ProfitSummary> {
+  return fetchWithAuth("/api/v1/dashboard/profit-summary", token) as Promise<ProfitSummary>;
 }

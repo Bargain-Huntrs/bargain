@@ -504,3 +504,61 @@ class Listing(Base):
     __table_args__ = (
         UniqueConstraint("source", "source_id", name="uq_listings_source_source_id"),
     )
+
+
+class DealClaim(Base):
+    """A deal the user actually bought — the haul / P&L ledger.
+
+    Status flow: bought -> listed -> sold. ``sold_price`` is the real number;
+    ``est_*`` fields are the deal's projected values at claim time, used only
+    for "potential profit" display — never presented as realized.
+    """
+    __tablename__ = "deal_claims"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    deal_id = Column(UUID(as_uuid=True), ForeignKey("arbitrage_deals.id"), index=True)  # null = manual entry
+    title = Column(String(500), nullable=False)
+    image_url = Column(String(1000))
+    buy_url = Column(String(1000))
+    buy_platform = Column(String(50))
+    sell_platform = Column(String(50))
+    quantity = Column(Integer, default=1, nullable=False)
+    buy_price = Column(Numeric(10, 2), nullable=False)  # per unit paid
+    est_sell_price = Column(Numeric(10, 2))
+    est_net_profit = Column(Numeric(10, 2))
+    status = Column(String(20), default="bought", nullable=False, index=True)  # bought|listed|sold
+    listing_url = Column(String(1000))
+    sold_price = Column(Numeric(10, 2))  # per unit actually sold for
+    purchased_at = Column(DateTime, default=datetime.utcnow)
+    listed_at = Column(DateTime)
+    sold_at = Column(DateTime)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    deal = relationship("ArbitrageDeal")
+
+
+class UserListItem(Base):
+    """User-curated lists: shopping, wishlist, bolo (be-on-lookout).
+
+    For ``bolo`` items the ingestion pipeline matches new deals against the
+    title keywords and sets ``matched_deal_id`` + ``matched_at`` on a hit.
+    """
+    __tablename__ = "user_list_items"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    list_type = Column(String(20), nullable=False, index=True)  # shopping|wishlist|bolo
+    title = Column(String(500), nullable=False)
+    url = Column(String(1000))
+    target_price = Column(Numeric(10, 2))
+    notes = Column(Text)
+    matched_deal_id = Column(UUID(as_uuid=True), ForeignKey("arbitrage_deals.id"))
+    matched_at = Column(DateTime)
+    is_active = Column(Boolean, default=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    matched_deal = relationship("ArbitrageDeal")

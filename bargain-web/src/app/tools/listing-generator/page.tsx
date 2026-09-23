@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -352,6 +352,19 @@ export default function ListingGeneratorPage() {
   const [copiedListing, setCopiedListing] = useState(false);
   const [copiedTitle, setCopiedTitle] = useState(false);
   const [copiedTags, setCopiedTags] = useState(false);
+
+  // Prefill from query params (e.g. linked from dashboard haul items)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const title = q.get("title");
+    const buy = q.get("buy");
+    const platform = q.get("platform");
+    if (title) setProductTitle(title);
+    if (buy) setBuyPrice(buy);
+    if (platform && PLATFORMS.some((p) => p.key === platform)) {
+      setPlatformKey(platform as PlatformKey);
+    }
+  }, []);
 
   const platform = PLATFORMS.find((p) => p.key === platformKey)!;
   const condition = CONDITIONS.find((c) => c.key === conditionKey)!;

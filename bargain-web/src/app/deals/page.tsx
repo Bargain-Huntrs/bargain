@@ -14,6 +14,7 @@ import {
   clickAffiliatePublic,
   getPricePrediction,
   addUtmParameters,
+  createClaim,
   type ArbitrageDeal,
   type Niche,
   type PricePrediction,
@@ -35,6 +36,8 @@ export default function DealsPage() {
   const [loadingPrediction, setLoadingPrediction] = useState<Record<string, boolean>>({});
   const [clickingDeal, setClickingDeal] = useState<string | null>(null);
   const [copiedDealId, setCopiedDealId] = useState<string | null>(null);
+  const [claimedDealIds, setClaimedDealIds] = useState<Set<string>>(new Set());
+  const [claimingDeal, setClaimingDeal] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRetailer, setFilterRetailer] = useState<string | null>(null);
   const [filterSource, setFilterSource] = useState<string | null>(null);
@@ -165,6 +168,22 @@ export default function DealsPage() {
       }
     },
     []
+  );
+
+  const handleClaim = useCallback(
+    async (deal: ArbitrageDeal) => {
+      if (!idToken || claimedDealIds.has(deal.id)) return;
+      setClaimingDeal(deal.id);
+      try {
+        await createClaim(idToken, { deal_id: deal.id });
+        setClaimedDealIds((prev) => new Set(prev).add(deal.id));
+      } catch {
+        // Non-critical
+      } finally {
+        setClaimingDeal(null);
+      }
+    },
+    [idToken, claimedDealIds]
   );
 
   const handleLoadPrediction = useCallback(
@@ -564,6 +583,19 @@ export default function DealsPage() {
                               {copiedDealId === deal.id ? "Copied!" : "Share"}
                             </button>
                           </div>
+                          {idToken && (
+                            <button
+                              onClick={() => handleClaim(deal)}
+                              disabled={claimingDeal === deal.id || claimedDealIds.has(deal.id)}
+                              className="mt-2 w-full rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                            >
+                              {claimedDealIds.has(deal.id)
+                                ? "✓ In your haul"
+                                : claimingDeal === deal.id
+                                ? "Adding…"
+                                : "📦 I bought this"}
+                            </button>
+                          )}
                         </div>
                       </div>
                     );

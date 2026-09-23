@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.routers import auth, watchlist, waitlist, arbitrage, subscriptions, coupons, notifications, affiliate, community, gamification, seller, referrals, resale, newsletter, pinterest, properties, contact, listings
+from app.routers import auth, watchlist, waitlist, arbitrage, subscriptions, coupons, notifications, affiliate, community, gamification, seller, referrals, resale, newsletter, pinterest, properties, contact, listings, dashboard
 from app.routers.alerts import router as alerts_router, scheduler_router
 
 # WebAuthn (passkeys) is optional — requires python-webauthn package
@@ -75,6 +75,7 @@ app.include_router(newsletter.router)
 app.include_router(pinterest.router)
 app.include_router(properties.router)
 app.include_router(listings.router)
+app.include_router(dashboard.router)
 app.include_router(contact.router)
 
 

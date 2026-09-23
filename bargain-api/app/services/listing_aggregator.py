@@ -38,9 +38,13 @@ AUCTION_STATUSES = ("active", "preview")
 
 # GSA category codes -> normalized BargainHuntrs category
 GSA_CATEGORY_MAP = {
-    "20": "vehicle",   # Aircraft and Aircraft Parts (sale-adjacent, keep surplus?)
-    "30": "vehicle",   # Vehicles, Trailers, Cycles
-    "40": "vehicle",   # Boats and Marine Equipment
+    "20": "vehicle",    # Aircraft and Aircraft Parts
+    "40": "vehicle",    # Boats and Marine Equipment
+    "90": "vehicle",    # Fire Trucks and Fire Fighting Equipment
+    "130": "collectible",  # Artifacts, Jewelry and Exotic Collectibles
+    "170": "vehicle",   # Motorcycles & Bicycles
+    "200": "vehicle",   # Trailers, Tractors and Manufactured Housing
+    "300": "vehicle",   # Vehicles
 }
 
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}

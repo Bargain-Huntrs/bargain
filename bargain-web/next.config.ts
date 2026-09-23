@@ -38,6 +38,21 @@ const withPWA = withPWAInit({
   dest: "public",
   register: true,
   disable: process.env.NODE_ENV === "development",
+  // Don't precache the start URL — precached HTML goes stale after deploys.
+  cacheStartUrl: false,
+  extendDefaultRuntimeCaching: true,
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        // Page navigations always hit the network — the default "pages"
+        // runtime cache (24h) was serving stale builds after deploys.
+        // Custom rules are registered before the defaults, so this wins.
+        urlPattern: ({ request }: { request: Request }) =>
+          request.mode === "navigate",
+        handler: "NetworkOnly",
+      },
+    ],
+  },
 });
 
 export default withPWA(nextConfig);

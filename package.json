@@ -9,9 +9,17 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "prepare": "husky",
+    "self-heal": "bash scripts/quick-fix.sh",
+    "fix-all": "bash scripts/quick-fix.sh",
+    "check-all": "bash scripts/quick-fix.sh",
+    "watch:errors": "node scripts/watch-errors.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "playwright-core": "^1.49.0",
     "prettier": "^3.2.5",
     "turbo": "^2.9.18"
   },

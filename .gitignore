@@ -60,3 +60,6 @@ ENV/
 *.swo
 *~
 .env*.bak
+
+# Self-healing error reports (generated)
+.errors/

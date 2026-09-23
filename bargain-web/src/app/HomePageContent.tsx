@@ -320,9 +320,11 @@ export default function HomePageContent() {
             </div>
             <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
               <p className="text-lg font-black text-zinc-900 dark:text-zinc-50">
-                {communityStats ? communityStats.total_members.toLocaleString() : "—"}
+                {verticalCounts.community !== null
+                  ? verticalCounts.community.toLocaleString()
+                  : communityStats ? communityStats.deals_posted.toLocaleString() : "—"}
               </p>
-              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Hunters</p>
+              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Hunter finds</p>
             </div>
           </div>
         </section>
@@ -366,7 +368,7 @@ export default function HomePageContent() {
                   icon: "🎟️",
                   title: "Coupons",
                   desc: "Codes & stacking",
-                  count: verticalCounts.coupons !== null ? `${verticalCounts.coupons} active` : null,
+                  count: verticalCounts.coupons !== null ? `${verticalCounts.coupons}${verticalCounts.coupons >= 100 ? "+" : ""} active` : null,
                   accent: "pink",
                 },
                 {
@@ -374,7 +376,7 @@ export default function HomePageContent() {
                   icon: "👥",
                   title: "Community Finds",
                   desc: "Deals posted by hunters",
-                  count: verticalCounts.community !== null ? `${verticalCounts.community} posted` : null,
+                  count: verticalCounts.community ? `${verticalCounts.community} posted` : null,
                   accent: "indigo",
                 },
               ].map((v) => (

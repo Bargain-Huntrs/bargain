@@ -56,6 +56,18 @@ export default function SignupPage() {
           </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            {/* Auth mode toggle */}
+            <div className="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
+              <Link
+                href="/login"
+                className="rounded-lg px-3 py-2 text-center text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Sign in
+              </Link>
+              <span className="rounded-lg bg-white px-3 py-2 text-center text-sm font-semibold text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-50">
+                Get started
+              </span>
+            </div>
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
                 Create your account

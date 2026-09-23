@@ -30,6 +30,9 @@ import {
   type UserListItem,
   type ProfitSummary,
 } from "@/lib/api";
+import ProfitCalculator from "@/components/tools/ProfitCalculator";
+import ListingGenerator from "@/components/tools/ListingGenerator";
+import RealEstateCalculator from "@/components/tools/RealEstateCalculator";
 
 interface UserData {
   id: string;
@@ -47,7 +50,15 @@ interface WatchlistItem {
   created_at: string;
 }
 
-type TabKey = "haul" | "shopping" | "wishlist" | "bolo" | "watchlist";
+type TabKey = "haul" | "shopping" | "wishlist" | "bolo" | "watchlist" | "tools";
+type ToolKey = "profit" | "listing" | "realestate";
+
+interface ToolPrefill {
+  title?: string;
+  buy?: string;
+  sell?: string;
+  platform?: string;
+}
 
 const TABS: { key: TabKey; label: string; hint: string }[] = [
   { key: "haul", label: "My Haul", hint: "Deals you bought — track them to sold" },
@@ -55,6 +66,13 @@ const TABS: { key: TabKey; label: string; hint: string }[] = [
   { key: "wishlist", label: "Wishlist", hint: "Wants you're watching" },
   { key: "bolo", label: "BOLO", hint: "Be on the lookout — we match new deals to these" },
   { key: "watchlist", label: "Watchlist", hint: "Price-tracking alerts" },
+  { key: "tools", label: "Tools", hint: "Calculators and generators — no need to leave your HQ" },
+];
+
+const TOOLS: { key: ToolKey; label: string; desc: string }[] = [
+  { key: "profit", label: "Profit Calculator", desc: "Net profit, ROI & fees before you buy" },
+  { key: "listing", label: "Listing Generator", desc: "Optimized title, description & pricing" },
+  { key: "realestate", label: "Real Estate Calc", desc: "MAO, flip ROI & rental yield" },
 ];
 
 const inputCls =
@@ -160,11 +178,13 @@ function ClaimCard({
   claim,
   onUpdate,
   onDelete,
+  onOpenTool,
   busy,
 }: {
   claim: DealClaim;
   onUpdate: (id: string, body: Parameters<typeof updateClaim>[2]) => void;
   onDelete: (id: string) => void;
+  onOpenTool: (tool: ToolKey, prefill: ToolPrefill) => void;
   busy: boolean;
 }) {
   const [soldInput, setSoldInput] = useState("");
@@ -175,13 +195,6 @@ function ClaimCard({
     claim.status === "sold" && claim.sold_price
       ? (parseFloat(claim.sold_price) - parseFloat(claim.buy_price)) * qty
       : null;
-
-  const genListingUrl = `/tools/listing-generator?title=${encodeURIComponent(
-    claim.title
-  )}&buy=${claim.buy_price}&platform=${claim.sell_platform || "ebay"}`;
-  const analyzeUrl = `/tools/profit-calculator?buy=${claim.buy_price}&sell=${
-    claim.est_sell_price || ""
-  }&platform=${claim.sell_platform || "ebay"}`;
 
   return (
     <div className="flex gap-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -230,13 +243,18 @@ function ClaimCard({
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {claim.status === "bought" && (
             <>
-              <Link
-                href={genListingUrl}
-                target="_blank"
+              <button
+                onClick={() =>
+                  onOpenTool("listing", {
+                    title: claim.title,
+                    buy: claim.buy_price,
+                    platform: claim.sell_platform || "ebay",
+                  })
+                }
                 className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 Generate listing
-              </Link>
+              </button>
               <input
                 value={listingInput}
                 onChange={(e) => setListingInput(e.target.value)}
@@ -294,13 +312,18 @@ function ClaimCard({
             </span>
           )}
           {claim.status !== "sold" && (
-            <Link
-              href={analyzeUrl}
-              target="_blank"
+            <button
+              onClick={() =>
+                onOpenTool("profit", {
+                  buy: claim.buy_price,
+                  sell: claim.est_sell_price || undefined,
+                  platform: claim.sell_platform || "ebay",
+                })
+              }
               className="text-xs font-medium text-zinc-500 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-400"
             >
               Analyze →
-            </Link>
+            </button>
           )}
           <button
             onClick={() => onDelete(claim.id)}
@@ -333,6 +356,8 @@ export default function DashboardPage() {
   const [myDeals, setMyDeals] = useState<MyDeal[]>([]);
 
   const [tab, setTab] = useState<TabKey>("haul");
+  const [activeTool, setActiveTool] = useState<ToolKey>("profit");
+  const [toolPrefill, setToolPrefill] = useState<ToolPrefill>({});
   const [haul, setHaul] = useState<DealClaim[]>([]);
   const [summary, setSummary] = useState<ProfitSummary | null>(null);
   const [listItems, setListItems] = useState<UserListItem[]>([]);
@@ -409,7 +434,7 @@ export default function DashboardPage() {
 
   async function handleAddListItem(e: React.FormEvent) {
     e.preventDefault();
-    if (!idToken || tab === "haul" || tab === "watchlist") return;
+    if (!idToken || (tab !== "shopping" && tab !== "wishlist" && tab !== "bolo")) return;
     try {
       await createListItem(idToken, {
         list_type: tab,
@@ -695,6 +720,11 @@ export default function DashboardPage() {
                       busy={claimBusy}
                       onUpdate={handleUpdateClaim}
                       onDelete={handleDeleteClaim}
+                      onOpenTool={(tool, prefill) => {
+                        setActiveTool(tool);
+                        setToolPrefill(prefill);
+                        setTab("tools");
+                      }}
                     />
                   ))
                 )}
@@ -838,6 +868,58 @@ export default function DashboardPage() {
                     ))}
                   </ul>
                 )}
+              </div>
+            )}
+
+            {/* ── Tools tab ── */}
+            {tab === "tools" && (
+              <div>
+                <div className="mb-5 grid gap-2 sm:grid-cols-3">
+                  {TOOLS.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => {
+                        setActiveTool(t.key);
+                        setToolPrefill({});
+                      }}
+                      className={`rounded-xl border p-4 text-left transition-colors ${
+                        activeTool === t.key
+                          ? "border-emerald-500 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/40"
+                          : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                      }`}
+                    >
+                      <p className={`text-sm font-semibold ${
+                        activeTool === t.key
+                          ? "text-emerald-700 dark:text-emerald-400"
+                          : "text-zinc-900 dark:text-zinc-50"
+                      }`}>
+                        {t.label}
+                      </p>
+                      <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{t.desc}</p>
+                    </button>
+                  ))}
+                </div>
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900/50">
+                  {activeTool === "profit" && (
+                    <ProfitCalculator
+                      key={`profit-${toolPrefill.buy}-${toolPrefill.sell}-${toolPrefill.platform}`}
+                      embedded
+                      initialBuy={toolPrefill.buy}
+                      initialSell={toolPrefill.sell}
+                      initialPlatform={toolPrefill.platform}
+                    />
+                  )}
+                  {activeTool === "listing" && (
+                    <ListingGenerator
+                      key={`listing-${toolPrefill.title}-${toolPrefill.buy}-${toolPrefill.platform}`}
+                      embedded
+                      initialTitle={toolPrefill.title}
+                      initialBuy={toolPrefill.buy}
+                      initialPlatform={toolPrefill.platform}
+                    />
+                  )}
+                  {activeTool === "realestate" && <RealEstateCalculator embedded />}
+                </div>
               </div>
             )}
           </div>

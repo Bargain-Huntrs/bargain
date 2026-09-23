@@ -156,20 +156,12 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <>
-              <Link
-                href="/login"
-                className="text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50 transition-colors"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
-                Get started
-              </Link>
-            </>
+            <Link
+              href="/signup"
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              Get started
+            </Link>
           )}
         </div>
 
@@ -249,22 +241,13 @@ export default function Header() {
                 </button>
               </>
             ) : (
-              <>
-                <Link
-                  href="/signup"
-                  onClick={() => setMenuOpen(false)}
-                  className="block rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-semibold text-white dark:bg-zinc-50 dark:text-zinc-900"
-                >
-                  Get started free
-                </Link>
-                <Link
-                  href="/login"
-                  onClick={() => setMenuOpen(false)}
-                  className="block rounded-xl border border-zinc-200 px-4 py-2.5 text-center text-sm font-medium text-zinc-700 dark:border-zinc-800 dark:text-zinc-300"
-                >
-                  Sign in
-                </Link>
-              </>
+              <Link
+                href="/signup"
+                onClick={() => setMenuOpen(false)}
+                className="block rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-semibold text-white dark:bg-zinc-50 dark:text-zinc-900"
+              >
+                Get started free
+              </Link>
             )}
           </div>
         </div>

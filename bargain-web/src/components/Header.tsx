@@ -15,7 +15,7 @@ const NAV_LINKS = [
   { href: "/tools/profit-calculator", label: "Profit Calc" },
   { href: "/tools/listing-generator", label: "Listing Gen" },
   { href: "/real-estate", label: "Real Estate" },
-  { href: "/contact", label: "Waitlist" },
+  { href: "/waitlist", label: "Waitlist" },
 ];
 
 export default function Header() {

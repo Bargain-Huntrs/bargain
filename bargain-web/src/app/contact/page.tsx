@@ -4,32 +4,29 @@ import Footer from "@/components/Footer";
 import ContactForm from "./ContactForm";
 
 export const metadata: Metadata = {
-  title: "Join the Waitlist – BargainHuntrs",
+  title: "Contact Us – BargainHuntrs",
   description:
-    "Early access to BargainHuntrs is rolling out in batches. Drop your email and we'll let you know the moment your spot opens.",
+    "Questions, partnerships, press, or support — get in touch with the BargainHuntrs team. We respond within 24 hours on business days.",
 };
 
-const signals = [
-  { stat: "10,000+", label: "people already on the waitlist" },
-  { stat: "< 1 week", label: "average time from waitlist to invite" },
-  { stat: "$0", label: "required to reserve your spot" },
-];
-
-const reasons = [
+const channels = [
   {
-    icon: "⚡",
-    title: "Early access to glitch alerts",
-    body: "Glitch detection is being rolled out to early users first. The sooner you're on the list, the sooner you start catching deals competitors miss.",
+    icon: "📬",
+    title: "Email us",
+    body: "hello@bargainhuntrs.com",
+    sub: "We respond within 24 hours on business days",
   },
   {
-    icon: "🔒",
-    title: "Locked-in founder pricing",
-    body: "Waitlisters get 40% off their first three months when they activate. This offer won't be available at general launch.",
+    icon: "💬",
+    title: "Community",
+    body: "Join our Discord",
+    sub: "2,300+ resellers sharing deals, tips & tricks",
   },
   {
-    icon: "🗺️",
-    title: "Shape the product",
-    body: "We interview waitlisters about their current tools, pain points, and wishlist features. Your feedback directly drives what we build next.",
+    icon: "🏪",
+    title: "Sell with us",
+    body: "Seller portal",
+    sub: "Submit coupon codes and price drops directly",
   },
 ];
 
@@ -39,7 +36,6 @@ export default function ContactPage() {
       <Header />
 
       <main className="flex-1">
-
         {/* ── Hero ─────────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden px-6 py-20 bg-gradient-to-b from-white to-zinc-50 dark:from-zinc-950 dark:to-zinc-900 text-center">
           <div
@@ -48,85 +44,53 @@ export default function ContactPage() {
           />
           <div className="relative">
             <span className="inline-block rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 mb-6">
-              Early access
+              Contact
             </span>
             <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
-              The deal hunters who get in early<br />get in cheap.
+              Talk to a human.
             </h1>
             <p className="mt-4 text-base text-zinc-600 dark:text-zinc-400 max-w-lg mx-auto">
-              We&apos;re rolling out in batches. Drop your email below to reserve your spot — and lock in
-              40% off your first three months when your invite arrives.
+              Questions about your account, a deal, selling with us, or press —
+              send it over and we&apos;ll get back to you fast.
             </p>
           </div>
         </section>
 
-        {/* ── Stats strip ──────────────────────────────────────────────── */}
-        <section className="border-y border-zinc-200 bg-zinc-50/80 px-6 py-8 dark:border-zinc-800 dark:bg-zinc-900/60">
-          <div className="mx-auto max-w-3xl flex flex-wrap justify-center gap-12 text-center">
-            {signals.map(({ stat, label }) => (
-              <div key={label}>
-                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 tabular-nums">{stat}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">{label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Two-column: reasons + form ────────────────────────────────── */}
+        {/* ── Two-column: channels + form ───────────────────────────────── */}
         <section className="px-6 py-20">
           <div className="mx-auto max-w-6xl grid gap-16 lg:grid-cols-2 lg:gap-12 items-start">
 
-            {/* Left: Why join now */}
+            {/* Left: channels */}
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-8">
-                Why join the waitlist now?
+                Other ways to reach us
               </h2>
               <div className="space-y-8">
-                {reasons.map((r) => (
-                  <div key={r.title} className="flex gap-4">
+                {channels.map((c) => (
+                  <div key={c.title} className="flex gap-4">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-xl dark:border-zinc-800 dark:bg-zinc-900">
-                      {r.icon}
+                      {c.icon}
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{r.title}</h3>
-                      <p className="mt-1 text-sm text-zinc-600 leading-relaxed dark:text-zinc-400">{r.body}</p>
+                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{c.title}</h3>
+                      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{c.body}</p>
+                      <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-600">{c.sub}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Competitor comparison callout */}
               <div className="mt-10 rounded-2xl border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
-                  vs. what you&apos;re probably using now
+                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                  Looking for early access instead?
                 </p>
-                <div className="space-y-2.5">
-                  {[
-                    ["Tactical Arbitrage", "Amazon-only, $59/mo, no glitch detection"],
-                    ["BuyBotPro", "Finds nothing — only analyzes deals you bring it"],
-                    ["BrickSeek", "Consumer tool, no profit math, US retail only"],
-                    ["Keepa / CamelCamelCamel", "Pretty charts. Zero arbitrage intelligence."],
-                  ].map(([tool, note]) => (
-                    <div key={tool} className="flex items-start gap-2 text-xs">
-                      <span className="mt-0.5 text-rose-400 shrink-0">✕</span>
-                      <span>
-                        <strong className="text-zinc-700 dark:text-zinc-300">{tool}</strong>
-                        {" — "}
-                        <span className="text-zinc-500 dark:text-zinc-500">{note}</span>
-                      </span>
-                    </div>
-                  ))}
-                  <div className="flex items-start gap-2 text-xs mt-3">
-                    <span className="mt-0.5 text-emerald-500 shrink-0">✓</span>
-                    <span>
-                      <strong className="text-emerald-700 dark:text-emerald-400">BargainHuntrs</strong>
-                      {" — "}
-                      <span className="text-zinc-500 dark:text-zinc-500">
-                        Glitch detection + cross-platform arbitrage + true profit math. Starting free.
-                      </span>
-                    </span>
-                  </div>
-                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  The waitlist is a separate list —{" "}
+                  <a href="/waitlist" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    join it here
+                  </a>{" "}
+                  to lock in founder pricing.
+                </p>
               </div>
             </div>
 
@@ -134,10 +98,10 @@ export default function ContactPage() {
             <div>
               <div className="rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900 shadow-sm">
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
-                  Reserve your spot
+                  Send us a message
                 </h2>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-                  Takes 30 seconds. No payment info needed.
+                  We read every message. Expect a reply within one business day.
                 </p>
                 <ContactForm />
               </div>
@@ -145,49 +109,6 @@ export default function ContactPage() {
 
           </div>
         </section>
-
-        {/* ── Contact info strip ───────────────────────────────────────── */}
-        <section className="border-t border-zinc-200 px-6 py-16 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40">
-          <div className="mx-auto max-w-3xl grid gap-8 sm:grid-cols-3 text-center">
-            <div>
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-zinc-200 text-2xl dark:bg-zinc-900 dark:border-zinc-800">
-                📬
-              </div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Email us</h3>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                hello@bargainhuntrs.com
-              </p>
-              <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-600">
-                We respond within 24 hours on business days
-              </p>
-            </div>
-            <div>
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-zinc-200 text-2xl dark:bg-zinc-900 dark:border-zinc-800">
-                💬
-              </div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Community</h3>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Join our Discord
-              </p>
-              <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-600">
-                2,300+ resellers sharing deals, tips & tricks
-              </p>
-            </div>
-            <div>
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-zinc-200 text-2xl dark:bg-zinc-900 dark:border-zinc-800">
-                🔒
-              </div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">No spam</h3>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                We only email about your invite and major updates
-              </p>
-              <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-600">
-                Unsubscribe anytime in one click
-              </p>
-            </div>
-          </div>
-        </section>
-
       </main>
 
       <Footer />

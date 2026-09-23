@@ -22,7 +22,7 @@ const TIER_COLOR: Record<string, string> = {
 
 export default function ReferralsPage() {
   const router = useRouter();
-  const { user, loading, idToken } = useAuth();
+  const { loading, idToken } = useAuth();
   const [referralLink, setReferralLink] = useState<string>("");
   const [referralCode, setReferralCode] = useState<string>("");
   const [referralCount, setReferralCount] = useState<number>(0);
@@ -33,17 +33,20 @@ export default function ReferralsPage() {
   const [fetching, setFetching] = useState(true);
 
   const loadData = useCallback(async () => {
-    if (!idToken) return;
     try {
-      const [stats, leaders] = await Promise.all([
-        getReferralStats(idToken),
-        getReferralLeaderboard(50),
-      ]);
-      setReferralCode(stats.referral_code);
-      setReferralLink(stats.referral_link);
-      setReferralCount(stats.referral_count);
-      setAuraEarned(stats.total_aura_earned);
-      setLeaderboard(leaders);
+      if (idToken) {
+        const [stats, leaders] = await Promise.all([
+          getReferralStats(idToken),
+          getReferralLeaderboard(50),
+        ]);
+        setReferralCode(stats.referral_code);
+        setReferralLink(stats.referral_link);
+        setReferralCount(stats.referral_count);
+        setAuraEarned(stats.total_aura_earned);
+        setLeaderboard(leaders);
+      } else {
+        setLeaderboard(await getReferralLeaderboard(50));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load referral data");
     } finally {
@@ -52,12 +55,8 @@ export default function ReferralsPage() {
   }, [idToken]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-      return;
-    }
-    loadData();
-  }, [user, loading, router, loadData]);
+    if (!loading) loadData();
+  }, [loading, loadData]);
 
   async function copyLink() {
     if (!referralLink) return;
@@ -112,6 +111,15 @@ export default function ReferralsPage() {
           </p>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            {!idToken ? (
+              <button
+                onClick={() => router.push("/login")}
+                className="flex-1 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+              >
+                Sign in to get your referral link
+              </button>
+            ) : (
+              <>
             <input
               type="text"
               readOnly
@@ -130,8 +138,11 @@ export default function ReferralsPage() {
             >
               Share on X
             </button>
+              </>
+            )}
           </div>
 
+          {idToken && (
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <div className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">Referral code</p>
@@ -146,6 +157,7 @@ export default function ReferralsPage() {
               <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-50">{auraEarned}</p>
             </div>
           </div>
+          )}
         </div>
 
         {/* Leaderboard */}

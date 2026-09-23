@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getLeaderboard } from "@/lib/api";
+import { getLeaderboard, getPublicLeaderboard } from "@/lib/api";
 
 const TIER_EMOJI: Record<string, string> = {
   hunter: "🎯",
@@ -30,7 +29,7 @@ interface LeaderboardEntry {
   rank: number;
   user_id: string;
   name: string;
-  email: string;
+  email?: string;
   aura_points: number;
   aura_tier: string;
   deals_submitted: number;
@@ -38,22 +37,17 @@ interface LeaderboardEntry {
 }
 
 export default function LeaderboardPage() {
-  const router = useRouter();
-  const { user, loading, idToken } = useAuth();
+  const { loading, idToken } = useAuth();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-      return;
-    }
-    if (idToken) {
-      getLeaderboard(idToken, 100)
-        .then(setEntries)
-        .catch((err) => setError(err instanceof Error ? err.message : "Failed to load leaderboard"));
-    }
-  }, [user, loading, idToken, router]);
+    if (loading) return;
+    const fetcher = idToken ? getLeaderboard(idToken, 100) : getPublicLeaderboard(100);
+    fetcher
+      .then(setEntries)
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load leaderboard"));
+  }, [loading, idToken]);
 
   if (loading) {
     return (

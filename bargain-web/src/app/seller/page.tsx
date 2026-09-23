@@ -19,7 +19,7 @@ type Tab = "apply" | "coupons" | "price-drops" | "bulk" | "submissions";
 
 export default function SellerPortalPage() {
   const router = useRouter();
-  const { user, loading, idToken } = useAuth();
+  const { loading, idToken } = useAuth();
   const [profile, setProfile] = useState<SellerProfile | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -65,12 +65,8 @@ export default function SellerPortalPage() {
   }, [idToken]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-      return;
-    }
-    loadProfile();
-  }, [user, loading, router, loadProfile]);
+    if (!loading) loadProfile();
+  }, [loading, loadProfile]);
 
   async function handleApply(e: React.FormEvent) {
     e.preventDefault();
@@ -245,6 +241,14 @@ export default function SellerPortalPage() {
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               Submit your coupon codes and price drops directly to our deal feed. Verified sellers get instant publishing — no moderation queue.
             </p>
+            {!idToken ? (
+              <button
+                onClick={() => router.push("/login")}
+                className="mt-6 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+              >
+                Sign in to apply
+              </button>
+            ) : (
             <form onSubmit={handleApply} className="mt-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Store Name</label>
@@ -274,6 +278,7 @@ export default function SellerPortalPage() {
                 {applying ? "Activating..." : "Activate Seller Account"}
               </button>
             </form>
+            )}
           </div>
         )}
 

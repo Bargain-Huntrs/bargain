@@ -237,6 +237,29 @@ async def list_community_deals(
     return [_deal_to_response(d, votes.get(d.id)) for d in deals]
 
 
+# ─── Public Deal Feed (no auth) ───────────────────────────────────────────────
+
+@router.get("/deals/public")
+async def list_public_community_deals(
+    sort: str = Query("hot", description="hot, new, top"),
+    limit: int = Query(50, le=100),
+    offset: int = Query(0),
+    db: Session = Depends(get_db),
+):
+    """List approved community deals — public, no auth required."""
+    query = db.query(UserSubmittedDeal).filter(UserSubmittedDeal.status == "approved")
+
+    if sort == "new":
+        query = query.order_by(desc(UserSubmittedDeal.created_at))
+    elif sort == "top":
+        query = query.order_by(desc(UserSubmittedDeal.score))
+    else:  # hot
+        query = query.order_by(desc(UserSubmittedDeal.score), desc(UserSubmittedDeal.created_at))
+
+    deals = query.offset(offset).limit(limit).all()
+    return [_deal_to_response(d) for d in deals]
+
+
 # ─── Get Single Deal ──────────────────────────────────────────────────────────
 
 @router.get("/deals/{deal_id}")
@@ -462,6 +485,42 @@ async def leaderboard(
             "aura_tier": u.aura_tier or "hunter",
             "deals_submitted": deal_count_map.get(u.id, 0),
             "is_you": u.id == current_user.id,
+        }
+        for idx, u in enumerate(users)
+    ]
+
+
+@router.get("/leaderboard/public")
+async def public_leaderboard(
+    limit: int = Query(50, le=100),
+    db: Session = Depends(get_db),
+):
+    """Public Aura leaderboard — no auth required."""
+    users = (
+        db.query(User)
+        .filter(User.aura_points > 0)
+        .order_by(desc(User.aura_points))
+        .limit(limit)
+        .all()
+    )
+
+    deal_counts = (
+        db.query(UserSubmittedDeal.user_id, func.count(UserSubmittedDeal.id))
+        .filter(UserSubmittedDeal.status == "approved")
+        .group_by(UserSubmittedDeal.user_id)
+        .all()
+    )
+    deal_count_map = {uid: count for uid, count in deal_counts}
+
+    return [
+        {
+            "rank": idx + 1,
+            "user_id": str(u.id),
+            "name": u.full_name if hasattr(u, "full_name") else f"User{str(u.id)[:8]}",
+            "aura_points": u.aura_points or 0,
+            "aura_tier": u.aura_tier or "hunter",
+            "deals_submitted": deal_count_map.get(u.id, 0),
+            "is_you": False,
         }
         for idx, u in enumerate(users)
     ]

@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
   getCommunityDeals,
+  getPublicCommunityDeals,
   submitCommunityDeal,
   voteCommunityDeal,
   getMyAura,
@@ -28,7 +29,7 @@ const TIER_COLOR: Record<string, string> = {
 
 export default function CommunityPage() {
   const router = useRouter();
-  const { user, loading, idToken } = useAuth();
+  const { loading, idToken } = useAuth();
   const [deals, setDeals] = useState<CommunityDeal[]>([]);
   const [aura, setAura] = useState<{
     aura_points: number;
@@ -54,29 +55,32 @@ export default function CommunityPage() {
   });
 
   const loadData = useCallback(async () => {
-    if (!idToken) return;
     try {
-      const [dealData, auraData] = await Promise.all([
-        getCommunityDeals(idToken, { sort: sortBy, limit: 50 }),
-        getMyAura(idToken).catch(() => null),
-      ]);
-      setDeals(dealData);
-      if (auraData) setAura(auraData);
+      if (idToken) {
+        const [dealData, auraData] = await Promise.all([
+          getCommunityDeals(idToken, { sort: sortBy, limit: 50 }),
+          getMyAura(idToken).catch(() => null),
+        ]);
+        setDeals(dealData);
+        if (auraData) setAura(auraData);
+      } else {
+        const dealData = await getPublicCommunityDeals({ sort: sortBy, limit: 50 });
+        setDeals(dealData);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load community deals");
     }
   }, [idToken, sortBy]);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading) loadData();
+  }, [loading, loadData]);
+
+  async function handleVote(dealId: string, vote: 1 | -1) {
+    if (!idToken) {
       router.push("/login");
       return;
     }
-    loadData();
-  }, [user, loading, router, loadData]);
-
-  async function handleVote(dealId: string, vote: 1 | -1) {
-    if (!idToken) return;
     // Optimistic update
     setDeals((prev) =>
       prev.map((d) => {
@@ -219,7 +223,7 @@ export default function CommunityPage() {
               🏆 Leaderboard
             </Link>
             <button
-              onClick={() => setShowSubmitForm(!showSubmitForm)}
+              onClick={() => (idToken ? setShowSubmitForm(!showSubmitForm) : router.push("/login"))}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700"
             >
               + Submit a Deal

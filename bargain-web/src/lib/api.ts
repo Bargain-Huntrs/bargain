@@ -579,6 +579,17 @@ export async function getCommunityDeals(
   return fetchWithAuth(`/api/v1/community/deals${query ? `?${query}` : ""}`, token) as Promise<CommunityDeal[]>;
 }
 
+export async function getPublicCommunityDeals(
+  params?: { sort?: string; limit?: number; offset?: number }
+) {
+  const qs = new URLSearchParams();
+  if (params?.sort) qs.set("sort", params.sort);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.offset) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return fetchPublic(`/api/v1/community/deals/public${query ? `?${query}` : ""}`) as Promise<CommunityDeal[]>;
+}
+
 export async function voteCommunityDeal(token: string, dealId: string, vote: 1 | -1) {
   return fetchWithAuth(`/api/v1/community/deals/${dealId}/vote`, token, {
     method: "POST",
@@ -601,6 +612,20 @@ export async function getLeaderboard(token: string, limit = 50) {
       user_id: string;
       name: string;
       email: string;
+      aura_points: number;
+      aura_tier: string;
+      deals_submitted: number;
+      is_you: boolean;
+    }>
+  >;
+}
+
+export async function getPublicLeaderboard(limit = 50) {
+  return fetchPublic(`/api/v1/community/leaderboard/public?limit=${limit}`) as Promise<
+    Array<{
+      rank: number;
+      user_id: string;
+      name: string;
       aura_points: number;
       aura_tier: string;
       deals_submitted: number;

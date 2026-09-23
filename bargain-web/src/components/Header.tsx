@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { href: "/tools/profit-calculator", label: "Profit Calc" },
   { href: "/tools/listing-generator", label: "Listing Gen" },
   { href: "/real-estate", label: "Real Estate" },
+  { href: "/auctions", label: "Auctions" },
   { href: "/waitlist", label: "Waitlist" },
 ];
 

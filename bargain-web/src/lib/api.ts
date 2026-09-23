@@ -942,3 +942,76 @@ export async function getPropertyStates(): Promise<{
   if (!res.ok) throw new Error(`Failed to fetch property states: ${res.status}`);
   return res.json();
 }
+
+// ─── Auction / surplus listings (aggregated public feeds) ───────────────────
+
+export interface AuctionListing {
+  id: string;
+  source: string;
+  source_id: string;
+  category: string;
+  title: string;
+  description: string | null;
+  source_category: string | null;
+  current_bid: string | null;
+  min_bid: string | null;
+  num_bids: number | null;
+  sale_method: string | null;
+  status: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  image_url: string | null;
+  detail_url: string;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+}
+
+export interface ListingListResponse {
+  items: AuctionListing[];
+  total: number;
+  page: number;
+  per_page: number;
+  pages: number;
+}
+
+export interface ListingFilters {
+  category?: string;
+  source?: string;
+  state?: string;
+  city?: string;
+  q?: string;
+  min_bid?: number;
+  max_bid?: number;
+  sort?: "ending_soon" | "newest" | "bid_asc" | "bid_desc";
+  page?: number;
+  per_page?: number;
+}
+
+export async function getListings(filters: ListingFilters = {}): Promise<ListingListResponse> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
+  }
+  const res = await fetch(`${API_URL}/api/v1/listings?${params.toString()}`);
+  if (!res.ok) throw new Error(`Failed to fetch listings: ${res.status}`);
+  return res.json();
+}
+
+export async function getListingCategories(): Promise<{
+  categories: { category: string; count: number }[];
+}> {
+  const res = await fetch(`${API_URL}/api/v1/listings/categories`);
+  if (!res.ok) throw new Error(`Failed to fetch listing categories: ${res.status}`);
+  return res.json();
+}
+
+export async function getListingStates(): Promise<{
+  states: { state: string; count: number }[];
+}> {
+  const res = await fetch(`${API_URL}/api/v1/listings/states`);
+  if (!res.ok) throw new Error(`Failed to fetch listing states: ${res.status}`);
+  return res.json();
+}

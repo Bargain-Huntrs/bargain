@@ -59,6 +59,7 @@ class ScanScheduler:
         self._last_newsletter_weekly_at: Optional[datetime] = None
         self._coupon_scrape_task: Optional[asyncio.Task] = None
         self._last_coupon_scrape_at: Optional[datetime] = None
+        self._listing_scrape_task: Optional[asyncio.Task] = None
 
     @property
     def is_running(self) -> bool:
@@ -150,6 +151,8 @@ class ScanScheduler:
         # Start the coupon scrape loop (every 6 hours by default)
         if getattr(settings, "COUPON_AUTO_SCRAPE", False):
             self._coupon_scrape_task = asyncio.create_task(self._run_coupon_scrape_loop())
+        # Start the auction/surplus listing refresh loop (every 4 hours)
+        self._listing_scrape_task = asyncio.create_task(self._run_listing_scrape_loop())
         # Start the X engagement automation loop (every 30 minutes) if enabled
         if getattr(settings, "ENGAGEMENT_ENABLED", False):
             self._engagement_task = asyncio.create_task(self._run_engagement_loop())
@@ -181,6 +184,8 @@ class ScanScheduler:
             self._resale_reprice_task.cancel()
         if self._coupon_scrape_task and not self._coupon_scrape_task.done():
             self._coupon_scrape_task.cancel()
+        if self._listing_scrape_task and not self._listing_scrape_task.done():
+            self._listing_scrape_task.cancel()
         self._next_scan_at = None
         logger.info("Scan scheduler stopped")
         return True
@@ -893,6 +898,36 @@ class ScanScheduler:
                 await asyncio.sleep(interval_hours * 3600)
             except asyncio.CancelledError:
                 logger.info("Coupon scrape loop cancelled")
+                break
+
+    async def _run_listing_scrape_loop(self):
+        """Background loop that refreshes auction/surplus listings (GSA, ...)
+        every LISTING_SCRAPE_INTERVAL_HOURS (default 4h)."""
+        from app.services.listing_aggregator import aggregate_gsa_listings
+
+        interval_hours = getattr(settings, "LISTING_SCRAPE_INTERVAL_HOURS", 4)
+        logger.info(f"Listing scrape loop started (every {interval_hours}h)")
+
+        # Delay initial run so it doesn't compete with startup scans
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            return
+
+        while self._running:
+            db = SessionLocal()
+            try:
+                stats = await aggregate_gsa_listings(db)
+                logger.info(f"Listing scrape complete: {stats}")
+            except Exception as e:
+                logger.error(f"Listing scrape loop error: {e}", exc_info=True)
+            finally:
+                db.close()
+
+            try:
+                await asyncio.sleep(interval_hours * 3600)
+            except asyncio.CancelledError:
+                logger.info("Listing scrape loop cancelled")
                 break
 
     async def _scrape_and_store_coupons(self):

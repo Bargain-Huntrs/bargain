@@ -463,3 +463,44 @@ class Property(Base):
     __table_args__ = (
         UniqueConstraint("source", "source_id", name="uq_properties_source_source_id"),
     )
+
+
+class Listing(Base):
+    """Generalized auction/marketplace listing aggregated from public sources.
+
+    Covers government surplus (GSA Auctions, GovDeals, ...) now and future
+    verticals (vehicles, bullion, collectibles) via the ``category`` column.
+    Listings are advertisements hosted on the source platform — we link out
+    to detail_url, never broker the transaction.
+    """
+    __tablename__ = "listings"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source = Column(String(50), nullable=False, index=True)  # gsa_auctions, govdeals, ...
+    source_id = Column(String(120), nullable=False)  # e.g. GSA lotId or saleNumber/lotNumber
+    category = Column(String(50), nullable=False, index=True)  # surplus, vehicle, bullion, ...
+    title = Column(String(500), nullable=False)
+    description = Column(Text)
+    source_category = Column(String(150))  # category label reported by the source
+    current_bid = Column(Numeric(14, 2))
+    min_bid = Column(Numeric(14, 2))
+    num_bids = Column(Integer)
+    sale_method = Column(String(50))  # internet, sealed, live, ...
+    status = Column(String(50))  # Active, Preview, Closed, ...
+    start_date = Column(DateTime)
+    end_date = Column(DateTime, index=True)
+    city = Column(String(120), index=True)
+    state = Column(String(2), index=True)
+    zip = Column(String(10))
+    country = Column(String(2), default="US")
+    image_url = Column(String(1000))
+    detail_url = Column(String(1000), nullable=False)
+    is_active = Column(Boolean, default=True, index=True)
+    first_seen_at = Column(DateTime, default=datetime.utcnow)
+    last_seen_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("source", "source_id", name="uq_listings_source_source_id"),
+    )

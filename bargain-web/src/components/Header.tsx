@@ -24,7 +24,9 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Categories",
+    href: "/categories",
     children: [
+      { href: "/categories", label: "All Categories", desc: "Every deal vertical in one place" },
       { href: "/auctions", label: "Gov. Auctions", desc: "Federal surplus — vehicles, equipment" },
       { href: "/real-estate/deals", label: "Real Estate", desc: "Distressed & below-market listings" },
       { href: "/coupons", label: "Coupons", desc: "Verified promo codes" },

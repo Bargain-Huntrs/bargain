@@ -103,6 +103,12 @@ export default function DealsPage() {
     }
   }, [idToken]);
 
+  // Seed search from ?q= (homepage search bar lands here)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setSearchQuery(q);
+  }, []);
+
   useEffect(() => {
     loadDeals();
   }, [loadDeals]);
@@ -211,6 +217,17 @@ export default function DealsPage() {
     },
     [idToken, predictions]
   );
+
+  const visibleDeals = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return deals;
+    return deals.filter(
+      (d) =>
+        d.title.toLowerCase().includes(q) ||
+        (d.retailer || "").toLowerCase().includes(q) ||
+        (d.category || "").toLowerCase().includes(q)
+    );
+  }, [deals, searchQuery]);
 
   function formatTier(tier: string): { label: string; color: string } {
     switch (tier) {
@@ -364,6 +381,14 @@ export default function DealsPage() {
             </select>
 
             <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search deals..."
+              className="w-48 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+
+            <input
               type="number"
               value={minProfit}
               onChange={(e) => setMinProfit(e.target.value)}
@@ -371,12 +396,13 @@ export default function DealsPage() {
               className="w-32 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
 
-            {(selectedTier || minProfit || selectedNiche) && (
+            {(selectedTier || minProfit || selectedNiche || searchQuery) && (
               <button
                 onClick={() => {
                   setSelectedTier("");
                   setMinProfit("");
                   setSelectedNiche("");
+                  setSearchQuery("");
                 }}
                 className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               >
@@ -414,19 +440,22 @@ export default function DealsPage() {
               <div className="flex justify-center py-20">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-emerald-500" />
               </div>
-            ) : deals.length === 0 ? (
+            ) : visibleDeals.length === 0 ? (
               <div className="text-center py-20">
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  No deals found yet. Deals appear here when the scanner finds profitable arbitrage opportunities.
+                  {searchQuery.trim()
+                    ? `No deals matching "${searchQuery.trim()}". Try a different search or clear filters.`
+                    : "No deals found yet. Deals appear here when the scanner finds profitable arbitrage opportunities."}
                 </p>
               </div>
             ) : (
               <>
                 <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
-                  {deals.length} deal{deals.length !== 1 ? "s" : ""}
+                  {visibleDeals.length} deal{visibleDeals.length !== 1 ? "s" : ""}
+                  {searchQuery.trim() && ` matching "${searchQuery.trim()}"`}
                 </p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-                  {deals.map((deal) => {
+                  {visibleDeals.map((deal) => {
                     const tier = formatTier(deal.deal_tier);
                     const discount = deal.historical_avg && deal.historical_avg > deal.buy_price
                       ? Math.round((1 - deal.buy_price / deal.historical_avg) * 100)

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import NewsletterPopup from "@/components/NewsletterPopup";
@@ -135,13 +136,11 @@ function categoryIcon(title: string): string {
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function HomePageContent() {
+  const router = useRouter();
   const [deals, setDeals] = useState<ArbitrageDeal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [clickingDeal, setClickingDeal] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterRetailer, setFilterRetailer] = useState<string | null>(null);
-  const [filterSource, setFilterSource] = useState<string | null>(null); // online, in_store
   const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
   const [verticalCounts, setVerticalCounts] = useState<{
     properties: number | null;
@@ -151,22 +150,12 @@ export default function HomePageContent() {
   }>({ properties: null, auctions: null, coupons: null, community: null });
   const [leaders, setLeaders] = useState<Array<{ rank: number; name: string; aura_points: number; aura_tier: string; deals_submitted: number }>>([]);
 
-  const loadDeals = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await getPublicDeals(50, 0);
-      setDeals(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load deals");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadDeals();
-  }, [loadDeals]);
+    getPublicDeals(50, 0)
+      .then(setDeals)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   // Load community stats (non-critical, fail silently)
   useEffect(() => {
@@ -198,7 +187,6 @@ export default function HomePageContent() {
       e.preventDefault();
       if (!deal.buy_url) return;
       setClickingDeal(deal.id);
-      // Tag outgoing deal links from the homepage feed
       const dealUrl = addUtmParameters(deal.buy_url, "bargainhuntrs", "deal_card", "deal_click");
       try {
         const result = await clickAffiliatePublic({
@@ -217,44 +205,19 @@ export default function HomePageContent() {
     []
   );
 
-  // Get unique retailers for filter chips
-  const retailers = useMemo(() => {
-    const set = new Set<string>();
-    deals.forEach((d) => set.add(d.retailer || "amazon"));
-    return Array.from(set);
-  }, [deals]);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(searchQuery.trim() ? `/deals?q=${encodeURIComponent(searchQuery.trim())}` : "/deals");
+  };
 
-  // Filter deals based on search, retailer, and source
-  const filteredDeals = useMemo(() => {
-    // Deduplicate by title (keep first occurrence)
-    const seen = new Set<string>();
-    return deals.filter((deal) => {
-      // Dedup by title
-      const titleKey = deal.title.slice(0, 80).toLowerCase();
-      if (seen.has(titleKey)) return false;
-      seen.add(titleKey);
-
-      // Search filter
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const title = deal.title.toLowerCase();
-        const retailer = (deal.retailer || "amazon").toLowerCase();
-        const category = (deal.category || "").toLowerCase();
-        if (!title.includes(q) && !retailer.includes(q) && !category.includes(q)) {
-          return false;
-        }
-      }
-      // Retailer filter
-      if (filterRetailer && (deal.retailer || "amazon") !== filterRetailer) {
-        return false;
-      }
-      // Source filter (online/in-store)
-      if (filterSource && (deal.deal_source || "online") !== filterSource) {
-        return false;
-      }
-      return true;
-    });
-  }, [deals, searchQuery, filterRetailer, filterSource]);
+  const avgDiscount = deals.length
+    ? Math.round(
+        deals.reduce((s, d) => s + discountPercent(d), 0) /
+          (deals.filter((d) => discountPercent(d) > 0).length || 1)
+      )
+    : null;
+  const totalProfit = deals.reduce((s, d) => s + (d.net_profit || 0), 0);
+  const hotDeals = [...deals].sort((a, b) => discountPercent(b) - discountPercent(a)).slice(0, 3);
 
   return (
     <div className="flex flex-col min-h-full bg-white dark:bg-zinc-950">
@@ -265,27 +228,29 @@ export default function HomePageContent() {
       <Header />
 
       <main className="flex-1 flex flex-col">
-        {/* ── Hero with search ─────────────────────────────────────────── */}
-        <section className="px-6 pt-12 pb-8 text-center bg-gradient-to-b from-white via-zinc-50/60 to-zinc-100/40 dark:from-zinc-950 dark:via-zinc-900/80 dark:to-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+        {/* ── Hero ─────────────────────────────────────────────────────── */}
+        <section className="px-6 pt-14 pb-10 text-center bg-gradient-to-b from-white via-zinc-50/60 to-zinc-100/40 dark:from-zinc-950 dark:via-zinc-900/80 dark:to-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 backdrop-blur px-4 py-1.5 text-xs font-medium text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-400">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
             </span>
-            {deals.length > 0 ? `${deals.length} live deals — all 20%+ off` : "Scanning for deals..."}
+            {deals.length > 0 ? `${deals.length} live deals — all 20%+ off` : "Scanning 500+ retailers right now..."}
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl dark:text-zinc-50 leading-[1.1]">
+          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-6xl dark:text-zinc-50 leading-[1.05]">
             Find it underpriced.<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400">
               Flip it for profit.
             </span>
           </h1>
-          <p className="mt-4 text-base text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto">
-            Retail glitches, clearance, real estate, auctions & coupons — scanned live, ranked by profit.
+          <p className="mt-5 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+            BargainHuntrs scans retail prices, real estate, auctions and coupons around the clock —
+            catches price glitches within seconds, verifies the discount is real, and shows you the
+            profit spread before you spend a dollar.
           </p>
 
-          {/* Search bar */}
-          <div className="mt-6 mx-auto max-w-xl">
+          {/* Search → deals page */}
+          <form onSubmit={handleSearch} className="mt-7 mx-auto max-w-xl">
             <div className="relative">
               <svg className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -295,52 +260,69 @@ export default function HomePageContent() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search deals, stores, or categories..."
-                className="w-full rounded-xl border border-zinc-300 bg-white py-3 pl-12 pr-4 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500"
+                className="w-full rounded-xl border border-zinc-300 bg-white py-3.5 pl-12 pr-28 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500"
               />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-zinc-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+              >
+                Search
+              </button>
             </div>
+          </form>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>Popular:</span>
+            {["Nike", "Lego", "Dyson", "Nintendo", "Tools"].map((t) => (
+              <button
+                key={t}
+                onClick={() => router.push(`/deals?q=${encodeURIComponent(t)}`)}
+                className="font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-2 hover:text-emerald-600 dark:text-zinc-300 dark:decoration-zinc-600 dark:hover:text-emerald-400"
+              >
+                {t}
+              </button>
+            ))}
           </div>
 
           {/* Live stats bar */}
-          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
               <p className="text-lg font-black text-zinc-900 dark:text-zinc-50">{deals.length || "—"}</p>
               <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Live deals</p>
             </div>
             <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
               <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                {filteredDeals.length ? `${Math.round(filteredDeals.reduce((s, d) => s + discountPercent(d), 0) / filteredDeals.filter((d) => discountPercent(d) > 0).length || 1)}%` : "—"}
+                {avgDiscount !== null ? `${avgDiscount}%` : "—"}
               </p>
               <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Avg discount</p>
             </div>
             <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
               <p className="text-lg font-black text-zinc-900 dark:text-zinc-50">
-                {deals.length ? `$${Math.round(deals.reduce((s, d) => s + (d.net_profit || 0), 0)).toLocaleString()}` : "—"}
+                {deals.length ? `$${Math.round(totalProfit).toLocaleString()}` : "—"}
               </p>
               <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Est. profit on feed</p>
             </div>
             <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
-              <p className="text-lg font-black text-zinc-900 dark:text-zinc-50">
-                {verticalCounts.community !== null
-                  ? verticalCounts.community.toLocaleString()
-                  : communityStats ? communityStats.deals_posted.toLocaleString() : "—"}
-              </p>
-              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Hunter finds</p>
+              <p className="text-lg font-black text-zinc-900 dark:text-zinc-50">500+</p>
+              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Retailers scanned</p>
             </div>
           </div>
         </section>
 
         {/* ── Pick your hunt — vertical cards ──────────────────────────── */}
-        <section className="border-b border-zinc-200 px-6 py-8 dark:border-zinc-800">
+        <section className="border-b border-zinc-200 px-6 py-10 dark:border-zinc-800">
           <div className="mx-auto max-w-5xl">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-1 flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                 Pick your hunt
               </h2>
             </div>
+            <p className="mb-5 text-sm text-zinc-600 dark:text-zinc-400">
+              Five ways to find an edge. Every category lives on its own page — pick one and dig in.
+            </p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {[
                 {
-                  href: "#feed",
+                  href: "/deals",
                   icon: "🏷️",
                   title: "Retail Glitches",
                   desc: "Price errors & clearance",
@@ -398,265 +380,202 @@ export default function HomePageContent() {
           </div>
         </section>
 
-        {/* ── Filter chips ─────────────────────────────────────────────── */}
-        <section className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="mx-auto max-w-5xl flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => { setFilterRetailer(null); setFilterSource(null); }}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                !filterRetailer && !filterSource
-                  ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
-              }`}
-            >
-              All Deals
-            </button>
-            <button
-              onClick={() => { setFilterSource("online"); setFilterRetailer(null); }}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                filterSource === "online"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
-              }`}
-            >
-              Online Deals
-            </button>
-            <button
-              onClick={() => { setFilterSource("in_store"); setFilterRetailer(null); }}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                filterSource === "in_store"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
-              }`}
-            >
-              In-Store
-            </button>
-            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-            {retailers.map((r) => (
-              <button
-                key={r}
-                onClick={() => setFilterRetailer(r === filterRetailer ? null : r)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  filterRetailer === r
-                    ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                }`}
-              >
-                {retailerDisplayName(r)}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Deals feed ───────────────────────────────────────────────── */}
-        <section id="feed" className="px-6 py-8 flex-1">
+        {/* ── Hot right now — teaser ───────────────────────────────────── */}
+        <section className="border-b border-zinc-200 px-6 py-10 dark:border-zinc-800">
           <div className="mx-auto max-w-5xl">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              Latest retail finds
-            </h2>
-            {error && (
-              <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-                {error}
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  Hot right now
+                </h2>
+                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  Biggest verified discounts on the feed this minute.
+                </p>
               </div>
-            )}
+              <Link
+                href="/deals"
+                className="shrink-0 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-zinc-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+              >
+                Browse all deals →
+              </Link>
+            </div>
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-emerald-500" />
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Finding the best deals...</p>
-              </div>
-            ) : filteredDeals.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  {searchQuery || filterRetailer || filterSource ? "No deals match your filters" : "No deals found right now"}
-                </p>
-                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  Our scanners are watching for price drops and glitches. Check back soon or{" "}
-                  <Link href="/signup" className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-medium">
-                    sign up for alerts
-                  </Link>{" "}
-                  so you never miss one.
-                </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-40 animate-pulse rounded-2xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900" />
+                ))}
               </div>
             ) : (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {filteredDeals.length} deal{filteredDeals.length !== 1 ? "s" : ""} found
-                  </p>
-                  <Link
-                    href="/deals"
-                    className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
-                  >
-                    View all deals →
-                  </Link>
-                </div>
-
-                {/* Deal cards — horizontal list like HiddenClearances */}
-                <div className="space-y-3">
-                  {filteredDeals.map((deal) => {
-                    const discount = discountPercent(deal);
-                    const tier = dealTierLabel(deal.deal_tier);
-                    const retailer = deal.retailer || "amazon";
-                    const isOnline = (deal.deal_source || "online") === "online";
-
-                    return (
-                      <div
-                        key={deal.id}
-                        className="group flex gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
-                      >
-                        {/* Image */}
-                        <div className="relative flex-shrink-0 w-24 h-24 sm:w-32 sm:h-32 rounded-lg bg-zinc-50 dark:bg-zinc-800 overflow-hidden">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {hotDeals.map((deal) => {
+                  const discount = discountPercent(deal);
+                  const tier = dealTierLabel(deal.deal_tier);
+                  const retailer = deal.retailer || "amazon";
+                  return (
+                    <div
+                      key={deal.id}
+                      className="group flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-50 dark:bg-zinc-800">
                           {deal.image_url ? (
                             <img
                               src={deal.image_url}
                               alt={deal.title}
                               className="h-full w-full object-cover"
                               onError={(e) => {
-                                // Fallback to category icon if image fails to load
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = "none";
                                 const parent = target.parentElement;
                                 if (parent && !parent.querySelector(".icon-fallback")) {
                                   const fallback = document.createElement("div");
-                                  fallback.className = "icon-fallback flex h-full w-full items-center justify-center text-3xl";
+                                  fallback.className = "icon-fallback flex h-full w-full items-center justify-center text-2xl";
                                   fallback.textContent = categoryIcon(deal.title);
                                   parent.appendChild(fallback);
                                 }
                               }}
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center text-3xl">
+                            <div className="flex h-full w-full items-center justify-center text-2xl">
                               {categoryIcon(deal.title)}
                             </div>
                           )}
-                          {/* Discount badge */}
-                          {discount > 0 && (
-                            <div className="absolute top-1 left-1 rounded-md bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white">
-                              {discount}% OFF
-                            </div>
-                          )}
-                          {/* Premium badge for price errors */}
-                          {deal.deal_tier === "glitch" && (
-                            <div className="absolute bottom-1 left-1 rounded-md bg-gradient-to-r from-amber-500 to-yellow-400 px-1.5 py-0.5 text-xs font-bold text-white shadow-sm">
-                              PREMIUM
-                            </div>
-                          )}
                         </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 flex flex-col">
-                          {/* Top row: tags */}
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${tier.color}`}>
-                              {tier.label}
-                            </span>
-                            <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${retailerColor(retailer)}`}>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${tier.color}`}>{tier.label}</span>
+                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${retailerColor(retailer)}`}>
                               {retailerDisplayName(retailer)}
                             </span>
-                            <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${
-                              isOnline
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400"
-                                : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-                            }`}>
-                              {isOnline ? "Online" : "In-Store"}
-                            </span>
-                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                              {timeAgo(deal.detected_at)}
-                            </span>
+                            <span className="text-[10px] text-zinc-400">{timeAgo(deal.detected_at)}</span>
                           </div>
-
-                          {/* Title */}
-                          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 line-clamp-2 mb-2">
+                          <h3 className="mt-1.5 line-clamp-2 text-xs font-semibold text-zinc-900 dark:text-zinc-50">
                             {deal.title}
                           </h3>
-
-                          {/* Price row */}
-                          <div className="flex items-baseline gap-2 mb-2">
-                            <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-                              ${deal.buy_price.toFixed(2)}
-                            </span>
-                            {deal.historical_avg && deal.historical_avg > deal.buy_price && (
-                              <span className="text-sm text-zinc-400 line-through">
-                                ${deal.historical_avg.toFixed(2)}
-                              </span>
-                            )}
-                            {discount > 0 && (
-                              <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                                {discount}% OFF
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Best coupon badge */}
-                          {deal.best_coupon && deal.best_coupon.savings > 0 && (
-                            <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 dark:bg-emerald-950/40">
-                              <svg className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 1l-2.5 2.5L10 6l2.5-2.5L10 1zM5 6l-2.5 2.5L5 11l2.5-2.5L5 6zm10 0l-2.5 2.5L15 11l2.5-2.5L15 6zm-5 5l-2.5 2.5L10 16l2.5-2.5L10 11z" clipRule="evenodd" />
-                              </svg>
-                              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                                Code: {deal.best_coupon.code} → ${deal.best_coupon.effective_price.toFixed(2)}
-                              </span>
-                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                                (save ${deal.best_coupon.savings.toFixed(2)})
-                              </span>
-                            </div>
-                          )}
-
-                          {/* CTA */}
-                          <div className="mt-auto">
-                            {deal.deal_tier === "glitch" ? (
-                              // Price errors are premium — gate the link
-                              <Link
-                                href="/pricing"
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-                              >
-                                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                </svg>
-                                Unlock with Hunter →
-                              </Link>
-                            ) : deal.buy_url ? (
-                              <button
-                                onClick={(e) => handleDealClick(deal, e)}
-                                disabled={clickingDeal === deal.id}
-                                className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-                              >
-                                {clickingDeal === deal.id ? "Opening..." : "View Deal →"}
-                              </button>
-                            ) : (
-                              <Link
-                                href="/signup"
-                                className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                              >
-                                Sign up to view
-                              </Link>
-                            )}
-                          </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </>
+                      <div className="mt-3 flex items-baseline gap-2">
+                        <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+                          ${deal.buy_price.toFixed(2)}
+                        </span>
+                        {deal.historical_avg && deal.historical_avg > deal.buy_price && (
+                          <span className="text-xs text-zinc-400 line-through">${deal.historical_avg.toFixed(2)}</span>
+                        )}
+                        {discount > 0 && (
+                          <span className="text-xs font-bold text-red-600 dark:text-red-400">{discount}% OFF</span>
+                        )}
+                      </div>
+                      <div className="mt-3">
+                        {deal.deal_tier === "glitch" ? (
+                          <Link
+                            href="/pricing"
+                            className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                          >
+                            Unlock with Hunter →
+                          </Link>
+                        ) : deal.buy_url ? (
+                          <button
+                            onClick={(e) => handleDealClick(deal, e)}
+                            disabled={clickingDeal === deal.id}
+                            className="inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+                          >
+                            {clickingDeal === deal.id ? "Opening..." : "View Deal →"}
+                          </button>
+                        ) : (
+                          <Link
+                            href="/signup"
+                            className="inline-flex w-full items-center justify-center rounded-lg bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                          >
+                            Sign up to view
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </section>
 
-        {/* ── Spot → Analyze → Flip (tools strip) ──────────────────────── */}
-        <section className="border-t border-zinc-200 bg-zinc-50/60 px-6 py-10 dark:border-zinc-800 dark:bg-zinc-900/40">
+        {/* ── What you get — feature grid ──────────────────────────────── */}
+        <section id="features" className="border-b border-zinc-200 bg-zinc-50/60 px-6 py-12 dark:border-zinc-800 dark:bg-zinc-900/40">
           <div className="mx-auto max-w-5xl">
-            <h2 className="mb-1 text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              What to expect
+            </h2>
+            <p className="mt-1 mb-6 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+              Everything on the platform, explained. No inflated "was" prices, no recycled deals —
+              every card shows the real discount and the math behind it.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                {
+                  icon: "⚡",
+                  title: "Live glitch feed",
+                  desc: "Scanners watch 500+ retailers continuously. When a price drops below its verified average, it hits the feed in seconds — flagged PRICE ERROR, CLEARANCE, or DEAL so you know how hot it is.",
+                  href: "/deals",
+                },
+                {
+                  icon: "✅",
+                  title: "Verified discounts",
+                  desc: "We compare against real price history, not the retailer's inflated list price. The % off you see is the discount that actually exists.",
+                  href: "/deals/best",
+                },
+                {
+                  icon: "🎟️",
+                  title: "Coupon stacking",
+                  desc: "Every deal is checked against active promo codes. If a code stacks, we show the effective price and total savings right on the card.",
+                  href: "/coupons",
+                },
+                {
+                  icon: "🔔",
+                  title: "Instant alerts",
+                  desc: "Free members get daily digests. Hunter members get real-time alerts via email, SMS, Discord, and Telegram — filtered to the niches you follow.",
+                  href: "/settings/notifications",
+                },
+                {
+                  icon: "🧮",
+                  title: "Profit tools",
+                  desc: "Run any deal through the Profit Calculator for net profit, ROI and platform fees — then generate an optimized resale listing in one click.",
+                  href: "/tools/profit-calculator",
+                },
+                {
+                  icon: "🏆",
+                  title: "Hunter community",
+                  desc: "Post your own finds, vote on deals, and earn Aura. Top hunters climb the leaderboard and qualify for the monthly draw.",
+                  href: "/community",
+                },
+              ].map((f) => (
+                <Link
+                  key={f.title}
+                  href={f.href}
+                  className="group rounded-2xl border border-zinc-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                >
+                  <span className="text-2xl">{f.icon}</span>
+                  <h3 className="mt-3 text-sm font-bold text-zinc-900 dark:text-zinc-50">{f.title}</h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{f.desc}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── How it works ─────────────────────────────────────────────── */}
+        <section className="border-b border-zinc-200 px-6 py-12 dark:border-zinc-800">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               How hunters profit
             </h2>
-            <p className="mb-5 text-sm text-zinc-600 dark:text-zinc-400">
-              The same three tools pros run every deal through — free, in your dashboard.
+            <p className="mt-1 mb-6 text-sm text-zinc-600 dark:text-zinc-400">
+              The same three-step loop pros run every deal through — all tools free in your dashboard.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               {[
-                { step: "1", icon: "🔎", title: "Spot it", desc: "Live feed flags glitches & clearance with real discounts — not inflated 'was' prices.", href: "#feed", cta: "Browse the feed" },
-                { step: "2", icon: "🧮", title: "Analyze it", desc: "Profit Calculator shows net profit, ROI and platform fees before you spend a dollar.", href: "/tools/profit-calculator", cta: "Run the numbers" },
-                { step: "3", icon: "📦", title: "Flip it", desc: "Listing Generator writes an optimized title, description and price for eBay/FB/Poshmark.", href: "/tools/listing-generator", cta: "Build a listing" },
+                { step: "1", icon: "🔎", title: "Spot it", desc: "Browse the live feed or set niche alerts. Price errors and clearance are flagged the second our scanners catch them — before they're fixed or sold out.", href: "/deals", cta: "Browse the feed" },
+                { step: "2", icon: "🧮", title: "Analyze it", desc: "Run the deal through the Profit Calculator: buy price, resale value, platform fees, shipping — see exact net profit and ROI before you spend a dollar.", href: "/tools/profit-calculator", cta: "Run the numbers" },
+                { step: "3", icon: "📦", title: "Flip it", desc: "The Listing Generator writes an optimized title, description and price for eBay, Facebook Marketplace or Poshmark. Post it, sell it, pocket the spread.", href: "/tools/listing-generator", cta: "Build a listing" },
               ].map((t) => (
                 <Link
                   key={t.step}
@@ -680,9 +599,64 @@ export default function HomePageContent() {
           </div>
         </section>
 
+        {/* ── Free vs Hunter ───────────────────────────────────────────── */}
+        <section className="border-b border-zinc-200 bg-zinc-50/60 px-6 py-12 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              Free vs. Hunter
+            </h2>
+            <p className="mt-1 mb-6 text-sm text-zinc-600 dark:text-zinc-400">
+              Start free forever. Upgrade when you're ready to move faster than everyone else.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">Free</h3>
+                  <span className="text-lg font-black text-zinc-900 dark:text-zinc-50">$0</span>
+                </div>
+                <ul className="mt-4 space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
+                  <li className="flex gap-2"><span className="text-emerald-500">✓</span> Full deals feed — every deal, every retailer</li>
+                  <li className="flex gap-2"><span className="text-emerald-500">✓</span> Daily email alert digest</li>
+                  <li className="flex gap-2"><span className="text-emerald-500">✓</span> Profit Calculator &amp; Listing Generator</li>
+                  <li className="flex gap-2"><span className="text-emerald-500">✓</span> Community posting &amp; Aura rewards</li>
+                </ul>
+                <Link
+                  href="/signup"
+                  className="mt-5 inline-block w-full rounded-lg border border-zinc-300 px-4 py-2.5 text-center text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-800"
+                >
+                  Start free
+                </Link>
+              </div>
+              <div className="relative rounded-2xl border-2 border-emerald-500 bg-white p-6 dark:bg-zinc-900">
+                <span className="absolute -top-3 left-6 rounded-full bg-emerald-500 px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-white">
+                  Most popular
+                </span>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">Hunter</h3>
+                  <span className="text-lg font-black text-zinc-900 dark:text-zinc-50">
+                    $9.99<span className="text-xs font-medium text-zinc-500">/mo</span>
+                  </span>
+                </div>
+                <ul className="mt-4 space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
+                  <li className="flex gap-2"><span className="text-emerald-500">✓</span> Everything in Free</li>
+                  <li className="flex gap-2"><span className="text-emerald-500">✓</span> <strong className="text-zinc-900 dark:text-zinc-50">Instant alerts</strong>&nbsp;— SMS, Discord &amp; Telegram</li>
+                  <li className="flex gap-2"><span className="text-emerald-500">✓</span> <strong className="text-zinc-900 dark:text-zinc-50">Price errors unlocked</strong>&nbsp;— glitches gated for members</li>
+                  <li className="flex gap-2"><span className="text-emerald-500">✓</span> Priority niche filters &amp; early access to hot deals</li>
+                </ul>
+                <Link
+                  href="/pricing"
+                  className="mt-5 inline-block w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-emerald-400"
+                >
+                  Upgrade to Hunter →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── Leaderboard teaser ───────────────────────────────────────── */}
         {leaders.length > 0 && (
-          <section className="border-t border-zinc-200 px-6 py-10 dark:border-zinc-800">
+          <section className="border-b border-zinc-200 px-6 py-10 dark:border-zinc-800">
             <div className="mx-auto max-w-5xl">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
@@ -718,8 +692,56 @@ export default function HomePageContent() {
           </section>
         )}
 
+        {/* ── FAQ ──────────────────────────────────────────────────────── */}
+        <section className="border-b border-zinc-200 px-6 py-12 dark:border-zinc-800">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="text-center text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              Questions hunters ask
+            </h2>
+            <div className="mt-6 space-y-3">
+              {[
+                {
+                  q: "What exactly is a price glitch?",
+                  a: "A pricing error — a retailer lists an item far below its real price (a $500 item at $100). Our scanners catch them within seconds and flag them PRICE ERROR. Glitches are the highest-value finds and are unlocked for Hunter members because they get fixed fast.",
+                },
+                {
+                  q: "Is it actually free?",
+                  a: "Yes. Free accounts see the full deals feed, get daily email digests, and can use the Profit Calculator and Listing Generator forever. Hunter ($9.99/mo) adds instant multi-channel alerts and unlocks gated price errors.",
+                },
+                {
+                  q: "How do I know the discount is real?",
+                  a: "We track price history. The percentage shown compares the current price against the item's verified historical average — not the inflated 'was' price retailers advertise.",
+                },
+                {
+                  q: "How do alerts reach me?",
+                  a: "Free members get a daily email digest. Hunter members get real-time alerts through email, SMS, Discord, and Telegram — filtered to only the niches and categories you subscribe to.",
+                },
+                {
+                  q: "Do I need experience to flip deals?",
+                  a: "No. The workflow is built in: spot a deal on the feed, run it through the Profit Calculator to see net profit after fees, then generate a ready-to-post resale listing for eBay, Facebook Marketplace, or Poshmark.",
+                },
+                {
+                  q: "Where do the deals come from?",
+                  a: "Automated scanners across 500+ retailers, plus community-submitted finds, government and retail auctions, real estate listings, and verified coupon codes submitted by sellers.",
+                },
+              ].map((f) => (
+                <details
+                  key={f.q}
+                  className="group rounded-xl border border-zinc-200 bg-white px-5 py-4 open:pb-5 dark:border-zinc-800 dark:bg-zinc-900"
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-900 dark:text-zinc-50 [&::-webkit-details-marker]:hidden">
+                    {f.q}
+                    <span className="ml-3 text-zinc-400 transition-transform group-open:rotate-45">+</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ── Community stats + Seller CTA ──────────────────────────────── */}
-        <section className="border-t border-zinc-200 dark:border-zinc-800 px-6 py-12">
+        <section className="border-b border-zinc-200 dark:border-zinc-800 px-6 py-12">
           <div className="mx-auto max-w-5xl grid gap-6 sm:grid-cols-2">
             {/* Community */}
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
@@ -791,7 +813,7 @@ export default function HomePageContent() {
         </section>
 
         {/* ── Signup CTA ───────────────────────────────────────────────── */}
-        <section className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-6 py-16">
+        <section className="bg-zinc-50 dark:bg-zinc-900/50 px-6 py-16">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               Get alerted the moment a deal drops.
@@ -808,10 +830,10 @@ export default function HomePageContent() {
                 Start for free
               </Link>
               <Link
-                href="/pricing"
+                href="/deals"
                 className="rounded-xl border border-zinc-300 px-7 py-3.5 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-800"
               >
-                See pricing
+                Browse deals
               </Link>
             </div>
           </div>

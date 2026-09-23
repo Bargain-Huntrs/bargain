@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import NewsletterPopup from "@/components/NewsletterPopup";
 import LiveActivityFeed from "@/components/LiveActivityFeed";
-import { getPublicDeals, clickAffiliatePublic, getCommunityStats, addUtmParameters, type ArbitrageDeal, type CommunityStats } from "@/lib/api";
+import { getPublicDeals, clickAffiliatePublic, getCommunityStats, addUtmParameters, getProperties, getListings, getPublicCoupons, getPublicCommunityDeals, getPublicLeaderboard, type ArbitrageDeal, type CommunityStats } from "@/lib/api";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -143,6 +143,13 @@ export default function HomePageContent() {
   const [filterRetailer, setFilterRetailer] = useState<string | null>(null);
   const [filterSource, setFilterSource] = useState<string | null>(null); // online, in_store
   const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
+  const [verticalCounts, setVerticalCounts] = useState<{
+    properties: number | null;
+    auctions: number | null;
+    coupons: number | null;
+    community: number | null;
+  }>({ properties: null, auctions: null, coupons: null, community: null });
+  const [leaders, setLeaders] = useState<Array<{ rank: number; name: string; aura_points: number; aura_tier: string; deals_submitted: number }>>([]);
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
@@ -167,6 +174,23 @@ export default function HomePageContent() {
     if (token) {
       getCommunityStats(token).then(setCommunityStats).catch(() => {});
     }
+  }, []);
+
+  // Live counts for each vertical — all fail silently, cards show "Live" fallback
+  useEffect(() => {
+    getProperties({ per_page: 1 })
+      .then((r) => setVerticalCounts((v) => ({ ...v, properties: r.total })))
+      .catch(() => {});
+    getListings({ per_page: 1 })
+      .then((r) => setVerticalCounts((v) => ({ ...v, auctions: r.total })))
+      .catch(() => {});
+    getPublicCoupons(100)
+      .then((r) => setVerticalCounts((v) => ({ ...v, coupons: r.length })))
+      .catch(() => {});
+    getPublicCommunityDeals({ limit: 100 })
+      .then((r) => setVerticalCounts((v) => ({ ...v, community: r.length })))
+      .catch(() => {});
+    getPublicLeaderboard(5).then(setLeaders).catch(() => {});
   }, []);
 
   const handleDealClick = useCallback(
@@ -242,7 +266,7 @@ export default function HomePageContent() {
 
       <main className="flex-1 flex flex-col">
         {/* ── Hero with search ─────────────────────────────────────────── */}
-        <section className="px-6 py-10 text-center bg-gradient-to-b from-white via-zinc-50/60 to-zinc-100/40 dark:from-zinc-950 dark:via-zinc-900/80 dark:to-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+        <section className="px-6 pt-12 pb-8 text-center bg-gradient-to-b from-white via-zinc-50/60 to-zinc-100/40 dark:from-zinc-950 dark:via-zinc-900/80 dark:to-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/80 backdrop-blur px-4 py-1.5 text-xs font-medium text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-400">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
@@ -251,16 +275,13 @@ export default function HomePageContent() {
             {deals.length > 0 ? `${deals.length} live deals — all 20%+ off` : "Scanning for deals..."}
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl dark:text-zinc-50 leading-[1.1]">
-            Hidden deals & price errors<br />
+            Find it underpriced.<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400">
-              the moment they go live.
+              Flip it for profit.
             </span>
           </h1>
           <p className="mt-4 text-base text-zinc-600 dark:text-zinc-400 max-w-xl mx-auto">
-            Real clearance deals and price glitches from major retailers.{" "}
-            <Link href="/signup" className="font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
-              Get instant alerts →
-            </Link>
+            Retail glitches, clearance, real estate, auctions & coupons — scanned live, ranked by profit.
           </p>
 
           {/* Search bar */}
@@ -276,6 +297,101 @@ export default function HomePageContent() {
                 placeholder="Search deals, stores, or categories..."
                 className="w-full rounded-xl border border-zinc-300 bg-white py-3 pl-12 pr-4 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500"
               />
+            </div>
+          </div>
+
+          {/* Live stats bar */}
+          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
+              <p className="text-lg font-black text-zinc-900 dark:text-zinc-50">{deals.length || "—"}</p>
+              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Live deals</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
+              <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                {filteredDeals.length ? `${Math.round(filteredDeals.reduce((s, d) => s + discountPercent(d), 0) / filteredDeals.filter((d) => discountPercent(d) > 0).length || 1)}%` : "—"}
+              </p>
+              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Avg discount</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
+              <p className="text-lg font-black text-zinc-900 dark:text-zinc-50">
+                {deals.length ? `$${Math.round(deals.reduce((s, d) => s + (d.net_profit || 0), 0)).toLocaleString()}` : "—"}
+              </p>
+              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Est. profit on feed</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60">
+              <p className="text-lg font-black text-zinc-900 dark:text-zinc-50">
+                {communityStats ? communityStats.total_members.toLocaleString() : "—"}
+              </p>
+              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Hunters</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Pick your hunt — vertical cards ──────────────────────────── */}
+        <section className="border-b border-zinc-200 px-6 py-8 dark:border-zinc-800">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Pick your hunt
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {[
+                {
+                  href: "#feed",
+                  icon: "🏷️",
+                  title: "Retail Glitches",
+                  desc: "Price errors & clearance",
+                  count: deals.length ? `${deals.length} live` : null,
+                  accent: "emerald",
+                },
+                {
+                  href: "/real-estate/deals",
+                  icon: "🏠",
+                  title: "Real Estate",
+                  desc: "Distressed & MAO deals",
+                  count: verticalCounts.properties !== null ? `${verticalCounts.properties.toLocaleString()} listed` : null,
+                  accent: "blue",
+                },
+                {
+                  href: "/auctions",
+                  icon: "🔨",
+                  title: "Auctions & Surplus",
+                  desc: "Gov & retail auctions",
+                  count: verticalCounts.auctions !== null ? `${verticalCounts.auctions.toLocaleString()} listed` : null,
+                  accent: "amber",
+                },
+                {
+                  href: "/coupons",
+                  icon: "🎟️",
+                  title: "Coupons",
+                  desc: "Codes & stacking",
+                  count: verticalCounts.coupons !== null ? `${verticalCounts.coupons} active` : null,
+                  accent: "pink",
+                },
+                {
+                  href: "/community",
+                  icon: "👥",
+                  title: "Community Finds",
+                  desc: "Deals posted by hunters",
+                  count: verticalCounts.community !== null ? `${verticalCounts.community} posted` : null,
+                  accent: "indigo",
+                },
+              ].map((v) => (
+                <Link
+                  key={v.title}
+                  href={v.href}
+                  className="group rounded-2xl border border-zinc-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                >
+                  <span className="text-2xl">{v.icon}</span>
+                  <h3 className="mt-2 text-sm font-bold text-zinc-900 dark:text-zinc-50">{v.title}</h3>
+                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{v.desc}</p>
+                  <p className="mt-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    {v.count || "Live"}
+                    <span className="ml-1 text-zinc-400 transition-transform group-hover:translate-x-0.5 inline-block">→</span>
+                  </p>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
@@ -331,8 +447,11 @@ export default function HomePageContent() {
         </section>
 
         {/* ── Deals feed ───────────────────────────────────────────────── */}
-        <section className="px-6 py-8 flex-1">
+        <section id="feed" className="px-6 py-8 flex-1">
           <div className="mx-auto max-w-5xl">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              Latest retail finds
+            </h2>
             {error && (
               <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
                 {error}
@@ -521,6 +640,81 @@ export default function HomePageContent() {
             )}
           </div>
         </section>
+
+        {/* ── Spot → Analyze → Flip (tools strip) ──────────────────────── */}
+        <section className="border-t border-zinc-200 bg-zinc-50/60 px-6 py-10 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="mb-1 text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              How hunters profit
+            </h2>
+            <p className="mb-5 text-sm text-zinc-600 dark:text-zinc-400">
+              The same three tools pros run every deal through — free, in your dashboard.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { step: "1", icon: "🔎", title: "Spot it", desc: "Live feed flags glitches & clearance with real discounts — not inflated 'was' prices.", href: "#feed", cta: "Browse the feed" },
+                { step: "2", icon: "🧮", title: "Analyze it", desc: "Profit Calculator shows net profit, ROI and platform fees before you spend a dollar.", href: "/tools/profit-calculator", cta: "Run the numbers" },
+                { step: "3", icon: "📦", title: "Flip it", desc: "Listing Generator writes an optimized title, description and price for eBay/FB/Poshmark.", href: "/tools/listing-generator", cta: "Build a listing" },
+              ].map((t) => (
+                <Link
+                  key={t.step}
+                  href={t.href}
+                  className="group rounded-2xl border border-zinc-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-black text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                      {t.step}
+                    </span>
+                    <span className="text-xl">{t.icon}</span>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{t.title}</h3>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{t.desc}</p>
+                  <p className="mt-3 text-xs font-semibold text-emerald-600 group-hover:underline dark:text-emerald-400">
+                    {t.cta} →
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Leaderboard teaser ───────────────────────────────────────── */}
+        {leaders.length > 0 && (
+          <section className="border-t border-zinc-200 px-6 py-10 dark:border-zinc-800">
+            <div className="mx-auto max-w-5xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  Top hunters this week
+                </h2>
+                <Link
+                  href="/community/leaderboard"
+                  className="text-xs font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                >
+                  Full leaderboard →
+                </Link>
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                {leaders.map((l, i) => (
+                  <div
+                    key={l.rank}
+                    className="flex items-center gap-4 border-b border-zinc-100 px-5 py-3 last:border-0 dark:border-zinc-800/60"
+                  >
+                    <span className="w-6 text-center text-sm font-black text-zinc-400">
+                      {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : l.rank}
+                    </span>
+                    <span className="flex-1 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                      {l.name}
+                    </span>
+                    <span className="text-xs text-zinc-500">{l.deals_submitted} deals</span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      {l.aura_points.toLocaleString()} Aura
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ── Community stats + Seller CTA ──────────────────────────────── */}
         <section className="border-t border-zinc-200 dark:border-zinc-800 px-6 py-12">

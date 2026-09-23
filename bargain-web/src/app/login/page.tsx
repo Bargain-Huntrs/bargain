@@ -98,6 +98,9 @@ export default function LoginPage() {
                   >
                     Password
                   </label>
+                  <a href="/forgot-password" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    Forgot password?
+                  </a>
                 </div>
                 <input
                   id="password"
@@ -108,12 +111,6 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-600"
                 />
-              </div>
-
-              <div className="flex justify-end">
-                <a href="/forgot-password" className="text-xs text-blue-600 hover:text-blue-700">
-                  Forgot password?
-                </a>
               </div>
 
               <button

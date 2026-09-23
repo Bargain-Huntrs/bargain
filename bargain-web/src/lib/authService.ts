@@ -11,6 +11,9 @@ export interface AuthUser {
   lastName?: string;
   role?: string;
   subscriptionTier?: string;
+  phoneNumber?: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
 }
 
 export interface AuthResponse {
@@ -32,8 +35,10 @@ export interface LoginData {
 export interface RegisterData {
   email: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  phoneIdToken?: string;
   referralCode?: string;
 }
 
@@ -86,12 +91,16 @@ async function handleAuthResponse(response: Response): Promise<AuthResponse> {
 
   if (!response.ok) {
     let errorMessage = "Request failed";
+    const detail = typeof json?.detail === "string" ? json.detail
+      : Array.isArray(json?.detail) ? json.detail[0]?.msg : null;
     if (response.status === 401) {
-      errorMessage = json?.message || "Invalid email or password.";
+      errorMessage = detail || json?.message || "Invalid email or password.";
     } else if (response.status === 409) {
-      errorMessage = "An account with this email already exists.";
+      errorMessage = detail || "An account with this email already exists.";
+    } else if (response.status === 422) {
+      errorMessage = detail || "Please check your input and try again.";
     } else if (response.status >= 400 && response.status < 500) {
-      errorMessage = json?.message || json?.error || "Please check your input and try again.";
+      errorMessage = detail || json?.message || json?.error || "Please check your input and try again.";
     } else {
       errorMessage = json?.message || json?.error || "Server error. Please try again later.";
     }
@@ -178,6 +187,73 @@ class AuthService {
         localStorage.setItem(TOKEN_KEY, accessToken);
       }
       return { success: true, accessToken };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async verifyEmail(token: string): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/verify-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, error: json?.detail || "Verification failed" };
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async resendVerification(): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/resend-verification`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, error: json?.detail || "Could not resend email" };
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async verifyPhone(idToken: string): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/verify-phone`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ idToken }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, error: json?.detail || "Phone verification failed" };
+      }
+      return { success: true, user: json };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async updateProfile(data: { firstName?: string; lastName?: string }): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, error: json?.detail || "Update failed" };
+      }
+      return { success: true, user: json };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }

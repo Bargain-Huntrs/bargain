@@ -7,9 +7,14 @@ import { authService } from "@/lib/authService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PasskeyButton from "@/components/PasskeyButton";
+import PhoneVerify from "@/components/PhoneVerify";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneToken, setPhoneToken] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,7 +35,12 @@ export default function SignupPage() {
     setError("");
     setErrorStatus(null);
     setLoading(true);
-    const result = await authService.register({ email, password, referralCode });
+    const result = await authService.register({
+      email, password, referralCode,
+      firstName, lastName,
+      phoneNumber: phone,
+      phoneIdToken: phoneToken ?? undefined,
+    });
     if (result.success) {
       setRegistered(true);
     } else {
@@ -91,6 +101,78 @@ export default function SignupPage() {
             )}
 
             <form className="space-y-5" onSubmit={handleSubmit} suppressHydrationWarning>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="firstName"
+                    className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                  >
+                    First name
+                  </label>
+                  <input
+                    id="firstName"
+                    type="text"
+                    required
+                    autoComplete="given-name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-600"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="lastName"
+                    className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                  >
+                    Last name
+                  </label>
+                  <input
+                    id="lastName"
+                    type="text"
+                    required
+                    autoComplete="family-name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+                >
+                  Mobile number <span className="text-zinc-400">(for SMS deal alerts)</span>
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  required
+                  autoComplete="tel"
+                  placeholder="+15551234567"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value); setPhoneToken(null); }}
+                  className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-600"
+                />
+                {phoneToken ? (
+                  <p className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">✓ Phone verified via SMS</p>
+                ) : (
+                  phone && (
+                    <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                      <PhoneVerify
+                        phone={phone}
+                        compact
+                        onVerified={setPhoneToken}
+                      />
+                    </div>
+                  )
+                )}
+                <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-600">
+                  Include country code — e.g. +1 for US. Verify via SMS for instant glitch alerts.
+                </p>
+              </div>
+
               <div>
                 <label
                   htmlFor="email"
@@ -120,14 +202,14 @@ export default function SignupPage() {
                   id="password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder-zinc-600"
                 />
                 <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-600">
-                  Must be at least 6 characters.
+                  8+ characters with upper & lowercase letters and a number.
                 </p>
               </div>
 
@@ -138,6 +220,9 @@ export default function SignupPage() {
               >
                 {loading ? "Creating account…" : "Create account"}
               </button>
+              <p className="text-center text-xs text-zinc-400 dark:text-zinc-600">
+                We'll email you a verification link after signup.
+              </p>
             </form>
 
             {/* Passkey option — only available after the account is created. */}

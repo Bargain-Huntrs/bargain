@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.db.models import User, ReferralClaim
 from app.services.niche_service import get_all_niches, get_niche
-from app.services.email_service import send_welcome_email, send_password_reset_email
+from app.services.email_service import send_welcome_email, send_password_reset_email, send_verification_email
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 security = HTTPBearer(auto_error=False)
@@ -26,9 +26,28 @@ REFRESH_TOKEN_EXPIRE_DAYS = 14  # 14 days (was 60)
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
-    firstName: str | None = None
-    lastName: str | None = None
+    firstName: str
+    lastName: str
+    phoneNumber: str
+    phoneIdToken: str | None = None  # Firebase ID token proving phone ownership
     referralCode: str | None = None
+
+    @field_validator("firstName", "lastName")
+    @classmethod
+    def validate_name(cls, v):
+        v = v.strip()
+        if not v or len(v) > 100:
+            raise ValueError("First and last name are required (max 100 chars)")
+        return v
+
+    @field_validator("phoneNumber")
+    @classmethod
+    def validate_phone(cls, v):
+        v = (v or "").strip()
+        import re
+        if not re.fullmatch(r"\+[1-9]\d{6,14}", v):
+            raise ValueError("Phone number must be in E.164 format (e.g. +15551234567)")
+        return v
 
     @field_validator("password")
     @classmethod
@@ -126,11 +145,29 @@ async def register(body: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User with this email already exists")
 
+    # Verify phone via Firebase if an ID token was provided
+    phone_number = body.phoneNumber
+    phone_verified = False
+    if body.phoneIdToken:
+        verified_phone = _verify_firebase_phone_token(body.phoneIdToken)
+        if not verified_phone:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phone verification failed — please verify your number again")
+        if phone_number and verified_phone != phone_number:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verified phone number doesn't match the number entered")
+        phone_number = verified_phone
+        phone_verified = True
+        # Reject if another account already owns this verified number
+        if db.query(User).filter(User.phone_number == phone_number, User.phone_verified == True).first():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="That phone number is already linked to another account")
+
     user = User(
         email=body.email,
         hashed_password=hash_password(body.password),
         first_name=body.firstName,
         last_name=body.lastName,
+        phone_number=phone_number,
+        phone_verified=phone_verified,
+        email_verified=False,
     )
     db.add(user)
     db.flush()  # Get user.id before commit
@@ -181,8 +218,9 @@ async def register(body: RegisterRequest, db: Session = Depends(get_db)):
     user.refresh_token = refresh_token
     db.commit()
 
-    # Send welcome email (non-blocking, fails silently)
+    # Send welcome + verification emails (non-blocking, fail silently)
     send_welcome_email(user.email, user.first_name)
+    send_verification_email(user.email, _make_email_verify_token(user.id), user.first_name)
 
     return {
         "accessToken": access_token,
@@ -194,8 +232,93 @@ async def register(body: RegisterRequest, db: Session = Depends(get_db)):
             "firstName": user.first_name,
             "lastName": user.last_name,
             "role": user.role,
+            "phoneNumber": user.phone_number,
+            "emailVerified": user.email_verified,
+            "phoneVerified": user.phone_verified,
         },
     }
+
+
+def _make_email_verify_token(user_id) -> str:
+    return jwt.encode(
+        {"sub": str(user_id), "type": "email_verify", "exp": datetime.now(timezone.utc) + timedelta(hours=24)},
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
+
+
+def _verify_firebase_phone_token(id_token: str) -> str | None:
+    """Verify a Firebase ID token and return its verified E.164 phone number, or None."""
+    try:
+        from app.services.firebase_service import _init_firebase
+        app = _init_firebase()
+        if not app:
+            return None
+        from firebase_admin import auth as fb_auth
+        decoded = fb_auth.verify_id_token(id_token, app=app)
+        return decoded.get("phone_number") or (decoded.get("firebase", {}).get("identities", {}).get("phone", [None])[0])
+    except Exception:
+        return None
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+@router.post("/verify-email")
+async def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(body.token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "email_verify":
+            raise HTTPException(status_code=400, detail="Invalid verification link")
+        user_id = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Verification link is invalid or expired — request a new one")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Account not found")
+
+    user.email_verified = True
+    db.commit()
+    return {"success": True, "message": "Email verified"}
+
+
+@router.post("/resend-verification")
+async def resend_verification(current_user: User = Depends(get_current_user)):
+    if current_user.email_verified:
+        return {"success": True, "message": "Email already verified"}
+    send_verification_email(current_user.email, _make_email_verify_token(current_user.id), current_user.first_name)
+    return {"success": True, "message": "Verification email sent"}
+
+
+class VerifyPhoneRequest(BaseModel):
+    idToken: str
+
+
+@router.post("/verify-phone")
+async def verify_phone(
+    body: VerifyPhoneRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Verify a phone number via a Firebase Phone Auth ID token."""
+    phone = _verify_firebase_phone_token(body.idToken)
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone verification failed — try again")
+
+    conflict = db.query(User).filter(
+        User.phone_number == phone,
+        User.phone_verified == True,
+        User.id != current_user.id,
+    ).first()
+    if conflict:
+        raise HTTPException(status_code=409, detail="That phone number is already linked to another account")
+
+    current_user.phone_number = phone
+    current_user.phone_verified = True
+    db.commit()
+    return {"success": True, "phoneNumber": phone, "phoneVerified": True}
 
 
 @router.post("/login")
@@ -244,6 +367,9 @@ async def login(body: LoginRequest, db: Session = Depends(get_db)):
             "firstName": user.first_name,
             "lastName": user.last_name,
             "role": user.role,
+            "phoneNumber": user.phone_number,
+            "emailVerified": user.email_verified,
+            "phoneVerified": user.phone_verified,
         },
         "auraBonus": aura_bonus,
         "loginStreak": user.login_streak,
@@ -262,6 +388,8 @@ async def profile(current_user: User = Depends(get_current_user)):
         "subscriptionTier": current_user.subscription_tier,
         "subscribedNiches": current_user.subscribed_niches or [],
         "phoneNumber": current_user.phone_number,
+        "emailVerified": current_user.email_verified,
+        "phoneVerified": current_user.phone_verified,
     }
 
 
@@ -278,7 +406,39 @@ async def me(current_user: User = Depends(get_current_user)):
         "subscriptionTier": current_user.subscription_tier,
         "subscribedNiches": current_user.subscribed_niches or [],
         "phoneNumber": current_user.phone_number,
+        "emailVerified": current_user.email_verified,
+        "phoneVerified": current_user.phone_verified,
     }
+
+
+class UpdateMeRequest(BaseModel):
+    firstName: str | None = None
+    lastName: str | None = None
+
+    @field_validator("firstName", "lastName")
+    @classmethod
+    def validate_name(cls, v):
+        if v is None:
+            return v
+        v = v.strip()
+        if not v or len(v) > 100:
+            raise ValueError("Names must be 1-100 characters")
+        return v
+
+
+@router.put("/me")
+async def update_me(
+    body: UpdateMeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update profile fields (first/last name)."""
+    if body.firstName is not None:
+        current_user.first_name = body.firstName
+    if body.lastName is not None:
+        current_user.last_name = body.lastName
+    db.commit()
+    return {"success": True, "firstName": current_user.first_name, "lastName": current_user.last_name}
 
 
 @router.get("/me/niches")
@@ -354,6 +514,8 @@ async def update_phone(
             detail="Phone number must be in E.164 format (e.g. +1234567890)",
         )
 
+    if phone != current_user.phone_number:
+        current_user.phone_verified = False
     current_user.phone_number = phone
     db.commit()
     db.refresh(current_user)

@@ -110,6 +110,36 @@ def send_password_reset_email(email: str, reset_token: str, first_name: Optional
     return _send_email(email, "Reset your BargainHuntrs password", html)
 
 
+def send_verification_email(email: str, token: str, first_name: Optional[str] = None) -> bool:
+    """Send an email-verification link (24h expiry)."""
+    name = first_name or "there"
+    verify_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+        <div style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); padding: 24px; text-align: center; border-radius: 12px 12px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Verify Your Email</h1>
+        </div>
+        <div style="padding: 32px;">
+            <h2 style="color: #1f2937;">Hey {name},</h2>
+            <p style="color: #4b5563; line-height: 1.6;">
+                Confirm this email address for your BargainHuntrs account by clicking
+                the button below. This link expires in 24 hours.
+            </p>
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="{verify_url}" style="background: #2563eb; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Verify Email Address</a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+                If you didn't create an account, you can safely ignore this email.
+            </p>
+        </div>
+        <div style="border-top: 1px solid #e5e7eb; padding: 24px; text-align: center;">
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">BargainHuntrs — Arbitrage Intelligence Platform</p>
+        </div>
+    </div>
+    """
+    return _send_email(email, "Verify your BargainHuntrs email", html)
+
+
 def send_deal_approved_email(email: str, deal_title: str, first_name: Optional[str] = None) -> bool:
     """Send an email when a user's submitted deal is approved."""
     name = first_name or "there"

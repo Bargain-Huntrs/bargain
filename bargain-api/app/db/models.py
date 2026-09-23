@@ -21,6 +21,8 @@ class User(Base):
     stripe_subscription_id = Column(String(255))
     refresh_token = Column(String(255))
     phone_number = Column(String(20))  # For SMS alerts (Hunter tier)
+    email_verified = Column(Boolean, default=False)
+    phone_verified = Column(Boolean, default=False)
 
     # Notification preferences
     email_deal_alerts = Column(Boolean, default=True)

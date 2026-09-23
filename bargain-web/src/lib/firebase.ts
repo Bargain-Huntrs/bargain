@@ -1,6 +1,13 @@
-// Firebase Cloud Messaging (web push notifications)
+// Firebase Cloud Messaging (web push notifications) + Phone Auth
 import { initializeApp, getApps } from "firebase/app";
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  type Auth,
+  type ConfirmationResult,
+} from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -59,3 +66,42 @@ export function onMessageListener(callback: (payload: any) => void) {
 }
 
 export { vapidKey };
+
+// ── Phone Authentication ────────────────────────────────────────────────────
+
+let authInstance: Auth | null = null;
+let recaptchaVerifier: RecaptchaVerifier | null = null;
+let confirmationResult: ConfirmationResult | null = null;
+
+export function getFirebaseAuth(): Auth {
+  if (authInstance) return authInstance;
+  authInstance = getAuth(getFirebaseApp());
+  return authInstance;
+}
+
+/** Send an SMS verification code to `phone` (E.164). Renders an invisible reCAPTCHA on `elementId`. */
+export async function sendPhoneCode(phone: string, elementId: string): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (recaptchaVerifier) {
+    recaptchaVerifier.clear();
+    recaptchaVerifier = null;
+  }
+  recaptchaVerifier = new RecaptchaVerifier(auth, elementId, { size: "invisible" });
+  confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+}
+
+/** Confirm the SMS code. Returns a Firebase ID token to send to our API. */
+export async function confirmPhoneCode(code: string): Promise<string> {
+  if (!confirmationResult) throw new Error("No verification in progress — request a new code");
+  const cred = await confirmationResult.confirm(code);
+  const idToken = await cred.user.getIdToken();
+  return idToken;
+}
+
+export function resetPhoneAuth() {
+  if (recaptchaVerifier) {
+    recaptchaVerifier.clear();
+    recaptchaVerifier = null;
+  }
+  confirmationResult = null;
+}

@@ -30,6 +30,7 @@ import {
   type UserListItem,
   type ProfitSummary,
 } from "@/lib/api";
+import PhoneVerify from "@/components/PhoneVerify";
 import ProfitCalculator from "@/components/tools/ProfitCalculator";
 import ListingGenerator from "@/components/tools/ListingGenerator";
 import RealEstateCalculator from "@/components/tools/RealEstateCalculator";
@@ -38,7 +39,12 @@ interface UserData {
   id: string;
   email: string;
   subscription_tier: string;
+  subscriptionTier?: string;
+  firstName?: string | null;
+  lastName?: string | null;
   phoneNumber?: string | null;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
 }
 
 interface WatchlistItem {
@@ -363,6 +369,10 @@ export default function DashboardPage() {
   const [listItems, setListItems] = useState<UserListItem[]>([]);
   const [listForm, setListForm] = useState({ title: "", url: "", target: "", notes: "" });
   const [claimBusy, setClaimBusy] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
+  const [verifyPhone, setVerifyPhone] = useState("");
+  const [profileForm, setProfileForm] = useState({ firstName: "", lastName: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -374,6 +384,8 @@ export default function DashboardPage() {
       getCurrentUser(idToken).then((data) => {
         setUserData(data);
         setPhoneNumber(data.phoneNumber || "");
+        setVerifyPhone(data.phoneNumber || "");
+        setProfileForm({ firstName: data.firstName || "", lastName: data.lastName || "" });
       }).catch((err) => setError(err.message));
       loadItems();
       loadNiches();
@@ -584,11 +596,26 @@ export default function DashboardPage() {
     <div className="min-h-full bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Hunter HQ</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-              {userData?.email || user?.email}
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Hunter HQ</h1>
+            <span className="hidden sm:inline-block rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+              {(userData?.subscriptionTier || userData?.subscription_tier || "free").toUpperCase()}
             </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-xs font-bold text-white">
+                {(userData?.firstName?.[0] || userData?.email?.[0] || "?").toUpperCase()}
+              </span>
+              <div className="hidden sm:block">
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50 leading-tight">
+                  {userData?.firstName ? `${userData.firstName} ${userData.lastName || ""}`.trim() : userData?.email || user?.email}
+                </p>
+                {userData?.firstName && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight">{userData.email}</p>
+                )}
+              </div>
+            </div>
             <button
               onClick={handleLogout}
               className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-800"
@@ -603,6 +630,109 @@ export default function DashboardPage() {
         {error && (
           <div className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
             {error}
+          </div>
+        )}
+
+        {/* Verification banner */}
+        {userData && (userData.emailVerified === false || userData.phoneVerified === false) && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/40">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-300">
+                  Finish securing your account
+                </h2>
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                  Verified accounts get trusted deal alerts and SMS notifications.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {userData.emailVerified === false && (
+                  <button
+                    onClick={async () => {
+                      setResendState("sending");
+                      const r = await authService.resendVerification();
+                      setResendState(r.success ? "sent" : "idle");
+                    }}
+                    disabled={resendState !== "idle"}
+                    className="rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {resendState === "sent" ? "✓ Email sent — check inbox" : resendState === "sending" ? "Sending…" : "Resend verification email"}
+                  </button>
+                )}
+                {userData.emailVerified === false && (
+                  <span className="text-xs text-amber-700 dark:text-amber-400">
+                    ✉ {userData.email}
+                  </span>
+                )}
+              </div>
+            </div>
+            {userData.phoneVerified === false && (
+              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-amber-200 pt-4 dark:border-amber-900">
+                <input
+                  type="tel"
+                  value={verifyPhone}
+                  onChange={(e) => setVerifyPhone(e.target.value)}
+                  placeholder="+15551234567"
+                  className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-amber-500 focus:outline-none dark:border-amber-800 dark:bg-zinc-900 dark:text-zinc-50"
+                />
+                <PhoneVerify
+                  phone={verifyPhone}
+                  compact
+                  onVerified={async (idTok) => {
+                    const r = await authService.verifyPhone(idTok);
+                    if (r.success) {
+                      setUserData({ ...userData, phoneNumber: verifyPhone, phoneVerified: true });
+                    } else {
+                      setError(r.error || "Phone verification failed");
+                    }
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Profile completion — legacy accounts missing names */}
+        {userData && !userData.firstName && (
+          <div className="mb-6 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Complete your profile</h2>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Add your name so other hunters know who they're dealing with.</p>
+            <form
+              className="mt-3 flex flex-wrap items-center gap-3"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setSavingProfile(true);
+                const r = await authService.updateProfile(profileForm);
+                if (r.success) {
+                  setUserData({ ...userData, ...profileForm });
+                } else {
+                  setError(r.error || "Couldn't save profile");
+                }
+                setSavingProfile(false);
+              }}
+            >
+              <input
+                required
+                value={profileForm.firstName}
+                onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                placeholder="First name"
+                className={inputCls}
+              />
+              <input
+                required
+                value={profileForm.lastName}
+                onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                placeholder="Last name"
+                className={inputCls}
+              />
+              <button
+                type="submit"
+                disabled={savingProfile}
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
+              >
+                {savingProfile ? "Saving…" : "Save"}
+              </button>
+            </form>
           </div>
         )}
 

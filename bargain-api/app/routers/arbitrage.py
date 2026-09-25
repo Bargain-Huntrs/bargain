@@ -508,9 +508,38 @@ async def scrape_all_deals_public(
             ArbitrageDeal.detected_at < stale_cutoff,
         ).update({ArbitrageDeal.status: "expired"}, synchronize_session=False)
 
-        if unposted_expired or stale_expired:
+        # Archive dead deals (expired/rejected, or alerted >7d) — kept 90
+        # days for dedup/metrics, then hard-deleted.
+        archive_cutoff = datetime.utcnow() - timedelta(days=7)
+        archived = db.query(ArbitrageDeal).filter(
+            ArbitrageDeal.archived_at == None,
+            (
+                ArbitrageDeal.status.in_(["expired", "rejected"])
+                | (
+                    (ArbitrageDeal.status == "alerted")
+                    & (ArbitrageDeal.detected_at < archive_cutoff)
+                )
+            ),
+        ).update(
+            {
+                ArbitrageDeal.status: "archived",
+                ArbitrageDeal.archived_at: datetime.utcnow(),
+            },
+            synchronize_session=False,
+        )
+
+        purge_cutoff = datetime.utcnow() - timedelta(days=90)
+        purged = db.query(ArbitrageDeal).filter(
+            ArbitrageDeal.status == "archived",
+            ArbitrageDeal.archived_at != None,
+            ArbitrageDeal.archived_at < purge_cutoff,
+        ).delete(synchronize_session=False)
+
+        if unposted_expired or stale_expired or archived or purged:
             db.commit()
         results["expired"] = {"unposted": unposted_expired, "stale": stale_expired}
+        results["archived"] = archived
+        results["purged"] = purged
     except Exception as e:
         db.rollback()
         results["expire_error"] = str(e)

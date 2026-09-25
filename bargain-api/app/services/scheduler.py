@@ -475,6 +475,40 @@ class ScanScheduler:
                 logger.info(f"Expired {stale_expired} stale deals (>7 days old)")
                 db.commit()
 
+            # Archive dead deals — expired/rejected rows and alerted deals
+            # older than 7 days are done; keep them archived for 90 days so
+            # dedup/metrics still work, then delete.
+            archive_cutoff = datetime.utcnow() - timedelta(days=7)
+            archived = db.query(ArbitrageDeal).filter(
+                ArbitrageDeal.archived_at == None,
+                (
+                    ArbitrageDeal.status.in_(["expired", "rejected"])
+                    | (
+                        (ArbitrageDeal.status == "alerted")
+                        & (ArbitrageDeal.detected_at < archive_cutoff)
+                    )
+                ),
+            ).update(
+                {
+                    ArbitrageDeal.status: "archived",
+                    ArbitrageDeal.archived_at: datetime.utcnow(),
+                },
+                synchronize_session=False,
+            )
+            if archived:
+                logger.info(f"Archived {archived} dead deals")
+                db.commit()
+
+            purge_cutoff = datetime.utcnow() - timedelta(days=90)
+            purged = db.query(ArbitrageDeal).filter(
+                ArbitrageDeal.status == "archived",
+                ArbitrageDeal.archived_at != None,
+                ArbitrageDeal.archived_at < purge_cutoff,
+            ).delete(synchronize_session=False)
+            if purged:
+                logger.info(f"Purged {purged} archived deals (>90 days)")
+                db.commit()
+
             # Post new deals to social media via Buffer API
             # ONLY post deals with affiliate tracking links
             if x_configured():

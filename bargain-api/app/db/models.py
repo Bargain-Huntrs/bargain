@@ -212,9 +212,10 @@ class ArbitrageDeal(Base):
     niche = Column(String(50), nullable=True, index=True)  # electronics, tools, etc.
     is_profitable = Column(Boolean, default=False)
     score = Column(Numeric(10, 4), default=0)  # Composite deal quality score
-    status = Column(String(50), default="active")  # active, alerted, expired, rejected
+    status = Column(String(50), default="active")  # active, alerted, expired, rejected, archived
     detected_at = Column(DateTime, default=datetime.utcnow, index=True)
     alerted_at = Column(DateTime)
+    archived_at = Column(DateTime, index=True)  # set when status -> archived; row deleted 90d after
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

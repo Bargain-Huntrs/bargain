@@ -489,6 +489,27 @@ export async function getPublicDeal(dealId: string) {
   return res.json() as Promise<ArbitrageDeal>;
 }
 
+export interface PriceHistoryPoint {
+  t: string | null;
+  price: number;
+}
+
+export interface DealPriceHistory {
+  deal_id: string;
+  item_id: string;
+  retailer: string;
+  current_price: number | null;
+  historical_avg: number | null;
+  detected_at: string | null;
+  points: PriceHistoryPoint[];
+}
+
+export async function getPublicDealPriceHistory(dealId: string) {
+  const res = await fetch(`${API_URL}/api/v1/arbitrage/deals/public/${dealId}/price-history`);
+  if (!res.ok) throw new Error(`Failed to fetch price history: ${res.status}`);
+  return res.json() as Promise<DealPriceHistory>;
+}
+
 export function addUtmParameters(
   url: string,
   source: string,

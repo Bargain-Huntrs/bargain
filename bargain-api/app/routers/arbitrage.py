@@ -161,6 +161,9 @@ async def list_public_deals(
     # One coupon query for the whole page instead of N+1 per deal.
     best_coupons = _best_coupons_batch(deals, db)
     return [_deal_to_response(d, db=None, best_coupon=best_coupons.get(str(d.id))) for d in deals]
+
+
+@router.get("/deals/public/{deal_id}", response_model=DealResponse)
 async def get_public_deal(
     deal_id: UUID = Path(..., description="Public deal ID"),
     db: Session = Depends(get_db),
@@ -178,6 +181,50 @@ async def get_public_deal(
     if not deal:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found")
     return _deal_to_response(deal, db)
+
+
+@router.get("/deals/public/{deal_id}/price-history", response_model=dict)
+async def get_public_deal_price_history(
+    deal_id: UUID = Path(..., description="Public deal ID"),
+    db: Session = Depends(get_db),
+):
+    """Real recorded price history for a deal — public, no auth.
+
+    Returns the actual PriceSnapshot rows our scrapers recorded for this
+    item. No synthesized points — if we have no history yet, `points` is
+    empty and the client should say so rather than fabricate a trend.
+    """
+    deal = db.query(ArbitrageDeal).filter(ArbitrageDeal.id == deal_id).first()
+    if not deal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found")
+
+    item_id = deal.asin or str(deal.id)
+    retailer = (getattr(deal, "retailer", None) or deal.buy_platform or "amazon").lower()
+
+    snapshots = (
+        db.query(PriceSnapshot)
+        .filter(PriceSnapshot.item_id == item_id)
+        .filter(PriceSnapshot.retailer.in_([retailer, retailer.replace("_", "")]))
+        .order_by(PriceSnapshot.timestamp.asc())
+        .limit(500)
+        .all()
+    )
+
+    points = [
+        {"t": s.timestamp.isoformat() if s.timestamp else None, "price": float(s.price)}
+        for s in snapshots
+        if s.price is not None
+    ]
+
+    return {
+        "deal_id": str(deal.id),
+        "item_id": item_id,
+        "retailer": retailer,
+        "current_price": float(deal.buy_price) if deal.buy_price else None,
+        "historical_avg": float(deal.historical_avg) if deal.historical_avg else None,
+        "detected_at": deal.detected_at.isoformat() if deal.detected_at else None,
+        "points": points,
+    }
 
 
 @router.post("/deals/scrape-amazon", response_model=dict)

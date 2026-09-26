@@ -20,6 +20,30 @@ import {
   type PricePrediction,
 } from "@/lib/api";
 
+// Most scraped deals arrive with no `category` set, so we infer a bucket
+// from the title. Keeps the filter chips useful instead of 90% "none".
+const CATEGORY_KEYWORDS: [string, string[]][] = [
+  ["Electronics", ["laptop", "headphone", "earbud", "speaker", "monitor", "tv", "tablet", "phone", "charger", "camera", "printer", "keyboard", "mouse", "ssd", "hard drive", "bluetooth", "smartwatch", "gaming", "console", "ps5", "xbox", "nintendo", "router", "drone", "projector"]],
+  ["Home & Kitchen", ["kitchen", "cookware", "mattress", "pillow", "blanket", "vacuum", "air fryer", "blender", "coffee", "lamp", "furniture", "desk", "chair", "storage", "organizer", "towel", "bedding", "sheet"]],
+  ["Beauty & Care", ["makeup", "skincare", "serum", "moisturizer", "shampoo", "conditioner", "toothpaste", "lotion", "fragrance", "perfume", "razor", "hair dryer", "curling"]],
+  ["Clothing & Shoes", ["dress", "shirt", "jeans", "jacket", "sneaker", "boots", "shoes", "hoodie", "leggings", "bra ", "underwear", "socks", "coat"]],
+  ["Toys & Games", ["lego", "toy", "doll", "puzzle", "board game", "action figure", "plush", "nerf", "barbie", "hot wheels"]],
+  ["Sports & Outdoors", ["fitness", "yoga", "dumbbell", "treadmill", "bike", "camping", "tent", "fishing", "golf", "basketball", "hiking", "kayak"]],
+  ["Tools & Auto", ["drill", "saw", "wrench", "tool", "dewalt", "milwaukee", "ryobi", "automotive", "tire", "car ", "mechanic"]],
+  ["Baby & Kids", ["baby", "diaper", "stroller", "crib", "toddler", "kids", "children"]],
+  ["Pet Supplies", ["dog", "cat ", "pet", "puppy", "kitten", "aquarium", "bird"]],
+  ["Grocery & Health", ["vitamin", "supplement", "protein", "snack", "grocery", "food", "medicine", "first aid"]],
+];
+
+function inferDealCategory(deal: ArbitrageDeal): string {
+  if (deal.category && deal.category.trim()) return deal.category;
+  const t = (deal.title || "").toLowerCase();
+  for (const [bucket, keywords] of CATEGORY_KEYWORDS) {
+    if (keywords.some((k) => t.includes(k))) return bucket;
+  }
+  return "Other";
+}
+
 export default function DealsPage() {
   const router = useRouter();
   const { user, loading, idToken } = useAuth();
@@ -41,6 +65,7 @@ export default function DealsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRetailer, setFilterRetailer] = useState<string | null>(null);
   const [filterSource, setFilterSource] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
   const isPaidTier = (user?.subscriptionTier || "").toLowerCase() === "pro" ||
     (user?.subscriptionTier || "").toLowerCase() === "enterprise";
@@ -219,15 +244,32 @@ export default function DealsPage() {
   );
 
   const visibleDeals = useMemo(() => {
+    let list = deals;
+    if (filterCategory) {
+      list = list.filter((d) => inferDealCategory(d) === filterCategory);
+    }
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return deals;
-    return deals.filter(
+    if (!q) return list;
+    return list.filter(
       (d) =>
         d.title.toLowerCase().includes(q) ||
         (d.retailer || "").toLowerCase().includes(q) ||
         (d.category || "").toLowerCase().includes(q)
     );
-  }, [deals, searchQuery]);
+  }, [deals, searchQuery, filterCategory]);
+
+  // Distinct categories present in the loaded deals (inferred or stored) —
+  // feeds the filter chips so we never offer a bucket with zero deals.
+  const availableCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const d of deals) {
+      const c = inferDealCategory(d);
+      counts.set(c, (counts.get(c) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([key]) => key);
+  }, [deals]);
 
   function formatTier(tier: string): { label: string; color: string } {
     switch (tier) {
@@ -396,13 +438,25 @@ export default function DealsPage() {
               className="w-32 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
 
-            {(selectedTier || minProfit || selectedNiche || searchQuery) && (
+            <select
+              value={filterCategory || ""}
+              onChange={(e) => setFilterCategory(e.target.value || null)}
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="">All categories</option>
+              {availableCategories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            {(selectedTier || minProfit || selectedNiche || searchQuery || filterCategory) && (
               <button
                 onClick={() => {
                   setSelectedTier("");
                   setMinProfit("");
                   setSelectedNiche("");
                   setSearchQuery("");
+                  setFilterCategory(null);
                 }}
                 className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               >

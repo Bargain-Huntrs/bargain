@@ -157,6 +157,24 @@ export async function getPublicCoupons(
   return res.json() as Promise<Coupon[]>;
 }
 
+export async function submitCouponFeedback(couponId: string, worked: boolean) {
+  const res = await fetch(`${API_URL}/api/v1/coupons/public/${couponId}/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ worked }),
+  });
+  if (!res.ok) throw new Error(`Failed to submit feedback: ${res.status}`);
+  return res.json() as Promise<{ success_rate: number | null; votes: number; status: string }>;
+}
+
+export async function reportDeadDeal(dealId: string) {
+  const res = await fetch(`${API_URL}/api/v1/arbitrage/deals/public/${dealId}/report-dead`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to report deal: ${res.status}`);
+  return res.json() as Promise<{ archived: boolean; reports: number }>;
+}
+
 export async function getPublicCouponRetailers() {
   const res = await fetch(`${API_URL}/api/v1/coupons/public/retailers`);
   if (!res.ok) return [];

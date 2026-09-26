@@ -227,6 +227,36 @@ async def get_public_deal_price_history(
     }
 
 
+@router.post("/deals/public/{deal_id}/report-dead", response_model=dict)
+async def report_dead_deal(
+    deal_id: UUID = Path(..., description="Public deal ID"),
+    db: Session = Depends(get_db),
+):
+    """Crowd report that a deal is dead (price reverted, OOS, link broken).
+
+    Public endpoint — no auth so anyone hitting a dead link can flag it.
+    At DEAD_REPORT_THRESHOLD reports the deal auto-archives, which removes
+    it from every feed and starts the 90-day purge window.
+    """
+    DEAD_REPORT_THRESHOLD = 5
+
+    deal = db.query(ArbitrageDeal).filter(ArbitrageDeal.id == deal_id).first()
+    if not deal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found")
+    if deal.status == "archived":
+        return {"archived": True, "reports": deal.dead_report_count or 0}
+
+    deal.dead_report_count = (deal.dead_report_count or 0) + 1
+    archived = False
+    if deal.dead_report_count >= DEAD_REPORT_THRESHOLD and deal.status in ("active", "alerted"):
+        deal.status = "archived"
+        deal.archived_at = datetime.utcnow()
+        archived = True
+    db.commit()
+
+    return {"archived": archived, "reports": deal.dead_report_count}
+
+
 @router.post("/deals/scrape-amazon", response_model=dict)
 async def scrape_amazon_deals_endpoint(
     max_deals: int = Query(50, le=100),

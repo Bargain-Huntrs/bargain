@@ -140,6 +140,43 @@ async def list_public_coupons(
     return [_coupon_to_response(c) for c in coupons]
 
 
+@router.post("/public/{coupon_id}/feedback", response_model=dict)
+async def coupon_feedback(
+    coupon_id: UUID,
+    body: dict,
+    db: Session = Depends(get_db),
+):
+    """Crowd verification: 'did this code work?' — public, no auth.
+
+    Success votes bump success_count; failures bump fail_count. Codes with
+    enough votes and a bad success rate get auto-expired so dead codes stop
+    surfacing — the #1 complaint pattern on competitor deal apps.
+    """
+    coupon = db.query(CouponCode).filter(CouponCode.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+
+    worked = bool(body.get("worked"))
+    if worked:
+        coupon.success_count = (coupon.success_count or 0) + 1
+        coupon.verified = True
+        coupon.verified_at = datetime.utcnow()
+    else:
+        coupon.fail_count = (coupon.fail_count or 0) + 1
+
+    total = (coupon.success_count or 0) + (coupon.fail_count or 0)
+    # Auto-expire: at least 5 votes and <30% success rate.
+    if total >= 5 and (coupon.success_count or 0) / total < 0.3:
+        coupon.status = "expired"
+
+    db.commit()
+    return {
+        "success_rate": round((coupon.success_count or 0) / total, 2) if total else None,
+        "votes": total,
+        "status": coupon.status,
+    }
+
+
 @router.get("/public/retailers", response_model=List[str])
 async def get_public_coupon_retailers(
     db: Session = Depends(get_db),

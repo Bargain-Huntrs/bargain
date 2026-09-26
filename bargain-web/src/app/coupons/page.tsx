@@ -14,6 +14,7 @@ import {
   getCouponStatus,
   scrapeCoupons,
   submitCoupon,
+  submitCouponFeedback,
   type Coupon,
 } from "@/lib/api";
 
@@ -31,6 +32,7 @@ export default function CouponsPage() {
   const [scrapeResult, setScrapeResult] = useState<string>("");
   const [error, setError] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [votedCoupons, setVotedCoupons] = useState<Set<string>>(new Set());
   const [couponSourceConfigured, setCouponSourceConfigured] = useState<boolean | null>(null);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -127,6 +129,15 @@ export default function CouponsPage() {
       setError(err instanceof Error ? err.message : "Scrape failed");
     } finally {
       setScraping(false);
+    }
+  }
+
+  async function voteCoupon(couponId: string, worked: boolean) {
+    try {
+      await submitCouponFeedback(couponId, worked);
+      setVotedCoupons((prev) => new Set(prev).add(couponId));
+    } catch {
+      // Non-critical — vote silently fails
     }
   }
 
@@ -511,19 +522,42 @@ export default function CouponsPage() {
                         </button>
                       </div>
 
-                      {/* Footer: expiry + verified */}
+                      {/* Footer: expiry + verified + did-it-work votes */}
                       <div className="flex items-center justify-between text-xs">
                         <span className={`text-zinc-500 dark:text-zinc-400`}>
                           {formatExpiry(coupon.expires_at)}
                         </span>
-                        {coupon.verified && (
-                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                            </svg>
-                            Verified
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {coupon.verified && (
+                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                              </svg>
+                              Verified
+                            </span>
+                          )}
+                          {votedCoupons.has(coupon.id) ? (
+                            <span className="text-zinc-400">Thanks!</span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <span className="text-zinc-400">Worked?</span>
+                              <button
+                                onClick={() => voteCoupon(coupon.id, true)}
+                                className="rounded px-1.5 py-0.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 font-medium"
+                                title="Code worked"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() => voteCoupon(coupon.id, false)}
+                                className="rounded px-1.5 py-0.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 font-medium"
+                                title="Code did not work"
+                              >
+                                No
+                              </button>
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Product link */}

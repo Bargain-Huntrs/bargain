@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
-import { addUtmParameters, getPublicDeal, type ArbitrageDeal } from "@/lib/api";
+import { addUtmParameters, getPublicDeal, reportDeadDeal, type ArbitrageDeal } from "@/lib/api";
 
 function retailerName(retailer?: string): string {
   if (!retailer) return "Amazon";
@@ -55,6 +55,17 @@ export default function DealPageClient() {
   const [deal, setDeal] = useState<ArbitrageDeal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [deadReported, setDeadReported] = useState(false);
+
+  const handleReportDead = async () => {
+    if (!deal || deadReported) return;
+    try {
+      await reportDeadDeal(deal.id);
+      setDeadReported(true);
+    } catch {
+      setDeadReported(true); // still show thanks — no error UI needed for a courtesy flag
+    }
+  };
 
   useEffect(() => {
     // Extract the deal ID from the URL pathname: /deals/:id
@@ -221,6 +232,15 @@ export default function DealPageClient() {
                 ) : (
                   <p className="mt-6 text-sm text-zinc-500">No purchase link available.</p>
                 )}
+
+                {/* Crowd verification — dead deals get reported, auto-archive at 5 */}
+                <button
+                  onClick={handleReportDead}
+                  disabled={deadReported}
+                  className="mt-3 block text-xs text-zinc-400 underline-offset-2 hover:text-red-500 hover:underline disabled:opacity-60"
+                >
+                  {deadReported ? "Thanks — reported" : "Dead deal? Report it"}
+                </button>
               </div>
             </div>
           </div>

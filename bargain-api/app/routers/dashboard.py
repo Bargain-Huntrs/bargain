@@ -17,7 +17,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.db.models import ArbitrageDeal, DealClaim, User, UserListItem
+from app.db.models import ArbitrageDeal, DealClaim, SavedDeal, User, UserListItem
 from app.routers.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,98 @@ router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
 
 CLAIM_STATUSES = {"bought", "listed", "sold"}
 LIST_TYPES = {"shopping", "wishlist", "bolo"}
+
+
+# ─── Saved deals (bookmarks, synced per-account) ───────────────────────────
+
+class SavedDealResponse(BaseModel):
+    deal_id: UUID
+    saved_at: Optional[datetime] = None
+    title: str
+    image_url: Optional[str] = None
+    buy_url: Optional[str] = None
+    buy_price: Optional[float] = None
+    historical_avg: Optional[float] = None
+    retailer: Optional[str] = None
+    deal_status: str  # live deal status — expired/archived shows as dead, not lost
+
+
+@router.get("/saved", response_model=List[SavedDealResponse])
+async def list_saved_deals(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """The user's clipped deals — newest first, dead deals flagged not hidden."""
+    rows = (
+        db.query(SavedDeal, ArbitrageDeal)
+        .join(ArbitrageDeal, SavedDeal.deal_id == ArbitrageDeal.id)
+        .filter(SavedDeal.user_id == current_user.id)
+        .order_by(SavedDeal.saved_at.desc())
+        .all()
+    )
+    return [
+        SavedDealResponse(
+            deal_id=d.id,
+            saved_at=s.saved_at,
+            title=d.title,
+            image_url=d.image_url,
+            buy_url=d.buy_url,
+            buy_price=float(d.buy_price) if d.buy_price else None,
+            historical_avg=float(d.historical_avg) if d.historical_avg else None,
+            retailer=getattr(d, "retailer", None) or d.buy_platform,
+            deal_status=d.status,
+        )
+        for s, d in rows
+    ]
+
+
+@router.post("/saved/{deal_id}", status_code=status.HTTP_201_CREATED)
+async def save_deal(
+    deal_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    deal = db.query(ArbitrageDeal).filter(ArbitrageDeal.id == deal_id).first()
+    if not deal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found")
+
+    existing = (
+        db.query(SavedDeal)
+        .filter(SavedDeal.user_id == current_user.id, SavedDeal.deal_id == deal_id)
+        .first()
+    )
+    if existing:
+        return {"saved": True, "deal_id": str(deal_id)}
+
+    db.add(SavedDeal(user_id=current_user.id, deal_id=deal_id))
+    db.commit()
+    return {"saved": True, "deal_id": str(deal_id)}
+
+
+@router.delete("/saved/{deal_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def unsave_deal(
+    deal_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    row = (
+        db.query(SavedDeal)
+        .filter(SavedDeal.user_id == current_user.id, SavedDeal.deal_id == deal_id)
+        .first()
+    )
+    if row:
+        db.delete(row)
+        db.commit()
+
+
+@router.get("/saved/ids", response_model=List[UUID])
+async def saved_deal_ids(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Just the IDs — the deals feed uses this to mark already-saved cards."""
+    rows = db.query(SavedDeal.deal_id).filter(SavedDeal.user_id == current_user.id).all()
+    return [r[0] for r in rows]
 
 
 # ─── Schemas ────────────────────────────────────────────────────────────────

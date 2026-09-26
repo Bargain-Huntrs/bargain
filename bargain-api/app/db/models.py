@@ -220,6 +220,24 @@ class ArbitrageDeal(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class SavedDeal(Base):
+    """A deal the user bookmarked for later — the 'clip' feature.
+
+    Synced server-side so saved deals follow the account across devices.
+    The deal's own status column tells the UI whether it's still live —
+    expired/archived deals render as such instead of silently vanishing
+    (or worse, looking buyable).
+    """
+    __tablename__ = "saved_deals"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    deal_id = Column(UUID(as_uuid=True), ForeignKey("arbitrage_deals.id"), nullable=False, index=True)
+    saved_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("user_id", "deal_id", name="uq_saved_deals_user_deal"),)
+
+
 class ScanRun(Base):
     """Track scan runs for monitoring and deduplication."""
     __tablename__ = "scan_runs"

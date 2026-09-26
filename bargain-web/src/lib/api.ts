@@ -1105,6 +1105,34 @@ export interface ProfitSummary {
   series: { date: string; realized: number; potential: number }[];
 }
 
+export interface SavedDeal {
+  deal_id: string;
+  saved_at: string | null;
+  title: string;
+  image_url: string | null;
+  buy_url: string | null;
+  buy_price: number | null;
+  historical_avg: number | null;
+  retailer: string | null;
+  deal_status: string;
+}
+
+export async function getSavedDeals(token: string): Promise<SavedDeal[]> {
+  return fetchWithAuth("/api/v1/dashboard/saved", token) as Promise<SavedDeal[]>;
+}
+
+export async function getSavedDealIds(token: string): Promise<string[]> {
+  return fetchWithAuth("/api/v1/dashboard/saved/ids", token) as Promise<string[]>;
+}
+
+export async function saveDeal(token: string, dealId: string): Promise<void> {
+  await fetchWithAuth(`/api/v1/dashboard/saved/${dealId}`, token, { method: "POST" });
+}
+
+export async function unsaveDeal(token: string, dealId: string): Promise<void> {
+  await fetchWithAuth(`/api/v1/dashboard/saved/${dealId}`, token, { method: "DELETE" });
+}
+
 export async function getHaul(token: string, status?: string): Promise<DealClaim[]> {
   const qs = status ? `?status=${status}` : "";
   return fetchWithAuth(`/api/v1/dashboard/haul${qs}`, token) as Promise<DealClaim[]>;

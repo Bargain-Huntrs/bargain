@@ -15,6 +15,9 @@ import {
   getPricePrediction,
   addUtmParameters,
   createClaim,
+  getSavedDealIds,
+  saveDeal,
+  unsaveDeal,
   type ArbitrageDeal,
   type Niche,
   type PricePrediction,
@@ -61,6 +64,7 @@ export default function DealsPage() {
   const [clickingDeal, setClickingDeal] = useState<string | null>(null);
   const [copiedDealId, setCopiedDealId] = useState<string | null>(null);
   const [claimedDealIds, setClaimedDealIds] = useState<Set<string>>(new Set());
+  const [savedDealIds, setSavedDealIds] = useState<Set<string>>(new Set());
   const [claimingDeal, setClaimingDeal] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRetailer, setFilterRetailer] = useState<string | null>(null);
@@ -142,8 +146,41 @@ export default function DealsPage() {
     if (idToken) {
       loadStats();
       loadNiches();
+      getSavedDealIds(idToken)
+        .then((ids) => setSavedDealIds(new Set(ids)))
+        .catch(() => {});
+    } else {
+      setSavedDealIds(new Set());
     }
   }, [idToken, loadStats, loadNiches]);
+
+  const toggleSave = useCallback(
+    async (deal: ArbitrageDeal, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!idToken) {
+        router.push("/signup");
+        return;
+      }
+      const isSaved = savedDealIds.has(deal.id);
+      setSavedDealIds((prev) => {
+        const next = new Set(prev);
+        if (isSaved) next.delete(deal.id); else next.add(deal.id);
+        return next;
+      });
+      try {
+        if (isSaved) await unsaveDeal(idToken, deal.id);
+        else await saveDeal(idToken, deal.id);
+      } catch {
+        setSavedDealIds((prev) => {
+          const next = new Set(prev);
+          if (isSaved) next.add(deal.id); else next.delete(deal.id);
+          return next;
+        });
+      }
+    },
+    [idToken, savedDealIds, router]
+  );
 
   const handleDealClick = useCallback(
     async (deal: ArbitrageDeal, e: React.MouseEvent) => {
@@ -554,6 +591,20 @@ export default function DealsPage() {
                           <div className={`absolute top-2 right-2 rounded-md px-1.5 py-0.5 text-[10px] font-bold shadow-sm ${tier.color}`}>
                             {tier.label}
                           </div>
+                          {/* Save/clip button — syncs to account across devices */}
+                          <button
+                            onClick={(e) => toggleSave(deal, e)}
+                            title={savedDealIds.has(deal.id) ? "Remove from saved" : "Save for later"}
+                            className={`absolute bottom-2 right-2 rounded-full p-1.5 shadow-sm transition-colors ${
+                              savedDealIds.has(deal.id)
+                                ? "bg-emerald-600 text-white"
+                                : "bg-white/90 text-zinc-500 hover:text-emerald-600 dark:bg-zinc-800/90"
+                            }`}
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill={savedDealIds.has(deal.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M19 21l-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                            </svg>
+                          </button>
                         </div>
 
                         {/* Content */}

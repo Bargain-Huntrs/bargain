@@ -24,6 +24,9 @@ import {
   createListItem,
   deleteListItem,
   getProfitSummary,
+  getSavedDeals,
+  unsaveDeal,
+  type SavedDeal,
   type Niche,
   type MyDeal,
   type DealClaim,
@@ -56,7 +59,7 @@ interface WatchlistItem {
   created_at: string;
 }
 
-type TabKey = "haul" | "shopping" | "wishlist" | "bolo" | "watchlist" | "tools";
+type TabKey = "haul" | "saved" | "shopping" | "wishlist" | "bolo" | "watchlist" | "tools";
 type ToolKey = "profit" | "listing" | "realestate";
 
 interface ToolPrefill {
@@ -68,6 +71,7 @@ interface ToolPrefill {
 
 const TABS: { key: TabKey; label: string; hint: string }[] = [
   { key: "haul", label: "My Haul", hint: "Deals you bought — track them to sold" },
+  { key: "saved", label: "Saved", hint: "Clipped deals — synced to your account, dead ones flagged" },
   { key: "shopping", label: "Shopping List", hint: "Things you're planning to buy" },
   { key: "wishlist", label: "Wishlist", hint: "Wants you're watching" },
   { key: "bolo", label: "BOLO", hint: "Be on the lookout — we match new deals to these" },
@@ -365,6 +369,7 @@ export default function DashboardPage() {
   const [activeTool, setActiveTool] = useState<ToolKey>("profit");
   const [toolPrefill, setToolPrefill] = useState<ToolPrefill>({});
   const [haul, setHaul] = useState<DealClaim[]>([]);
+  const [savedDeals, setSavedDeals] = useState<SavedDeal[]>([]);
   const [summary, setSummary] = useState<ProfitSummary | null>(null);
   const [listItems, setListItems] = useState<UserListItem[]>([]);
   const [listForm, setListForm] = useState({ title: "", url: "", target: "", notes: "" });
@@ -392,6 +397,7 @@ export default function DashboardPage() {
       loadMyDeals();
       loadHaul();
       loadLists();
+      loadSaved();
       getReferralStats(idToken)
         .then((stats) => {
           setReferralCount(stats.referral_count);
@@ -418,6 +424,26 @@ export default function DashboardPage() {
       setListItems(await getListItems(idToken));
     } catch {
       // Non-critical
+    }
+  }
+
+  async function loadSaved() {
+    if (!idToken) return;
+    try {
+      setSavedDeals(await getSavedDeals(idToken));
+    } catch {
+      // Non-critical
+    }
+  }
+
+  async function handleUnsave(dealId: string) {
+    if (!idToken) return;
+    const prev = savedDeals;
+    setSavedDeals(prev.filter((s) => s.deal_id !== dealId));
+    try {
+      await unsaveDeal(idToken, dealId);
+    } catch {
+      setSavedDeals(prev);
     }
   }
 
@@ -811,6 +837,9 @@ export default function DashboardPage() {
                 {t.key === "haul" && haul.length > 0 && (
                   <span className="ml-1.5 text-xs opacity-70">{haul.length}</span>
                 )}
+                {t.key === "saved" && savedDeals.length > 0 && (
+                  <span className="ml-1.5 text-xs opacity-70">{savedDeals.length}</span>
+                )}
                 {t.key !== "haul" && t.key !== "watchlist" &&
                   listItems.filter((i) => i.list_type === t.key).length > 0 && (
                   <span className="ml-1.5 text-xs opacity-70">
@@ -857,6 +886,62 @@ export default function DashboardPage() {
                       }}
                     />
                   ))
+                )}
+              </div>
+            )}
+
+            {/* ── Saved deals tab ── */}
+            {tab === "saved" && (
+              <div>
+                {savedDeals.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-zinc-300 p-10 text-center dark:border-zinc-700">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      Nothing saved yet — hit the bookmark icon on any deal card and it&apos;ll show up here, synced across devices.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
+                    {savedDeals.map((s) => {
+                      const dead = s.deal_status !== "active" && s.deal_status !== "alerted";
+                      const discount = s.historical_avg && s.buy_price && s.historical_avg > s.buy_price
+                        ? Math.round((1 - s.buy_price / s.historical_avg) * 100)
+                        : 0;
+                      return (
+                        <li key={s.deal_id} className="flex items-center gap-3 px-4 py-3">
+                          {s.image_url ? (
+                            <img src={s.image_url} alt="" className={`h-12 w-12 rounded-lg object-cover ${dead ? "opacity-40 grayscale" : ""}`} />
+                          ) : (
+                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100 text-xl dark:bg-zinc-800">🏷️</div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <Link href={`/deals/${s.deal_id}`} className="block truncate text-sm font-medium text-zinc-900 hover:text-emerald-600 dark:text-zinc-50">
+                              {s.title}
+                            </Link>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                              {(s.retailer || "").replace(/_/g, " ")}
+                              {s.buy_price != null && ` · ${money(s.buy_price)}`}
+                              {discount > 0 && ` · ${discount}% off`}
+                            </p>
+                          </div>
+                          {dead ? (
+                            <span className="rounded bg-zinc-200 px-2 py-0.5 text-[10px] font-bold text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
+                              ENDED
+                            </span>
+                          ) : (
+                            <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                              LIVE
+                            </span>
+                          )}
+                          <button
+                            onClick={() => handleUnsave(s.deal_id)}
+                            className="text-xs text-zinc-400 hover:text-red-500"
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </div>
             )}

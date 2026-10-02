@@ -28,6 +28,7 @@ Env vars:
 import asyncio
 import hashlib
 import logging
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -394,7 +395,7 @@ async def fetch_cj_links(max_results: int = 100) -> list[AffiliateDeal]:
             params = {
                 "website-id": website_id,
                 "promotion-type": "coupon",
-                "page-size": str(max_results),
+                "records-per-page": str(min(max_results, 1000)),
                 "page-number": "1",
             }
             resp = await client.get(url, headers=headers, params=params)
@@ -403,37 +404,48 @@ async def fetch_cj_links(max_results: int = 100) -> list[AffiliateDeal]:
                 logger.warning(f"CJ API error: {resp.status_code}")
                 return []
 
-            data = resp.json()
-            for link in data.get("data", {}).get("links", [])[:max_results]:
-                try:
-                    title = link.get("linkName", "") or link.get("clickUrl", "")
-                    deal_url = link.get("clickUrl", "")
-                    original_url = link.get("destinationUrl", "") or deal_url
-                    promo_code = link.get("couponCode", "")
-                    image = link.get("imageUrl", "")
-                    advertiser = link.get("advertiserName", "")
-                    expires = link.get("promotionEndDate", "")
+            # Link Search returns XML:
+            # <cj-api><links ...><link><link-name/>..<destination/>..</link></links></cj-api>
+            try:
+                root = ET.fromstring(resp.text)
+            except ET.ParseError as e:
+                logger.warning(f"CJ XML parse error: {e}")
+                return []
 
-                    if not title:
+            error = root.findtext("error-message")
+            if error:
+                logger.warning(f"CJ API error: {error.strip()}")
+                return []
+
+            for link in root.iter("link"):
+                try:
+                    title = link.findtext("link-name") or ""
+                    deal_url = link.findtext("destination") or ""
+                    promo_code = link.findtext("coupon-code") or ""
+                    advertiser = link.findtext("advertiser-name") or ""
+                    expires = (link.findtext("promotion-end-date") or "").strip()
+
+                    if not title or not deal_url:
                         continue
 
                     retailer = _normalize_retailer(advertiser)
                     expires_at = None
-                    if expires:
-                        try:
-                            expires_at = datetime.fromisoformat(expires.replace("Z", ""))
-                        except (ValueError, TypeError):
-                            pass
+                    if expires and expires.lower() != "null":
+                        for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+                            try:
+                                expires_at = datetime.strptime(expires, fmt)
+                                break
+                            except ValueError:
+                                continue
 
                     deals.append(AffiliateDeal(
                         title=title[:500],
                         deal_url=deal_url,
-                        original_url=original_url,
+                        original_url=deal_url,
                         retailer=retailer,
                         network="cj",
-                        image_url=image if image else None,
                         promo_code=promo_code if promo_code else None,
-                        description=link.get("linkDescription", "")[:1000],
+                        description=(link.findtext("description") or "")[:1000],
                         expires_at=expires_at,
                     ))
                 except Exception as e:

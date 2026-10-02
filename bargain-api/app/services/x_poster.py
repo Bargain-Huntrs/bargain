@@ -242,10 +242,6 @@ def _get_all_channel_ids() -> list[str]:
     return ids
 
 
-def is_configured() -> bool:
-    """Check if Buffer API is configured."""
-
-
 async def clear_buffer_queue(channel_ids: Optional[list[str]] = None) -> dict:
     """Delete all scheduled posts from Buffer channels.
 

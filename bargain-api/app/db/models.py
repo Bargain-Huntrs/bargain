@@ -33,6 +33,12 @@ class User(Base):
     fcm_token = Column(String(500))  # Firebase Cloud Messaging token for web push
     weekly_digest = Column(Boolean, default=True)
     glitch_alerts = Column(Boolean, default=True)
+    # User-controlled alert limits — 0/None means no personal cap or quiet
+    # hours. Quiet hours are evaluated in alert_timezone (IANA name; UTC if unset).
+    alert_max_per_day = Column(Integer, default=0)
+    quiet_start_hour = Column(Integer)
+    quiet_end_hour = Column(Integer)
+    alert_timezone = Column(String(64))
 
     # WebAuthn / passkey fields
     credential_id = Column(String(255))

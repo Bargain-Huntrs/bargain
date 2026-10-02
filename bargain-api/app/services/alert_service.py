@@ -65,6 +65,30 @@ def _recent_alert_for_asin(db: Session, user_id, asin: str) -> Optional[Alert]:
     ).first()
 
 
+def user_in_quiet_hours(user: User) -> bool:
+    """Whether the user is currently inside their quiet-hours window.
+
+    Quiet hours are evaluated in the user's timezone (alert_timezone, IANA
+    name; UTC when unset or invalid). A window crossing midnight (e.g.
+    22 → 7) is handled correctly. Both ends unset = no quiet hours.
+    """
+    start = getattr(user, "quiet_start_hour", None)
+    end = getattr(user, "quiet_end_hour", None)
+    if start is None or end is None:
+        return False
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo(user.alert_timezone) if getattr(user, "alert_timezone", None) else ZoneInfo("UTC")
+        hour = datetime.now(tz).hour
+    except Exception:
+        hour = datetime.utcnow().hour
+    if start == end:
+        return True  # 24h quiet = alerts off
+    if start < end:
+        return start <= hour < end
+    return hour >= start or hour < end
+
+
 def _build_alert_from_opportunity(
     user_id,
     opp: Union[ArbitrageOpportunity, ArbitrageDeal],
@@ -194,8 +218,12 @@ def create_alert_for_opportunity(
         logger.info(f"Skipping alert for ASIN {asin} — already alerted in last 24h")
         return None
 
-    # Tier limit: check daily alert count
+    # Tier limit + personal cap: the stricter of the two wins. A personal
+    # cap of 0 means "no personal cap" (tier limit still applies).
     daily_limit = tier_config["daily_limit"]
+    personal_cap = getattr(user, "alert_max_per_day", 0) or 0
+    if personal_cap > 0 and (daily_limit is None or personal_cap < daily_limit):
+        daily_limit = personal_cap
     if daily_limit is not None:
         today_count = _count_alerts_today(db, user.id)
         if today_count >= daily_limit:
@@ -205,9 +233,13 @@ def create_alert_for_opportunity(
             )
             return None
 
+    # Quiet hours: the alert still gets created (visible on the dashboard)
+    # but the email isn't sent while the user is in their quiet window.
+    in_quiet_hours = user_in_quiet_hours(user)
+
     # Tier delay: FREE tier has 24hr delay (alert is created but email is deferred)
     delay_hours = tier_config["delay_hours"]
-    should_send_email = delay_hours == 0
+    should_send_email = delay_hours == 0 and not in_quiet_hours
 
     # Build and save the alert
     alert = _build_alert_from_opportunity(user.id, opp)
@@ -230,10 +262,12 @@ def create_alert_for_opportunity(
             db.commit()
             logger.info(f"Alert {alert.id} logged (email not sent)")
     else:
-        # FREE tier: mark as delayed
+        # FREE tier 24hr delay, or the user is inside their quiet-hours
+        # window — the alert stays on the dashboard but no email goes out.
         alert.status = "delayed"
         db.commit()
-        logger.info(f"Alert {alert.id} created but delayed (FREE tier 24hr delay)")
+        reason = "quiet hours" if in_quiet_hours else "FREE tier 24hr delay"
+        logger.info(f"Alert {alert.id} created but deferred ({reason})")
 
     return alert
 

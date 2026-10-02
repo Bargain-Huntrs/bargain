@@ -32,7 +32,29 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   push_notifications: false,
   weekly_digest: false,
   glitch_alerts: false,
+  alert_max_per_day: 0,
+  quiet_start_hour: null,
+  quiet_end_hour: null,
+  alert_timezone: null,
 };
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
+  value: h,
+  label: new Date(2000, 0, 1, h).toLocaleTimeString("en-US", { hour: "numeric" }),
+}));
+
+function quietLabel(h: number | null | undefined): string {
+  if (h == null) return "—";
+  return HOUR_OPTIONS[h]?.label ?? String(h);
+}
+
+function browserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return "UTC";
+  }
+}
 
 const PREFERENCE_ITEMS: {
   key: keyof NotificationPreferences;
@@ -137,13 +159,23 @@ export default function NotificationSettingsPage() {
     setPreferences((prev) => ({ ...prev, [key]: value }));
   }
 
+  function updateLimit(key: keyof NotificationPreferences, value: number | null) {
+    setPreferences((prev) => ({ ...prev, [key]: value }));
+  }
+
   async function savePreferences() {
     if (!idToken) return;
     setSavingPreferences(true);
     setError("");
     setSuccess("");
     try {
-      const updated = await updateNotificationPreferences(idToken, preferences);
+      // Quiet hours are interpreted in the user's timezone — record the
+      // browser's zone so the server evaluates the window locally.
+      const payload = { ...preferences };
+      if (payload.quiet_start_hour != null || payload.quiet_end_hour != null) {
+        payload.alert_timezone = browserTimezone();
+      }
+      const updated = await updateNotificationPreferences(idToken, payload);
       setPreferences({ ...DEFAULT_PREFERENCES, ...updated });
       setSuccess("Notification preferences saved.");
       setTimeout(() => setSuccess(""), 3000);
@@ -361,6 +393,79 @@ export default function NotificationSettingsPage() {
               {savingPreferences ? "Saving…" : "Save preferences"}
             </button>
           </div>
+        </section>
+
+        {/* Alert limits — personal cap + quiet hours */}
+        <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Alert limits</h2>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Cap how many deal alerts you get per day, and set quiet hours when no
+            alerts go out. Alerts during quiet hours still appear on your dashboard.
+          </p>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                Max alerts per day
+              </span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={500}
+                value={preferences.alert_max_per_day ?? 0}
+                onChange={(e) =>
+                  updateLimit("alert_max_per_day", Math.max(0, parseInt(e.target.value) || 0))
+                }
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+              />
+              <span className="mt-1 block text-xs text-zinc-500">0 = unlimited</span>
+            </label>
+
+            <label className="block">
+              <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                Quiet hours start
+              </span>
+              <select
+                value={preferences.quiet_start_hour ?? ""}
+                onChange={(e) =>
+                  updateLimit("quiet_start_hour", e.target.value === "" ? null : Number(e.target.value))
+                }
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+              >
+                <option value="">Off</option>
+                {HOUR_OPTIONS.map((h) => (
+                  <option key={h.value} value={h.value}>{h.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                Quiet hours end
+              </span>
+              <select
+                value={preferences.quiet_end_hour ?? ""}
+                onChange={(e) =>
+                  updateLimit("quiet_end_hour", e.target.value === "" ? null : Number(e.target.value))
+                }
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+              >
+                <option value="">Off</option>
+                {HOUR_OPTIONS.map((h) => (
+                  <option key={h.value} value={h.value}>{h.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {(preferences.quiet_start_hour != null || preferences.quiet_end_hour != null) &&
+            preferences.quiet_start_hour !== preferences.quiet_end_hour && (
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                Quiet window: {quietLabel(preferences.quiet_start_hour)} – {quietLabel(preferences.quiet_end_hour)}{" "}
+                ({browserTimezone()})
+              </p>
+            )}
         </section>
 
         {/* Niche subscriptions */}

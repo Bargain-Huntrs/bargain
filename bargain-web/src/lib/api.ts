@@ -459,6 +459,10 @@ export interface NotificationPreferences {
   push_notifications: boolean;
   weekly_digest: boolean;
   glitch_alerts: boolean;
+  alert_max_per_day?: number;
+  quiet_start_hour?: number | null;
+  quiet_end_hour?: number | null;
+  alert_timezone?: string | null;
 }
 
 export async function getNotificationPreferences(token: string) {

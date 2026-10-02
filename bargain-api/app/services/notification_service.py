@@ -44,6 +44,7 @@ class DealInfo:
     image_url: Optional[str] = None
     category: Optional[str] = None
     niche: Optional[str] = None
+    retailer: Optional[str] = None
     applied_coupon_code: Optional[str] = None
     coupon_discount: Optional[Decimal] = None
 
@@ -61,6 +62,7 @@ class DealInfo:
             image_url=opp.image_url,
             category=opp.category,
             niche=opp.niche,
+            retailer=getattr(opp, "retailer", None) or getattr(opp, "buy_platform", None),
             applied_coupon_code=opp.applied_coupon_code,
             coupon_discount=opp.coupon_discount,
         )
@@ -79,7 +81,31 @@ class DealInfo:
             image_url=deal.image_url,
             category=deal.category,
             niche=getattr(deal, "niche", None),
+            retailer=getattr(deal, "retailer", None) or getattr(deal, "buy_platform", None),
         )
+
+    # ── Compat accessors for channel senders ─────────────────────────────
+    # send_discord/send_push were written against a deal payload with
+    # deal_price/original_price/deal_url/retailer fields — DealInfo calls
+    # them buy_price/sell_price/buy_url. These properties keep the senders
+    # working instead of raising AttributeError on every send.
+    @property
+    def deal_price(self):
+        return self.buy_price
+
+    @property
+    def original_price(self):
+        return self.sell_price
+
+    @property
+    def deal_url(self):
+        return self.buy_url
+
+    @property
+    def discount_percent(self) -> int:
+        if self.sell_price and self.buy_price and self.sell_price > self.buy_price:
+            return int(round((1 - float(self.buy_price) / float(self.sell_price)) * 100))
+        return 0
 
     @property
     def roi_pct(self) -> str:
@@ -243,6 +269,40 @@ async def send_facebook(deal: DealInfo) -> bool:
             return False
 
 
+# ─── SMS (Telnyx) ───────────────────────────────────────────────────────────
+
+async def send_sms(deal: DealInfo, phone_number: str) -> bool:
+    """Send a deal alert SMS via Telnyx. No-ops when Telnyx isn't configured."""
+    if not settings.TELNYX_API_KEY or not settings.TELNYX_FROM_NUMBER:
+        logger.debug("Telnyx not configured, skipping SMS")
+        return False
+
+    payload: dict = {
+        "from": settings.TELNYX_FROM_NUMBER,
+        "to": phone_number,
+        "text": build_short_message(deal),
+    }
+    if settings.TELNYX_MESSAGING_PROFILE_ID:
+        payload["messaging_profile_id"] = settings.TELNYX_MESSAGING_PROFILE_ID
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        try:
+            response = await client.post(
+                "https://api.telnyx.com/v2/messages",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {settings.TELNYX_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
+            logger.info(f"SMS sent to ***{phone_number[-4:]} for {deal.asin}")
+            return True
+        except Exception as e:
+            logger.error(f"SMS to ***{phone_number[-4:]} failed: {e}")
+            return False
+
+
 # ─── Push (Firebase Cloud Messaging) ────────────────────────────────────────
 
 async def send_push(deal: DealInfo, fcm_token: str) -> bool:
@@ -315,7 +375,7 @@ async def distribute_deal(
         "deal_price": float(deal.buy_price) if deal.buy_price else 0,
         "original_price": float(deal.sell_price) if deal.sell_price else None,
         "discount_percent": discount_pct,
-        "retailer": "amazon",  # DealInfo doesn't carry retailer; default
+        "retailer": deal.retailer or "amazon",
         "deal_url": deal.buy_url or "",
         "image_url": deal.image_url,
         "deal_tier": "glitch" if deal.is_glitch else (deal.deal_tier or "clearance"),
@@ -335,6 +395,11 @@ async def distribute_deal(
     if push_recipients:
         for token in push_recipients:
             channels[f"push:{token[:20]}"] = asyncio.create_task(send_push(deal, token))
+
+    # SMS alerts (Hunter tier phone numbers). Recipient logged as last-4 only.
+    if sms_recipients:
+        for phone in sms_recipients:
+            channels[f"sms:***{phone[-4:]}"] = asyncio.create_task(send_sms(deal, phone))
     # Wait for all
     results = {}
     for name, task in channels.items():
@@ -402,6 +467,11 @@ def get_sms_recipients(db: Session, niche: Optional[str] = None) -> list[str]:
             subs = u.subscribed_niches or []
             if subs and niche not in subs:
                 continue
+
+        # Quiet hours — never SMS a user inside their quiet window.
+        from app.services.alert_service import user_in_quiet_hours
+        if user_in_quiet_hours(u):
+            continue
 
         phone = getattr(u, "phone_number", None)
         if phone:

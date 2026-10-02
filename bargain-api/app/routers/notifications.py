@@ -152,6 +152,10 @@ class NotificationPreferencesResponse(BaseModel):
     push_notifications: bool
     weekly_digest: bool
     glitch_alerts: bool
+    alert_max_per_day: int = 0
+    quiet_start_hour: Optional[int] = None
+    quiet_end_hour: Optional[int] = None
+    alert_timezone: Optional[str] = None
 
 
 class NotificationPreferencesUpdate(BaseModel):
@@ -162,13 +166,13 @@ class NotificationPreferencesUpdate(BaseModel):
     push_notifications: Optional[bool] = None
     weekly_digest: Optional[bool] = None
     glitch_alerts: Optional[bool] = None
+    alert_max_per_day: Optional[int] = None
+    quiet_start_hour: Optional[int] = None
+    quiet_end_hour: Optional[int] = None
+    alert_timezone: Optional[str] = None
 
 
-@router.get("/preferences", response_model=NotificationPreferencesResponse)
-async def get_notification_preferences(
-    current_user: User = Depends(get_current_user),
-):
-    """Return the current user's notification preferences."""
+def _prefs_response(current_user: User) -> NotificationPreferencesResponse:
     return NotificationPreferencesResponse(
         email_deal_alerts=bool(current_user.email_deal_alerts),
         sms_deal_alerts=bool(current_user.sms_deal_alerts),
@@ -177,7 +181,19 @@ async def get_notification_preferences(
         push_notifications=bool(current_user.push_notifications),
         weekly_digest=bool(current_user.weekly_digest),
         glitch_alerts=bool(current_user.glitch_alerts),
+        alert_max_per_day=int(current_user.alert_max_per_day or 0),
+        quiet_start_hour=current_user.quiet_start_hour,
+        quiet_end_hour=current_user.quiet_end_hour,
+        alert_timezone=current_user.alert_timezone,
     )
+
+
+@router.get("/preferences", response_model=NotificationPreferencesResponse)
+async def get_notification_preferences(
+    current_user: User = Depends(get_current_user),
+):
+    """Return the current user's notification preferences."""
+    return _prefs_response(current_user)
 
 
 @router.put("/preferences", response_model=NotificationPreferencesResponse)
@@ -199,6 +215,19 @@ async def update_notification_preferences(
             detail="SMS deal alerts require a Hunter subscription.",
         )
 
+    # Validate the new limit fields before touching the user row.
+    if body.alert_max_per_day is not None and not (0 <= body.alert_max_per_day <= 500):
+        raise HTTPException(status_code=400, detail="alert_max_per_day must be 0 (unlimited) – 500")
+    for h in (body.quiet_start_hour, body.quiet_end_hour):
+        if h is not None and not (0 <= h <= 23):
+            raise HTTPException(status_code=400, detail="quiet hours must be 0–23")
+    if body.alert_timezone is not None:
+        try:
+            from zoneinfo import ZoneInfo
+            ZoneInfo(body.alert_timezone)
+        except Exception:
+            raise HTTPException(status_code=400, detail="alert_timezone must be an IANA name like America/Chicago")
+
     updates = body.model_dump(exclude_unset=True)
     for field, value in updates.items():
         setattr(current_user, field, value)
@@ -206,15 +235,7 @@ async def update_notification_preferences(
     db.commit()
     db.refresh(current_user)
 
-    return NotificationPreferencesResponse(
-        email_deal_alerts=bool(current_user.email_deal_alerts),
-        sms_deal_alerts=bool(current_user.sms_deal_alerts),
-        discord_alerts=bool(current_user.discord_alerts),
-        telegram_alerts=bool(current_user.telegram_alerts),
-        push_notifications=bool(current_user.push_notifications),
-        weekly_digest=bool(current_user.weekly_digest),
-        glitch_alerts=bool(current_user.glitch_alerts),
-    )
+    return _prefs_response(current_user)
 
 
 # ─── Niche Subscriptions ────────────────────────────────────────────────────

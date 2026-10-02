@@ -509,9 +509,12 @@ class ScanScheduler:
                 logger.info(f"Purged {purged} archived deals (>90 days)")
                 db.commit()
 
-            # Post new deals to social media via Buffer API
-            # ONLY post deals with affiliate tracking links
-            if x_configured():
+            # Post new deals to social media — Buffer path or direct
+            # X/FB/IG APIs, whichever is configured. The old gate was
+            # Buffer-only, which made direct posting unreachable.
+            # ONLY post deals with affiliate tracking links.
+            from app.services.unified_direct_poster import _any_direct_configured
+            if x_configured() or _any_direct_configured():
                 # Fetch more deals than needed, then filter for affiliate links
                 # Order by score (best first) with newest as a tiebreaker.
                 # The `score` column is being added in parallel; fall back to the
@@ -706,7 +709,7 @@ class ScanScheduler:
                     f"Next cycle in {settings.POST_INTERVAL_MINUTES} min."
                 )
             else:
-                logger.info("Social posting not configured (BUFFER_API_KEY not set)")
+                logger.info("Social posting not configured (no Buffer or direct X/FB/IG credentials)")
 
             # ─── Post best deals to Discord directly ───────────────────────
             try:
@@ -714,13 +717,27 @@ class ScanScheduler:
                 from app.core.config import settings as cfg
 
                 if getattr(cfg, "DISCORD_WEBHOOK_URL", None):
-                    # Get top 3 deals that haven't been posted to Discord yet
-                    discord_candidates = (
-                        db.query(ArbitrageDeal)
-                        .filter(
-                            ArbitrageDeal.status == "active",
-                            ArbitrageDeal.is_profitable == True,
+                    # Top 3 deals not already posted to Discord — deduped via
+                    # notification_logs (per-channel audit trail). Without this
+                    # the same top-scored deals were reposted every cycle.
+                    from app.db.models import NotificationLog
+                    discord_sent_ids = {
+                        r[0] for r in db.query(NotificationLog.deal_id).filter(
+                            NotificationLog.channel == "discord",
+                            NotificationLog.status == "sent",
+                            NotificationLog.deal_id != None,
+                        ).all()
+                    }
+                    discord_query = db.query(ArbitrageDeal).filter(
+                        ArbitrageDeal.status == "active",
+                        ArbitrageDeal.is_profitable == True,
+                    )
+                    if discord_sent_ids:
+                        discord_query = discord_query.filter(
+                            ~ArbitrageDeal.id.in_(discord_sent_ids)
                         )
+                    discord_candidates = (
+                        discord_query
                         .order_by(
                             ArbitrageDeal.score.desc(),
                             ArbitrageDeal.detected_at.desc(),
@@ -748,6 +765,15 @@ class ScanScheduler:
 
                         if result.get("status") == "success":
                             discord_posted += 1
+                            db.add(NotificationLog(
+                                deal_id=deal.id,
+                                asin=deal.asin,
+                                channel="discord",
+                                message=deal.title[:200] if deal.title else None,
+                                status="sent",
+                                sent_at=datetime.utcnow(),
+                            ))
+                            db.commit()
                             logger.info(f"  Discord posted: {deal.title[:50]}")
                         else:
                             logger.warning(f"  Discord post failed: {result.get('error')}")
@@ -768,13 +794,26 @@ class ScanScheduler:
                 from app.services.pinterest_poster import post_deal_to_pinterest, is_configured as pinterest_configured
 
                 if pinterest_configured():
-                    # Get the top deal that hasn't been posted yet
-                    pinterest_candidate = (
-                        db.query(ArbitrageDeal)
-                        .filter(
-                            ArbitrageDeal.status == "active",
-                            ArbitrageDeal.is_profitable == True,
+                    # Top deal not already pinned — deduped via
+                    # notification_logs (channel="pinterest").
+                    from app.db.models import NotificationLog
+                    pinterest_sent_ids = {
+                        r[0] for r in db.query(NotificationLog.deal_id).filter(
+                            NotificationLog.channel == "pinterest",
+                            NotificationLog.status == "sent",
+                            NotificationLog.deal_id != None,
+                        ).all()
+                    }
+                    pinterest_query = db.query(ArbitrageDeal).filter(
+                        ArbitrageDeal.status == "active",
+                        ArbitrageDeal.is_profitable == True,
+                    )
+                    if pinterest_sent_ids:
+                        pinterest_query = pinterest_query.filter(
+                            ~ArbitrageDeal.id.in_(pinterest_sent_ids)
                         )
+                    pinterest_candidate = (
+                        pinterest_query
                         .order_by(
                             ArbitrageDeal.score.desc(),
                             ArbitrageDeal.detected_at.desc(),
@@ -799,6 +838,15 @@ class ScanScheduler:
                         )
 
                         if result.get("status") == "success":
+                            db.add(NotificationLog(
+                                deal_id=pinterest_candidate.id,
+                                asin=pinterest_candidate.asin,
+                                channel="pinterest",
+                                message=pinterest_candidate.title[:200] if pinterest_candidate.title else None,
+                                status="sent",
+                                sent_at=datetime.utcnow(),
+                            ))
+                            db.commit()
                             logger.info(f"  Pinterest posted: {pinterest_candidate.title[:50]} (pin: {result.get('pin_id')})")
                         else:
                             logger.warning(f"  Pinterest post failed: {result.get('error')}")
@@ -831,7 +879,8 @@ class ScanScheduler:
                 if best_deal:
                     deal_info = DealInfo.from_deal(best_deal)
                     results = await distribute_deal(deal_info, db)
-                    posted_count = sum(1 for r in results if r.get("status") == "success")
+                    # results is {channel_name: bool} — count the successes.
+                    posted_count = sum(1 for ok in results.values() if ok)
                     if posted_count:
                         logger.info(f"Deal notifications sent: {posted_count} channels for '{best_deal.title[:40]}'")
                     # Always mark as alerted to prevent re-posting in future cycles,

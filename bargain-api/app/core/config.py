@@ -93,6 +93,11 @@ class Settings(BaseSettings):
     # Instagram (via Meta Graph API — requires linked IG Business account)
     INSTAGRAM_BUSINESS_ACCOUNT_ID: str = ""  # IG business account ID from Graph API
 
+    # Telnyx (SMS deal alerts — Hunter tier)
+    TELNYX_API_KEY: str = ""
+    TELNYX_FROM_NUMBER: str = ""
+    TELNYX_MESSAGING_PROFILE_ID: str = ""
+
     # Firebase Cloud Messaging (push notifications)
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_CLIENT_EMAIL: str = ""

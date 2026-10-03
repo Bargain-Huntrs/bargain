@@ -1207,3 +1207,133 @@ export async function deleteListItem(token: string, itemId: string): Promise<voi
 export async function getProfitSummary(token: string): Promise<ProfitSummary> {
   return fetchWithAuth("/api/v1/dashboard/profit-summary", token) as Promise<ProfitSummary>;
 }
+
+// ─── AI / LLM features ──────────────────────────────────────────────────────
+// All endpoints live under /api/v1/ai on the backend. They return 503 when
+// AI_API_KEY isn't configured server-side — callers should check getAiStatus()
+// first and/or catch errors and degrade gracefully.
+
+export interface AiStatus {
+  configured: boolean;
+  model: string | null;
+}
+
+export async function getAiStatus(): Promise<AiStatus> {
+  const res = await fetch(`${API_URL}/api/v1/ai/status`);
+  if (!res.ok) return { configured: false, model: null };
+  return res.json();
+}
+
+export interface CopilotDealRef {
+  id: string;
+  title: string;
+  retailer: string | null;
+  buy_price: number | null;
+  historical_avg: number | null;
+  discount_pct: number | null;
+  deal_tier: string;
+  net_profit: number | null;
+  image_url: string | null;
+  url: string;
+}
+
+export interface CopilotResponse {
+  source: "ai" | "rules";
+  answer: string;
+  deals: CopilotDealRef[];
+  query: { max_price: number | null; keywords: string[] };
+}
+
+export interface CopilotHistoryItem {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export async function postAiCopilot(
+  token: string,
+  message: string,
+  history: CopilotHistoryItem[] = []
+): Promise<CopilotResponse> {
+  return fetchWithAuth("/api/v1/ai/copilot", token, {
+    method: "POST",
+    body: JSON.stringify({ message, history }),
+  });
+}
+
+export interface AiDealVerdict {
+  source: "ai" | "rules";
+  deal_id: string;
+  verdict: "buy" | "wait" | "monitor" | "skip";
+  confidence: number;
+  summary: string;
+  fair_price: string;
+  resale_margin: string;
+  risks: string[];
+  prediction?: Record<string, unknown>;
+  quality?: Record<string, unknown>;
+}
+
+export async function getAiDealVerdict(token: string, dealId: string): Promise<AiDealVerdict> {
+  return fetchWithAuth(`/api/v1/ai/deal-verdict/${dealId}`, token, { method: "GET" });
+}
+
+export interface AiArbitrageAdviceRequest {
+  title: string;
+  buy_price: number;
+  sell_price?: number;
+  buy_platform?: string;
+  sell_platform?: string;
+  category?: string;
+  estimate_resale?: boolean;
+}
+
+export interface AiArbitrageAdvice {
+  source: "ai" | "rules";
+  recommendation: "worth_it" | "marginal" | "skip";
+  summary: string;
+  margin_analysis: string;
+  risks: string[];
+  tips: string[];
+  sell_price_used: number | null;
+  resale_estimate: number | null;
+  resale_estimate_source: string | null;
+  profit: Record<string, unknown> | null;
+}
+
+export async function postAiArbitrageAdvice(
+  token: string,
+  body: AiArbitrageAdviceRequest
+): Promise<AiArbitrageAdvice> {
+  return fetchWithAuth("/api/v1/ai/arbitrage-advice", token, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export interface AiDescribeRequest {
+  product: string;
+  retailer?: string;
+  condition?: string;
+  price?: number;
+  original_price?: number;
+  category?: string;
+  features?: string[];
+  tone?: string;
+}
+
+export interface AiDescribeResponse {
+  source: "ai" | "rules";
+  title: string;
+  description: string;
+  keywords: string[];
+}
+
+export async function postAiDescribe(
+  token: string,
+  body: AiDescribeRequest
+): Promise<AiDescribeResponse> {
+  return fetchWithAuth("/api/v1/ai/describe", token, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}

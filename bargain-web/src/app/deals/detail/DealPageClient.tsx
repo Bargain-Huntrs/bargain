@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
+import AiVerdict from "@/components/AiVerdict";
 import { addUtmParameters, getPublicDeal, reportDeadDeal, type ArbitrageDeal } from "@/lib/api";
 
 function retailerName(retailer?: string): string {
@@ -232,6 +233,9 @@ export default function DealPageClient() {
                 ) : (
                   <p className="mt-6 text-sm text-zinc-500">No purchase link available.</p>
                 )}
+
+                {/* AI verdict — hidden unless AI is configured server-side */}
+                <AiVerdict dealId={deal.id} />
 
                 {/* Crowd verification — dead deals get reported, auto-archive at 5 */}
                 <button

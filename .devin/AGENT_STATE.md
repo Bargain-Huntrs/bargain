@@ -15,6 +15,7 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 | Agent | Task | Files/areas |
 |---|---|---|
 | devin-bargain | full audit + P0/P1 fixes | whole repo |
+| devin-ai | AI layer (LLM client, AI router, copilot/verdict UI) | `bargain-api/app/services/llm_client.py`, `bargain-api/app/routers/ai.py`, `bargain-api/app/core/config.py` (AI_* keys only), `bargain-api/app/main.py` (router include line), `bargain-web/src/components/DealCopilot.tsx`, `bargain-web/src/components/AiVerdict.tsx`, `bargain-web/src/lib/api.ts` (AI section), deals page + deal detail (mount points) |
 
 ## Blocked on user
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import DealCopilot from "@/components/DealCopilot";
 import {
   getPublicDeals,
   getDeals,
@@ -742,6 +743,7 @@ export default function DealsPage() {
       </main>
 
       <Footer />
+      <DealCopilot />
     </div>
   );
 }

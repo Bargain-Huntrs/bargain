@@ -231,6 +231,17 @@ class Settings(BaseSettings):
     SKIMLINKS_CLIENT_ID: str = ""
     SKIMLINKS_CLIENT_SECRET: str = ""
 
+    # ─── AI / LLM (OpenAI-compatible) ─────────────────────────────────────
+    # Powers the deal copilot, AI deal verdicts, arbitrage advice, and
+    # listing description generation. Any OpenAI-compatible endpoint works
+    # (OpenAI, Groq, Together, a local vLLM/Ollama server, ...). When
+    # AI_API_KEY is empty every AI endpoint returns 503 and callers degrade
+    # gracefully — the key is never logged.
+    AI_BASE_URL: str = "https://api.openai.com/v1"
+    AI_API_KEY: str = ""
+    AI_MODEL: str = "gpt-4o-mini"
+    AI_TIMEOUT_SECONDS: float = 30.0
+
     # Niche categories for deal scanning
     NICHES: List[str] = [
         "electronics",

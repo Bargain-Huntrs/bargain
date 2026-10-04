@@ -15,6 +15,7 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 | Agent | Task | Files/areas |
 |---|---|---|
 | devin-bargain | full audit + P0/P1 fixes | whole repo |
+| devin-orchestrator | fix live console errors: meta tag, Amazon images, API CORS/login 500, workbox _headers | `bargain-web/app/layout.tsx`, deal/image components, `bargain-api/app/core/config.py` + CORS/auth routers, `public/sw.js` |
 
 ## Blocked on user
 

@@ -80,6 +80,30 @@ app.include_router(contact.router)
 app.include_router(ai.router)
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch unhandled exceptions, log them, and return a JSON 500 with CORS headers."""
+    import logging
+    import traceback
+    logging.error("Unhandled exception: %s", exc)
+    logging.error(traceback.format_exc())
+
+    # Ensure CORS headers are present so the browser can read the error response
+    # instead of surfacing a generic CORS/network failure.
+    origin = request.headers.get("origin", "")
+    headers: dict[str, str] = {}
+    if origin in settings.ALLOWED_ORIGINS:
+        headers["access-control-allow-origin"] = origin
+        headers["access-control-allow-credentials"] = "true"
+        headers["vary"] = "Origin"
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+        headers=headers,
+    )
+
+
 @app.on_event("startup")
 async def startup_event():
     """Start the background scanner on app startup if AUTO_SCAN is enabled."""

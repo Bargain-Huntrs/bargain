@@ -70,6 +70,7 @@ export default function RootLayout({
         <meta name="p:domain_verify" content="668ecc0f3284e738c81ab6e51a58213d" />
         <meta name="theme-color" content="#18181b" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Bargain Huntrs" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />

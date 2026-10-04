@@ -83,7 +83,20 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    """Verify a plaintext password against a stored bcrypt hash.
+
+    Returns False for missing/empty hashes or any malformed hash, so legacy
+    rows (plain text, null, or other schemes) never crash the login route.
+    """
+    if not hashed_password or not isinstance(hashed_password, str):
+        return False
+    hashed_password = hashed_password.strip()
+    if not hashed_password.startswith(("$2a$", "$2b$", "$2y$", "$2x$")):
+        return False
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def _generate_referral_code(length: int = 8) -> str:
@@ -334,9 +347,17 @@ async def login(body: LoginRequest, db: Session = Depends(get_db)):
     # Daily login streak + Aura bonus
     now = datetime.now(timezone.utc)
     aura_bonus = 0
-    if user.last_login_at:
-        from datetime import timedelta as _td
-        days_since = (now.replace(tzinfo=None) - user.last_login_at.replace(tzinfo=None) if user.last_login_at.tzinfo else user.last_login_at).days
+    last_login = user.last_login_at
+    if isinstance(last_login, str):
+        try:
+            last_login = datetime.fromisoformat(last_login)
+        except Exception:
+            last_login = None
+    if isinstance(last_login, datetime):
+        if last_login.tzinfo:
+            last_login = last_login.replace(tzinfo=None)
+        now_naive = now.replace(tzinfo=None)
+        days_since = (now_naive - last_login).days
         if days_since == 1:
             user.login_streak = (user.login_streak or 0) + 1
             # Aura bonus: 5 pts per day, capped at 50 for 10-day streak

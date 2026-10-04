@@ -42,6 +42,8 @@ const withPWA = withPWAInit({
   cacheStartUrl: false,
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
+    // Cloudflare Pages consumes _headers as config — don't precache/serve it as an asset.
+    exclude: [/_headers/],
     runtimeCaching: [
       {
         // Page navigations always hit the network — the default "pages"

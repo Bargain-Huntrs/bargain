@@ -129,10 +129,11 @@ def _construct_amazon_image_url(asin: str) -> str:
     """Construct an Amazon product image URL from an ASIN.
 
     Amazon stores product images at predictable URLs based on the ASIN.
-    We use the m.media-amazon.com CDN with a standard size.
+    We use the legacy images-na.ssl-images-amazon.com P-images path, which is
+    more forgiving for arbitrary ASIN-like identifiers than the media CDN.
     Note: This is a best-effort URL — the actual image ID varies per product.
     """
-    return f"https://m.media-amazon.com/images/I/{asin}._AC_SL240_.jpg"
+    return f"https://images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
 
 
 def _extract_prices(title: str, description: str) -> tuple[Optional[Decimal], Optional[Decimal]]:

@@ -258,7 +258,11 @@ def _parse_rss_feed(html: str, source_name: str) -> list[RSSDeal]:
 
             # Extract ASIN for Amazon deals
             asin = _extract_amazon_asin(f"{description} {product_url}")
-            image_url = f"https://m.media-amazon.com/images/I/{asin}._AC_SL240_.jpg" if asin else None
+            image_url = (
+                f"https://images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
+                if asin
+                else None
+            )
 
             # Clean title
             clean_title = _clean_title(title)

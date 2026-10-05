@@ -76,8 +76,22 @@ services:
         sync: false
       - key: TELNYX_MESSAGING_PROFILE_ID
         sync: false
-      - key: AMAZON_ASSOCIATE_TAG
-        value: bargain0a-20
+      - key: AMAZON_ASSOCIATES_TAG
+        value: bargain0ae-20
+      - key: CJ_ACCESS_TOKEN
+        sync: false
+      - key: CJ_WEBSITE_ID
+        sync: false
+      - key: RAKUTEN_AFFILIATE_ID
+        sync: false
+      - key: RAKUTEN_WEBSERVICES_TOKEN
+        sync: false
+      - key: RAKUTEN_SECURITY_TOKEN
+        sync: false
+      - key: EBAY_PARTNER_NETWORK_ID
+        sync: false
+      - key: SKIMLINKS_PRODUCT_KEY
+        sync: false
       - key: TWITTER_API_KEY
         sync: false
       - key: TWITTER_API_SECRET

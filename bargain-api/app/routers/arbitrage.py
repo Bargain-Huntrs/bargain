@@ -148,6 +148,28 @@ async def list_public_deals(
     from app.services.impact_api import _is_non_english_title
     filtered = [d for d in filtered if not _is_non_english_title(d.title or "")]
 
+    # Filter junk/non-product entries and aggregator-link leaks.
+    # Junk: scraper artifacts like "Dummy Stress Apple Care Item" or
+    # "Price Difference Charge" that erode trust (and engagement).
+    # Aggregators: links to competing deal sites (slickdeals, bensbargains…)
+    # can't carry our affiliate tags — those clicks send users to a
+    # competitor who earns the commission instead.
+    import re
+    _JUNK_TITLE_RE = re.compile(
+        r"(dummy|test item|price difference|price adjustment|shipping fee|"
+        r"handling fee|service fee|gift ?wr?ap|placeholder|sample item)",
+        re.IGNORECASE,
+    )
+    _AGGREGATOR_HOSTS = (
+        "slickdeals.net", "bensbargains.com", "dansdeals.com",
+        "techbargains.com", "dealnews.com", "fatwallet",
+    )
+    filtered = [
+        d for d in filtered
+        if not _JUNK_TITLE_RE.search(d.title or "")
+        and not any(h in (d.buy_url or "").lower() for h in _AGGREGATOR_HOSTS)
+    ]
+
     # Deduplicate by title (keep first occurrence — highest net_profit since sorted)
     # Use a normalized key: first 80 chars, lowercased, with extra whitespace removed
     seen_titles = set()

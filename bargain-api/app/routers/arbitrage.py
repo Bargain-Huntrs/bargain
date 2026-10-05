@@ -9,6 +9,7 @@ import asyncio
 import hashlib
 import logging
 import os
+import re
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status, Header
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -1960,6 +1961,26 @@ def _save_opportunity(db: Session, opp: ArbitrageOpportunity) -> ArbitrageDeal:
     return deal
 
 
+_AMAZON_ASIN_IMG_RE = re.compile(
+    r"^https://m\.media-amazon\.com/images/I/([A-Z0-9]{10})(?:\..*)?$"
+)
+
+
+def _normalize_image_url(url: Optional[str]) -> Optional[str]:
+    """Rewrite known-broken Amazon image URLs to a working pattern.
+
+    m.media-amazon.com/images/I/{ASIN}.* is NOT a valid product-image path —
+    it serves HTTP 400 for ASIN-derived IDs. The images-na /P/ endpoint is the
+    product-image path Amazon still serves for ASIN lookups.
+    """
+    if not url:
+        return url
+    m = _AMAZON_ASIN_IMG_RE.match(url.strip())
+    if m:
+        return f"https://images-na.ssl-images-amazon.com/images/P/{m.group(1)}.01.LZZZZZZZ.jpg"
+    return url
+
+
 def _deal_to_response(deal: ArbitrageDeal, db: Session = None, best_coupon: Optional[dict] = None) -> DealResponse:
     """Convert an ArbitrageDeal model to a DealResponse.
 
@@ -1967,10 +1988,7 @@ def _deal_to_response(deal: ArbitrageDeal, db: Session = None, best_coupon: Opti
     for the deal's retailer and includes the effective price after coupon.
     Pass `best_coupon` to skip the per-deal lookup (batch path).
     """
-    image_url = deal.image_url
-    # Don't filter out Amazon image URLs — ASIN-based URLs like
-    # https://m.media-amazon.com/images/I/B0HCRVD7VP._AC_SL240_.jpg
-    # are valid image URLs that Amazon serves correctly.
+    image_url = _normalize_image_url(deal.image_url)
 
     if best_coupon is None and db is not None:
         best_coupon = _find_best_coupon_for_deal(deal, db)

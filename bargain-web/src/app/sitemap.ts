@@ -44,6 +44,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/guides/amazon-arbitrage-guide`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/guides/retail-arbitrage-for-beginners`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/guides/best-times-to-find-deals`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/disclosure`, lastModified: now, changeFrequency: "yearly", priority: 0.4 },
   ];
 
   let dealUrls: MetadataRoute.Sitemap = [];

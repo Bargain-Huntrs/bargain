@@ -22,6 +22,7 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 
 ## Recently landed
 
+- devin `e0b3889` — **AI chat white-labeled**: `DealCopilot.tsx` renamed `DealAssistant.tsx`; chat heading, launcher aria-label, sign-in prompt, error fallback, and the LLM system prompt in `routers/ai.py` no longer say 'copilot' — customers see 'Deal Assistant'. API path `/api/v1/ai/copilot` unchanged (internal). bargain-web tsc clean.
 - devin-orchestrator `ef41ee4` — **live console-error fixes:** added `mobile-web-app-capable` meta, excluded `_headers` from Workbox precache, switched Amazon deal-image URLs to the more forgiving `images-na.ssl-images-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg` pattern, hardened `verify_password`/login streak to avoid 500s from legacy/null hashes or malformed timestamps, and added a global exception handler that preserves CORS headers on unhandled errors. API auto-deploys to Render on push; web Cloudflare deploy in progress.
 - devin-growth-plan `d2ad31f` — **$16k MRR growth plan**: `docs/16K_MONTHLY_GROWTH_PLAN.md` (revenue math across subs/affiliate/placements, 30-day calendar, phased roadmap, API checklist, KPIs, compliance, 15 social post templates).
 - 2026-10-02 — **AGENT_STATE.md established** (adopting the Prime/Dexana multi-agent coordination convention).

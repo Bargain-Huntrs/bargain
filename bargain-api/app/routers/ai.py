@@ -260,7 +260,7 @@ async def deal_copilot(
     deal_refs = [_deal_ref(d) for d in deals]
 
     system = (
-        "You are the BargainHuntrs deal copilot — a concise, friendly assistant "
+        "You are the BargainHuntrs deal assistant — a concise, friendly helper "
         "for a deal-hunting marketplace. You ONLY recommend deals from the "
         "CONTEXT DEALS list provided (real live deals). Never invent products, "
         "prices, or deals. If nothing matches, say so plainly and suggest the "

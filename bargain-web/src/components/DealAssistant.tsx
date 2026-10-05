@@ -24,13 +24,13 @@ const SUGGESTIONS = [
 ];
 
 /**
- * Floating deal-copilot chat panel for the deals feed.
+ * Floating deal-assistant chat panel for the deals feed.
  *
  * Renders a launcher button bottom-right; opens a compact chat window that
  * calls POST /api/v1/ai/copilot. Degrades gracefully: hidden entirely when
  * the deployment has no AI configured, sign-in prompt when logged out.
  */
-export default function DealCopilot() {
+export default function DealAssistant() {
   const router = useRouter();
   const { idToken } = useAuth();
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null);
@@ -82,7 +82,7 @@ export default function DealCopilot() {
           content:
             err instanceof Error && err.message
               ? `Sorry — ${err.message}`
-              : "Sorry, the copilot is unavailable right now. Try again in a bit.",
+              : "Sorry, the deal assistant is unavailable right now. Try again in a bit.",
         },
       ]);
     } finally {
@@ -95,7 +95,7 @@ export default function DealCopilot() {
       {/* Launcher */}
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label="Deal copilot"
+        aria-label="Deal assistant"
         className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-emerald-700"
       >
         {open ? "✕" : "🤖"}
@@ -106,7 +106,7 @@ export default function DealCopilot() {
         <div className="fixed bottom-20 right-5 z-40 flex h-[28rem] w-[21rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
           <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
             <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
-              🤖 Deal Copilot
+              🤖 Deal Assistant
             </p>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
               Ask for deals in plain English — powered by live deal data.
@@ -117,7 +117,7 @@ export default function DealCopilot() {
             {!idToken ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
                 <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                  Sign in to chat with the deal copilot.
+                  Sign in to chat with the deal assistant.
                 </p>
                 <button
                   onClick={() => router.push("/login")}

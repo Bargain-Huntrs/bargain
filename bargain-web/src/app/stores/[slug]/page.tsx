@@ -39,7 +39,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const retailer = await resolveRetailer(slug);
   const name = retailer ? retailerDisplayName(retailer) : retailerDisplayName(slug);
-  const title = `${name} Deals — Today's Best ${name} Bargains | BargainHuntrs`;
+  const title = `${name} Deals — Today's Best ${name} Bargains`;
   const description = `Find today's best ${name} deals, discounts, and clearance items. Updated automatically throughout the day.`;
   return {
     title,

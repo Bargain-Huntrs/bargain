@@ -8,12 +8,12 @@ import { retailerSlug, retailerDisplayName } from "@/lib/retailers";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Store Deals — Deals by Retailer | BargainHuntrs",
+  title: "Store Deals — Deals by Retailer",
   description:
     "Browse today's best deals by store. Live deals from Amazon, Walmart, Target, Best Buy, and hundreds more retailers — updated throughout the day.",
   alternates: { canonical: "/stores" },
   openGraph: {
-    title: "Store Deals — Deals by Retailer | BargainHuntrs",
+    title: "Store Deals — Deals by Retailer",
     description:
       "Browse today's best deals by store. Live deals from Amazon, Walmart, Target, Best Buy, and hundreds more retailers.",
     url: "/stores",

@@ -251,6 +251,9 @@ function ProductCard({
           title="Watch to vote it toward a pool"
         >
           {product.watching ? "★ Watching" : "☆ Watch"}
+          {product.watchers !== undefined && product.unlock_at
+            ? ` · ${product.watchers}/${product.unlock_at}`
+            : ""}
         </button>
         {paid ? (
           <button
@@ -361,14 +364,14 @@ export default function DropshipPage() {
     if (!idToken) return;
     try {
       const res = await toggleDropshipWatch(idToken, product.id);
-      setProducts((prev) =>
-        prev.map((p) => (p.id === product.id ? { ...p, watching: res.watching } : p))
-      );
-      setCurated((prev) =>
-        prev
-          ? { ...prev, items: prev.items.map((p) => (p.id === product.id ? { ...p, watching: res.watching } : p)) }
-          : prev
-      );
+      const upd = (p: DropshipProduct) =>
+        p.id === product.id ? { ...p, watching: res.watching, watchers: res.watchers, unlock_at: res.unlock_at } : p;
+      setProducts((prev) => prev.map(upd));
+      setCurated((prev) => (prev ? { ...prev, items: prev.items.map(upd) } : prev));
+      if (res.pool_opened) {
+        setNotice(`${product.title.slice(0, 50)} just unlocked a pool — the group rate is live.`);
+        void load();
+      }
     } catch {
       // non-fatal
     }

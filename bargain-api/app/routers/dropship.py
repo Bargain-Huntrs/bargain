@@ -296,7 +296,8 @@ def _require_paid(user: User) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PAID_DETAIL)
 
 
-def _product_out(p: DropshipProduct, watching: set, saved: set) -> dict:
+def _product_out(p: DropshipProduct, watching: set, saved: set,
+                 watchers_map: Optional[dict] = None) -> dict:
     cost = float(p.cost)
     price = float(p.suggested_price)
     return {
@@ -316,6 +317,8 @@ def _product_out(p: DropshipProduct, watching: set, saved: set) -> dict:
         "trending_score": p.trending_score,
         "watching": str(p.id) in watching,
         "saved": str(p.id) in saved,
+        "watchers": (watchers_map or {}).get(str(p.id), 0),
+        "unlock_at": POOL_UNLOCK_WATCHERS,
     }
 
 
@@ -382,6 +385,17 @@ def _expire_stale_pools(db: Session) -> None:
         db.commit()
 
 
+def _watchers_map(db: Session, product_ids) -> dict:
+    """One GROUP BY for watch counts — avoids N+1 in list endpoints."""
+    rows = (
+        db.query(DropshipWatch.product_id, func.count(DropshipWatch.id))
+        .filter(DropshipWatch.product_id.in_(product_ids))
+        .group_by(DropshipWatch.product_id)
+        .all()
+    )
+    return {str(pid): n for pid, n in rows}
+
+
 def _my_flags(db: Session, user: User) -> tuple[set, set]:
     watching = {
         str(w.product_id)
@@ -415,8 +429,10 @@ def list_products(
         q = q.order_by(DropshipProduct.created_at.desc())
     else:
         q = q.order_by(DropshipProduct.trending_score.desc())
+    rows = q.limit(limit).all()
     watching, saved = _my_flags(db, user)
-    return [_product_out(p, watching, saved) for p in q.limit(limit).all()]
+    wm = _watchers_map(db, [p.id for p in rows])
+    return [_product_out(p, watching, saved, wm) for p in rows]
 
 
 @router.get("/curated")
@@ -434,7 +450,8 @@ def curated_feed(
         q = q.filter(DropshipProduct.niche.in_(niches))
     candidates = q.order_by(DropshipProduct.trending_score.desc()).limit(12).all()
     watching, saved = _my_flags(db, user)
-    items = [_product_out(p, watching, saved) for p in candidates]
+    wm = _watchers_map(db, [p.id for p in candidates])
+    items = [_product_out(p, watching, saved, wm) for p in candidates]
 
     reasons: dict[str, str] = {}
     ai = False
@@ -479,6 +496,46 @@ def curated_feed(
 
 # ── Demand votes (watch) + saved list ────────────────────────────────────
 
+# A product graduates into a pool when this many hunters watch it.
+POOL_UNLOCK_WATCHERS = 25
+
+
+def _maybe_open_pool(db: Session, product: DropshipProduct, watchers: int) -> Optional[DropshipPool]:
+    """Vote-to-unlock: cross the watcher threshold → auto-open a pool.
+    MOQ scales with demonstrated demand; unit cost estimates the bulk
+    rate from single-unit wholesale (AI negotiation refines it later)."""
+    if watchers < POOL_UNLOCK_WATCHERS:
+        return None
+    live = (
+        db.query(DropshipPool)
+        .filter(
+            DropshipPool.product_id == product.id,
+            DropshipPool.status.in_(["open", "filled"]),
+        )
+        .first()
+    )
+    if live:
+        return None
+    moq = max(50, min(500, watchers * 4))
+    pool = DropshipPool(
+        product_id=product.id,
+        moq_units=moq,
+        unit_cost=round(float(product.cost) * 0.75, 2),
+        target_price=product.suggested_price,
+        min_price=round(float(product.suggested_price) * 0.9, 2),
+        max_units_per_hunter=max(5, moq // 20),
+        channel="amazon_fba",
+        origin="us" if product.warehouse_state else "us",
+        freight_mode="us_stock",
+        delivery_days_max=max(product.shipping_days_max or 5, 5),
+        deal_notes=f"Unlocked by hunter demand — {watchers} watchers. "
+                   "Hunters buy and own their units; each resells on their own store.",
+        closes_at=datetime.utcnow() + timedelta(days=14),
+    )
+    db.add(pool)
+    return pool
+
+
 @router.post("/products/{product_id}/watch")
 def toggle_watch(
     product_id: UUID,
@@ -486,8 +543,12 @@ def toggle_watch(
     db: Session = Depends(get_db),
 ):
     """Toggle a demand vote. Watch counts feed the AI signal that decides
-    which products graduate into pools — free for all members."""
+    which products graduate into pools — cross POOL_UNLOCK_WATCHERS and a
+    pool opens automatically. Free for all members."""
     _ensure_tables(db)
+    product = db.query(DropshipProduct).filter(DropshipProduct.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
     existing = (
         db.query(DropshipWatch)
         .filter(DropshipWatch.user_id == user.id, DropshipWatch.product_id == product_id)
@@ -499,13 +560,19 @@ def toggle_watch(
     else:
         db.add(DropshipWatch(user_id=user.id, product_id=product_id))
         watching = True
-    db.commit()
     count = (
         db.query(func.count(DropshipWatch.id))
         .filter(DropshipWatch.product_id == product_id)
         .scalar() or 0
     )
-    return {"watching": watching, "watchers": count}
+    pool = _maybe_open_pool(db, product, count) if watching else None
+    db.commit()
+    return {
+        "watching": watching,
+        "watchers": count,
+        "unlock_at": POOL_UNLOCK_WATCHERS,
+        "pool_opened": str(pool.id) if pool else None,
+    }
 
 
 @router.post("/products/{product_id}/save")

@@ -1699,6 +1699,8 @@ export interface DropshipProduct {
   trending_score: number | null;
   watching: boolean;
   saved: boolean;
+  watchers?: number;
+  unlock_at?: number;
   why?: string;
 }
 
@@ -1785,7 +1787,7 @@ export async function getDropshipCurated(token: string) {
 export async function toggleDropshipWatch(token: string, productId: string) {
   return fetchWithAuth(`/api/v1/dropship/products/${productId}/watch`, token, {
     method: "POST",
-  }) as Promise<{ watching: boolean; watchers: number }>;
+  }) as Promise<{ watching: boolean; watchers: number; unlock_at?: number; pool_opened?: string | null }>;
 }
 
 export async function saveDropshipProduct(token: string, productId: string) {

@@ -1715,6 +1715,10 @@ export interface DropshipPool {
   min_price: number | null;
   est_margin_pct: number | null;
   max_units_per_hunter: number;
+  channel: "amazon_fba" | "walmart_wfs" | "own_store";
+  origin: "us" | "china";
+  freight_mode: "us_stock" | "air" | "ocean";
+  delivery_days_max: number;
   deal_notes: string | null;
   opens_at: string | null;
   closes_at: string | null;
@@ -1729,6 +1733,26 @@ export interface DropshipNiche {
   display_name: string;
   emoji: string;
   count: number;
+}
+
+export interface DropshipChannel {
+  key: "amazon_fba" | "walmart_wfs" | "own_store";
+  label: string;
+  live: boolean;
+  desc: string;
+  votes: number;
+  voted: boolean;
+}
+
+export async function getDropshipChannels(token: string) {
+  return fetchWithAuth("/api/v1/dropship/channels", token) as Promise<DropshipChannel[]>;
+}
+
+export async function voteDropshipChannel(token: string, channel: string) {
+  return fetchWithAuth("/api/v1/dropship/channels/vote", token, {
+    method: "POST",
+    body: JSON.stringify({ channel }),
+  }) as Promise<{ voted: boolean; channel: string; votes: number }>;
 }
 
 export async function getDropshipProducts(

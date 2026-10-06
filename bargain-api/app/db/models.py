@@ -786,6 +786,12 @@ class DropshipPool(Base):
     max_units_per_hunter = Column(Integer, default=10)
     units_committed = Column(Integer, default=0)
     status = Column(String(20), default="open", index=True)  # open|filled|expired|settled
+    # Fulfillment channel the pool targets — hunters vote on which channels
+    # get added; amazon_fba is v1 (hunters' own SP-API-connected accounts).
+    channel = Column(String(30), default="amazon_fba", index=True)
+    origin = Column(String(10), default="us")          # us | china
+    freight_mode = Column(String(20), default="us_stock")  # us_stock | air | ocean
+    delivery_days_max = Column(Integer, default=7)     # promised transit ceiling
     deal_notes = Column(Text)  # AI deal-sheet notes (why this product)
     opens_at = Column(DateTime, default=datetime.utcnow)
     closes_at = Column(DateTime, nullable=False)
@@ -809,6 +815,10 @@ class DropshipPoolCommit(Base):
     units = Column(Integer, nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)  # locked rate at commit time
     status = Column(String(20), default="reserved", index=True)  # reserved|confirmed|cancelled|shipped
+    # Stripe auth-hold (capture_method=manual): created at commit, captured
+    # when the pool fills, released if it expires. None in dev/no-card flows.
+    stripe_payment_intent_id = Column(String(80))
+    hold_amount_cents = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -816,4 +826,19 @@ class DropshipPoolCommit(Base):
 
     __table_args__ = (
         UniqueConstraint("pool_id", "user_id", name="uq_dropship_commit_pool_user"),
+    )
+
+
+class DropshipChannelVote(Base):
+    """Hunter vote for which retailer channel the pool system adds next —
+    amazon_fba is live; walmart_wfs / own_store are demand-gated."""
+    __tablename__ = "dropship_channel_votes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    channel = Column(String(30), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "channel", name="uq_dropship_chvote_user_channel"),
     )

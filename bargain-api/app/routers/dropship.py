@@ -39,6 +39,7 @@ from app.db.models import (
     DropshipWatch,
     DropshipPool,
     DropshipPoolCommit,
+    DropshipChannelVote,
 )
 from app.routers.auth import get_current_user
 from app.services import llm_client
@@ -134,6 +135,26 @@ def _ensure_tables(db: Session) -> None:
                 CONSTRAINT uq_dropship_commit_pool_user UNIQUE (pool_id, user_id)
             )"""
         ))
+        db.execute(text(
+            """CREATE TABLE IF NOT EXISTS dropship_channel_votes (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id UUID NOT NULL REFERENCES users(id),
+                channel VARCHAR(30) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                CONSTRAINT uq_dropship_chvote_user_channel UNIQUE (user_id, channel)
+            )"""
+        ))
+        # Column upgrades for tables created before the fulfillment model —
+        # ADD COLUMN IF NOT EXISTS is a no-op on fresh installs.
+        for stmt in (
+            "ALTER TABLE dropship_pools ADD COLUMN IF NOT EXISTS channel VARCHAR(30) DEFAULT 'amazon_fba'",
+            "ALTER TABLE dropship_pools ADD COLUMN IF NOT EXISTS origin VARCHAR(10) DEFAULT 'us'",
+            "ALTER TABLE dropship_pools ADD COLUMN IF NOT EXISTS freight_mode VARCHAR(20) DEFAULT 'us_stock'",
+            "ALTER TABLE dropship_pools ADD COLUMN IF NOT EXISTS delivery_days_max INTEGER DEFAULT 7",
+            "ALTER TABLE dropship_pool_commits ADD COLUMN IF NOT EXISTS stripe_payment_intent_id VARCHAR(80)",
+            "ALTER TABLE dropship_pool_commits ADD COLUMN IF NOT EXISTS hold_amount_cents INTEGER",
+        ):
+            db.execute(text(stmt))
         db.commit()
     except Exception:
         db.rollback()
@@ -161,25 +182,113 @@ def _seed(db: Session) -> None:
     # Seed pools on the hottest catalog items if none exist.
     if (db.query(func.count(DropshipPool.id)).scalar() or 0) > 0:
         return
-    picks = {"PET-002": (100, 9.90), "KIT-002": (150, 7.80), "PET-001": (200, 3.90)}
+    # sku: (moq, unit_cost, origin, freight_mode, delivery_days_max)
+    picks = {
+        "PET-002": (100, 9.90, "us", "us_stock", 7),
+        "KIT-002": (150, 7.80, "us", "us_stock", 7),
+        "PET-001": (200, 3.90, "china", "air", 12),
+    }
     prods = {
         p.sku: p
         for p in db.query(DropshipProduct).filter(DropshipProduct.sku.in_(picks.keys())).all()
     }
-    for sku, (moq, unit_cost) in picks.items():
+    for sku, (moq, unit_cost, origin, freight, days) in picks.items():
         prod = prods.get(sku)
         if not prod:
             continue
+        notes = (
+            "AI deal sheet — bulk rate negotiated below single-unit wholesale. "
+            "Hunters buy and own their units; each resells on their own store."
+        )
+        if origin == "china":
+            notes += " China-direct via air freight — freight cost is baked into the unit rate."
         db.add(DropshipPool(
             product_id=prod.id, moq_units=moq, unit_cost=unit_cost,
             target_price=prod.suggested_price,
             min_price=round(float(prod.suggested_price) * 0.9, 2),
             max_units_per_hunter=10,
-            deal_notes="AI deal sheet — bulk rate negotiated below single-unit wholesale. "
-                       "Hunters buy and own their units; each resells on their own store.",
+            channel="amazon_fba", origin=origin, freight_mode=freight,
+            delivery_days_max=days,
+            deal_notes=notes,
             closes_at=datetime.utcnow() + timedelta(days=7),
         ))
     db.commit()
+
+
+# ── Stripe auth-holds ────────────────────────────────────────────────────
+# Commits place a manual-capture hold when the hunter has a saved card and
+# Stripe is configured; holds capture on fill and release on expiry. When
+# Stripe isn't configured (dev/staging) commits proceed with hold=None so
+# the pool mechanics stay testable.
+
+def _stripe():
+    from app.core.config import settings
+    if not (settings.STRIPE_SECRET_KEY or settings.STRIPE_API_KEY):
+        return None
+    import stripe as stripe_lib
+    stripe_lib.api_key = settings.STRIPE_SECRET_KEY or settings.STRIPE_API_KEY
+    return stripe_lib
+
+
+def _user_card_pm(stripe_lib, user: User) -> Optional[str]:
+    """First saved card on the hunter's Stripe customer — used for the
+    off-session hold. Hunters add a card via /payment-method/setup."""
+    if not user.stripe_customer_id:
+        return None
+    try:
+        pms = stripe_lib.PaymentMethod.list(customer=user.stripe_customer_id, type="card")
+        return pms.data[0].id if pms.data else None
+    except Exception as exc:
+        logger.warning("pm list failed for %s: %s", user.id, exc)
+        return None
+
+
+def _place_hold(db: Session, user: User, amount_cents: int) -> tuple[Optional[str], bool]:
+    """Create a manual-capture PaymentIntent on the hunter's saved card.
+    Returns (payment_intent_id, hold_required). hold_required=False means
+    Stripe isn't configured or the user has no card — the commit proceeds
+    as a plain reservation."""
+    stripe_lib = _stripe()
+    if not stripe_lib:
+        return None, False
+    pm = _user_card_pm(stripe_lib, user)
+    if not pm:
+        return None, False
+    try:
+        pi = stripe_lib.PaymentIntent.create(
+            amount=amount_cents, currency="usd", customer=user.stripe_customer_id,
+            payment_method=pm, off_session=True, confirm=True,
+            capture_method="manual",
+            description="Dropship pool unit hold — captures only if the pool fills",
+        )
+        return pi.id, True
+    except stripe_lib.error.CardError as exc:
+        raise HTTPException(status_code=402, detail=f"Card declined: {exc.user_message or 'try another card'}")
+    except Exception as exc:
+        logger.warning("hold failed for user %s: %s", user.id, exc)
+        return None, False
+
+
+def _settle_holds(db: Session, pool_id, capture: bool) -> None:
+    """Capture every confirmed commit's hold (pool filled) or release every
+    reserved commit's hold (pool expired)."""
+    stripe_lib = _stripe()
+    if not stripe_lib:
+        return
+    commits = db.query(DropshipPoolCommit).filter(
+        DropshipPoolCommit.pool_id == pool_id,
+        DropshipPoolCommit.stripe_payment_intent_id.isnot(None),
+    ).all()
+    for c in commits:
+        try:
+            if capture:
+                stripe_lib.PaymentIntent.capture(c.stripe_payment_intent_id)
+            else:
+                stripe_lib.PaymentIntent.cancel(c.stripe_payment_intent_id)
+        except Exception as exc:
+            logger.warning("hold %s failed for intent %s: %s",
+                           "capture" if capture else "release",
+                           c.stripe_payment_intent_id, exc)
 
 
 def _require_paid(user: User) -> None:
@@ -228,6 +337,10 @@ def _pool_out(pool: DropshipPool, my_commit: Optional[DropshipPoolCommit] = None
         "min_price": float(pool.min_price) if pool.min_price else None,
         "est_margin_pct": round((target - unit) / target * 100) if target > 0 else None,
         "max_units_per_hunter": pool.max_units_per_hunter,
+        "channel": pool.channel or "amazon_fba",
+        "origin": pool.origin or "us",
+        "freight_mode": pool.freight_mode or "us_stock",
+        "delivery_days_max": pool.delivery_days_max or 7,
         "deal_notes": pool.deal_notes,
         "opens_at": pool.opens_at.isoformat() if pool.opens_at else None,
         "closes_at": pool.closes_at.isoformat() if pool.closes_at else None,
@@ -250,6 +363,7 @@ def _expire_stale_pools(db: Session) -> None:
     )
     for pool in stale:
         pool.status = "expired"
+        _settle_holds(db, pool.id, capture=False)
         for c in db.query(DropshipPoolCommit).filter(
             DropshipPoolCommit.pool_id == pool.id,
             DropshipPoolCommit.status == "reserved",
@@ -532,14 +646,19 @@ def commit_units(
             detail=f"Only {remaining} unit{'s' if remaining == 1 else 's'} left in this pool",
         )
 
+    amount_cents = int(round(float(pool.unit_cost) * body.units * 100))
+    intent_id, held = _place_hold(db, user, amount_cents)
+
     commit = DropshipPoolCommit(
         pool_id=pool.id, user_id=user.id,
         units=body.units, unit_price=pool.unit_cost, status="reserved",
+        stripe_payment_intent_id=intent_id,
+        hold_amount_cents=amount_cents if held else None,
     )
     db.add(commit)
     pool.units_committed = (pool.units_committed or 0) + body.units
 
-    # All-or-nothing: on fill, every reservation locks in.
+    # All-or-nothing: on fill, every reservation locks in and holds capture.
     if pool.units_committed >= pool.moq_units:
         pool.status = "filled"
         pool.filled_at = datetime.utcnow()
@@ -547,11 +666,13 @@ def commit_units(
             DropshipPoolCommit.pool_id == pool.id,
             DropshipPoolCommit.status == "reserved",
         ).update({"status": "confirmed"}, synchronize_session=False)
+        _settle_holds(db, pool.id, capture=True)
 
     db.commit()
     db.refresh(commit)
     return {"commit": {"units": commit.units, "unit_price": float(commit.unit_price),
                        "status": commit.status},
+            "hold": "authorized" if held else "none",
             "pool_status": pool.status,
             "units_committed": pool.units_committed}
 
@@ -572,6 +693,98 @@ def my_commits(
         {**_pool_out(c.pool, c), "commit_id": str(c.id)}
         for c in rows if c.pool
     ]
+
+
+# ── Channels + payment method ────────────────────────────────────────────
+
+CHANNELS = [
+    {"key": "amazon_fba", "label": "Amazon FBA", "live": True,
+     "desc": "Units ship to YOUR seller account — you sell, you keep the proceeds"},
+    {"key": "walmart_wfs", "label": "Walmart WFS", "live": False,
+     "desc": "Walmart Fulfillment Services — vote to unlock"},
+    {"key": "own_store", "label": "Your own store", "live": False,
+     "desc": "Bulk ships to you or your 3PL — Shopify/eBay/etc."},
+]
+
+
+@router.get("/channels")
+def list_channels(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retailer channels + live vote counts. amazon_fba is live; hunters vote
+    on which integration ships next."""
+    _ensure_tables(db)
+    counts = dict(
+        db.query(DropshipChannelVote.channel, func.count(DropshipChannelVote.id))
+        .group_by(DropshipChannelVote.channel)
+        .all()
+    )
+    mine = {
+        v.channel for v in
+        db.query(DropshipChannelVote).filter(DropshipChannelVote.user_id == user.id).all()
+    }
+    return [
+        {**c, "votes": counts.get(c["key"], 0), "voted": c["key"] in mine}
+        for c in CHANNELS
+    ]
+
+
+class ChannelVoteBody(BaseModel):
+    channel: str = Field(..., pattern="^(amazon_fba|walmart_wfs|own_store)$")
+
+
+@router.post("/channels/vote")
+def vote_channel(
+    body: ChannelVoteBody,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Toggle a vote for the next channel integration."""
+    _ensure_tables(db)
+    row = (
+        db.query(DropshipChannelVote)
+        .filter(DropshipChannelVote.user_id == user.id,
+                DropshipChannelVote.channel == body.channel)
+        .first()
+    )
+    if row:
+        db.delete(row)
+        voted = False
+    else:
+        db.add(DropshipChannelVote(user_id=user.id, channel=body.channel))
+        voted = True
+    db.commit()
+    votes = db.query(func.count(DropshipChannelVote.id)).filter(
+        DropshipChannelVote.channel == body.channel
+    ).scalar() or 0
+    return {"voted": voted, "channel": body.channel, "votes": votes}
+
+
+@router.post("/payment-method/setup")
+def setup_payment_method(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return a SetupIntent client_secret so the web can collect a card for
+    pool auth-holds (Stripe PaymentElement). Hold captures only on fill."""
+    stripe_lib = _stripe()
+    if not stripe_lib:
+        raise HTTPException(status_code=503, detail="Payments not configured yet")
+    if not user.stripe_customer_id:
+        from app.services.stripe_service import create_customer
+        try:
+            user.stripe_customer_id = create_customer(user.email)["id"]
+            db.commit()
+        except Exception as exc:
+            logger.warning("customer create failed for %s: %s", user.id, exc)
+            raise HTTPException(status_code=502, detail="Couldn't set up billing — try again")
+    si = stripe_lib.SetupIntent.create(
+        customer=user.stripe_customer_id,
+        payment_method_types=["card"],
+        usage="off_session",
+    )
+    return {"client_secret": si.client_secret}
 
 
 @router.get("/niches")

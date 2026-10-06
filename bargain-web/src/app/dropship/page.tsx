@@ -16,9 +16,12 @@ import {
   toggleDropshipWatch,
   saveDropshipProduct,
   unsaveDropshipProduct,
+  getDropshipChannels,
+  voteDropshipChannel,
   type DropshipPool,
   type DropshipProduct,
   type DropshipNiche,
+  type DropshipChannel,
 } from "@/lib/api";
 
 const money = (n: number | null | undefined) =>
@@ -59,8 +62,11 @@ function PoolCard({
             {p?.title || "Pool"}
           </p>
           <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            {p?.supplier} · ships from {p?.warehouse_state || "US"}
-            {p ? ` · ${p.shipping_days_min}–${p.shipping_days_max} days` : ""}
+            {p?.supplier} ·{" "}
+            {pool.origin === "china"
+              ? `China → ${pool.freight_mode === "air" ? "air freight" : "ocean"}`
+              : `ships from ${p?.warehouse_state || "US"}`}
+            {" · "}≤{pool.delivery_days_max}d · {pool.channel === "amazon_fba" ? "your FBA" : pool.channel}
           </p>
         </div>
         <span
@@ -268,6 +274,7 @@ export default function DropshipPage() {
   const [curated, setCurated] = useState<{ ai: boolean; niches: string[] | null; items: DropshipProduct[] } | null>(null);
   const [products, setProducts] = useState<DropshipProduct[]>([]);
   const [niches, setNiches] = useState<DropshipNiche[]>([]);
+  const [channels, setChannels] = useState<DropshipChannel[]>([]);
   const [niche, setNiche] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -280,18 +287,20 @@ export default function DropshipPage() {
     if (!idToken) return;
     setBusy(true);
     try {
-      const [poolRows, curatedRes, productRows, nicheRows, myRows] = await Promise.all([
+      const [poolRows, curatedRes, productRows, nicheRows, myRows, channelRows] = await Promise.all([
         getDropshipPools(idToken, "all").catch(() => []),
         getDropshipCurated(idToken).catch(() => null),
         getDropshipProducts(idToken, niche ? { niche } : {}).catch(() => []),
         getDropshipNiches(idToken).catch(() => []),
         getMyDropshipCommits(idToken).catch(() => []),
+        getDropshipChannels(idToken).catch(() => []),
       ]);
       setPools(poolRows);
       if (curatedRes) setCurated({ ai: curatedRes.ai, niches: curatedRes.niches, items: curatedRes.items });
       setProducts(productRows);
       setNiches(nicheRows);
       setMyCommits(myRows.filter((p) => p.my_commit));
+      setChannels(channelRows);
     } finally {
       setBusy(false);
     }
@@ -329,6 +338,18 @@ export default function DropshipPage() {
       setError(e instanceof Error ? e.message : "Commit failed");
     } finally {
       setCommitting(false);
+    }
+  }
+
+  async function handleChannelVote(key: string) {
+    if (!idToken) return;
+    try {
+      const res = await voteDropshipChannel(idToken, key);
+      setChannels((prev) =>
+        prev.map((c) => (c.key === key ? { ...c, voted: res.voted, votes: res.votes } : c))
+      );
+    } catch {
+      // non-fatal
     }
   }
 
@@ -403,6 +424,43 @@ export default function DropshipPage() {
             ))}
           </div>
         </div>
+
+        {/* Channel votes — which retailer integration ships next */}
+        {channels.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Where should your units sell next?
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {channels.map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => handleChannelVote(c.key)}
+                  className={`rounded-xl border p-3 text-left transition-colors ${
+                    c.voted
+                      ? "border-emerald-400 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/40"
+                      : "border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
+                      {c.label}
+                      {c.live && (
+                        <span className="ml-1.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                          live
+                        </span>
+                      )}
+                    </p>
+                    <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                      {c.votes} {c.voted ? "★" : "☆"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{c.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400">

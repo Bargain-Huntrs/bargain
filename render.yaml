@@ -48,8 +48,8 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false
-      - key: RESEND_FROM_EMAIL
-        value: deals@bargainhuntrs.com
+      - key: ALERT_FROM_EMAIL
+        value: BargainHuntrs <deals@bargainhuntrs.com>
       - key: IMPACT_API_KEY
         sync: false
       - key: IMPACT_ACCOUNT_ID

@@ -18,7 +18,8 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 
 ## Blocked on user
 
-- (none)
+- **Render env vars needed for password-reset emails** — bargainhuntrs.com is now verified on the shared Resend account and a new send-only `RESEND_API_KEY` is in `bargain-api/.env` (gitignored — copy from there into the Render dashboard `bargain-api` service). `ALERT_FROM_EMAIL` is now declared in render.yaml (`BargainHuntrs <deals@bargainhuntrs.com>`). Local code path verified — real email sent.
+- **Cloudflare Email Routing enable** — zone `ea39efb5615bd9bdbbb5079e899bbade`: MX + destination `bargain4huntrs@gmail.com` (verified) + catch-all rule staged, but zone-level routing flag needs enabling in the CF dashboard (Email > Email Routing > Get started) — token lacks that scope. Once enabled, all mail to *@bargainhuntrs.com forwards to the Gmail like Prime's setup.
 
 ## Recently landed
 

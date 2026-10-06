@@ -16,8 +16,8 @@ const candidates = envPath ? [envPath] : [
   join(root, '.env'),
   ...['prime-api','bargain-api','settle-api','notyced-api','reid-api','favestate-api','dexana-api','api'].map(d => join(root, d, '.env')),
 ];
-let key = null, usedEnv = null;
-for (const p of candidates) {
+let key = process.env.STRIPE_SECRET_KEY || null, usedEnv = 'env:STRIPE_SECRET_KEY';
+if (!key) for (const p of candidates) {
   try {
     const m = readFileSync(p, 'utf8').match(/sk_(live|test)_[A-Za-z0-9]+/);
     if (m) { key = m[0]; usedEnv = p; break; }

@@ -1,0 +1,43 @@
+name: Weekly Revenue KPI
+
+# Runs every Monday: snapshots Stripe MRR / active subs / 30d collections into
+# docs/KPI_WEEKLY.md and commits it back. Requires the STRIPE_SECRET_KEY repo secret;
+# without it the script exits 0 ("SKIP") — no noise, no failure emails.
+
+on:
+  schedule:
+    - cron: '10 13 * * 1'        # Monday
+  workflow_dispatch:
+
+permissions:
+  contents: write           # needed to push the KPI log commit back to main
+
+jobs:
+  kpi:
+    name: Revenue KPI snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Snapshot revenue KPIs
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: node scripts/revenue-kpi.mjs --write
+
+      - name: Commit KPI log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/KPI_WEEKLY.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(kpi): weekly revenue snapshot [skip ci]"
+            git push
+          else
+            echo "No KPI changes (secret unset or no data) — nothing to commit"
+          fi

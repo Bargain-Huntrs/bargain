@@ -24,6 +24,8 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 
 ## Recently landed
 
+- devin `5a2042e` — **/stores SEO section**: per-retailer deal pages (`/stores/[slug]`) with per-store metadata/canonical + `/stores` index + `GET /deals/public-retailers` API (live retailer counts) + `retailer` filter on `/deals/public` + dynamic sitemap store URLs + footer link. Helpers in `src/lib/retailers.ts`. Slug resolution goes through `public-retailers` so URL slugs map to exact DB retailer values. Needs API redeploy to return data.
+
 - 2026-10-06 devin-ci `b9c1102` — **Workflow failure cleanup**: autofix pnpm/action-setup v2/9→v4/9.15.5; buffer-poster post step hard-failed on curl timeout 3x/day (endpoint legitimately runs >5min) — raised cap to 9min, dropped counterproductive retry, non-200 now ::warning:: (backend health still covered by health-check.yml).
 
 - devin `b543913` — **admin CRM UI**: `/admin/crm` (Overview/Members/Moderation/Tasks) wired to `/api/v1/crm/*` via new typed helpers in `lib/api.ts`. Fixed router prefix → `/api/v1/crm`. Admin link added to `/admin`.

@@ -15,6 +15,7 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 | Agent | Task | Files/areas |
 |---|---|---|
 | devin-bargain | full audit + P0/P1 fixes | whole repo |
+| devin-features | feature-request board + community deal feed | `bargain-api/app/routers/feedback.py` (new), `community.py` (appended thread endpoints only), `app/db/models.py` (appended models only), `alembic/versions/035_*`, `bargain-web/src/app/roadmap/**`, `src/app/community/**`, `src/components/FeedbackWidget.tsx`, `src/components/CommunityFeed*`, `src/lib/api.ts` (appended helpers only); one-line registrations in `app/main.py` + Header/Footer |
 
 ## Blocked on user
 

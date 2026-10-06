@@ -190,7 +190,11 @@ function PoolCard({
       ) : null}
       <p className="mt-2 text-center text-[10px] text-zinc-400 dark:text-zinc-500">
         {open
-          ? "Reserved now — charged only if the pool fills. Cancels free if it doesn't."
+          ? `Reserved now — charged only if the pool fills.${
+              pool.cash_timeline
+                ? ` Est. payout ~${pool.cash_timeline.payout_days_est}d after fill (inbound ${pool.cash_timeline.inbound_days}d + sales + ~${pool.cash_timeline.reserve_days}d marketplace reserve).`
+                : ""
+            }`
           : ""}
       </p>
     </div>

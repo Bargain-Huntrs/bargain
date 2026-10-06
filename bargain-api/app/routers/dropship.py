@@ -342,6 +342,15 @@ def _pool_out(pool: DropshipPool, my_commit: Optional[DropshipPoolCommit] = None
         "freight_mode": pool.freight_mode or "us_stock",
         "delivery_days_max": pool.delivery_days_max or 7,
         "deal_notes": pool.deal_notes,
+        # Honest cash timeline — inbound transit → sell-through window →
+        # marketplace reserve (Amazon holds ~7d post-delivery even on
+        # seasoned accounts) → payout. Hunters should see when money lands.
+        "cash_timeline": {
+            "inbound_days": pool.delivery_days_max or 7,
+            "sell_through_days": 30,
+            "reserve_days": 7,
+            "payout_days_est": (pool.delivery_days_max or 7) + 30 + 7,
+        },
         "opens_at": pool.opens_at.isoformat() if pool.opens_at else None,
         "closes_at": pool.closes_at.isoformat() if pool.closes_at else None,
         "filled_at": pool.filled_at.isoformat() if pool.filled_at else None,
@@ -700,6 +709,8 @@ def my_commits(
 CHANNELS = [
     {"key": "amazon_fba", "label": "Amazon FBA", "live": True,
      "desc": "Units ship to YOUR seller account — you sell, you keep the proceeds"},
+    {"key": "managed_fba", "label": "Managed by Bargain", "live": False,
+     "desc": "We sell on our seasoned FBA account as your agent — needs consignment terms"},
     {"key": "walmart_wfs", "label": "Walmart WFS", "live": False,
      "desc": "Walmart Fulfillment Services — vote to unlock"},
     {"key": "own_store", "label": "Your own store", "live": False,
@@ -731,7 +742,7 @@ def list_channels(
 
 
 class ChannelVoteBody(BaseModel):
-    channel: str = Field(..., pattern="^(amazon_fba|walmart_wfs|own_store)$")
+    channel: str = Field(..., pattern="^(amazon_fba|managed_fba|walmart_wfs|own_store)$")
 
 
 @router.post("/channels/vote")

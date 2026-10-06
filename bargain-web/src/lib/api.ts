@@ -1715,7 +1715,13 @@ export interface DropshipPool {
   min_price: number | null;
   est_margin_pct: number | null;
   max_units_per_hunter: number;
-  channel: "amazon_fba" | "walmart_wfs" | "own_store";
+  channel: "amazon_fba" | "managed_fba" | "walmart_wfs" | "own_store";
+  cash_timeline?: {
+    inbound_days: number;
+    sell_through_days: number;
+    reserve_days: number;
+    payout_days_est: number;
+  };
   origin: "us" | "china";
   freight_mode: "us_stock" | "air" | "ocean";
   delivery_days_max: number;
@@ -1736,7 +1742,7 @@ export interface DropshipNiche {
 }
 
 export interface DropshipChannel {
-  key: "amazon_fba" | "walmart_wfs" | "own_store";
+  key: "amazon_fba" | "managed_fba" | "walmart_wfs" | "own_store";
   label: string;
   live: boolean;
   desc: string;

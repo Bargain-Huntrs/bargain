@@ -51,12 +51,13 @@ jobs:
 
           # The post-new-to-x/public endpoint posts already-scraped deals
           # that have affiliate links. No auth required.
+          # Posting fans out to X/FB/IG/Buffer sequentially and can exceed
+          # 5min on a cold backend — use a 9min cap and drop --retry (retrying
+          # a slow POST just re-runs the whole post cycle).
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            --max-time 300 \
-            --retry 3 \
-            --retry-delay 10 \
-            --retry-max-time 60 \
-            "https://api.bargainhuntrs.com/api/v1/arbitrage/deals/post-new-to-x/public?max_posts=5")
+            --max-time 540 \
+            "https://api.bargainhuntrs.com/api/v1/arbitrage/deals/post-new-to-x/public?max_posts=5" \
+            || echo -e "\n000")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -n -1)
@@ -65,8 +66,11 @@ jobs:
           echo "Response: $BODY"
 
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "ERROR: Deal posting failed with HTTP $HTTP_CODE"
-            exit 1
+            # Warn rather than fail: this is a best-effort marketing cron that
+            # runs 3x/day. A failing backend is visible via health-check.yml —
+            # hard-failing here just spams failure emails.
+            echo "::warning::Deal posting returned HTTP $HTTP_CODE — will retry next scheduled run"
+            exit 0
           fi
 
           # Parse the posted count from the response

@@ -204,6 +204,7 @@ async def list_public_deal_retailers(db: Session = Depends(get_db)):
             ArbitrageDeal.status == "active",
             ArbitrageDeal.retailer != None,
             ArbitrageDeal.retailer != "",
+            ArbitrageDeal.retailer != "unknown",
         )
         .group_by(ArbitrageDeal.retailer)
         .order_by(func.count().desc())

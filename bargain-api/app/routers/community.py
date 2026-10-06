@@ -1,7 +1,7 @@
 """Community deal submission, voting, and leaderboard endpoints."""
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -776,7 +776,7 @@ class ThreadCreateRequest(BaseModel):
     price_cents: Optional[int] = None
     original_price_cents: Optional[int] = None
     author_name: Optional[str] = None
-    author_email: Optional[str] = None
+    author_email: Optional[EmailStr] = None
 
     @field_validator("title")
     @classmethod
@@ -815,7 +815,7 @@ class ThreadCreateRequest(BaseModel):
 class CommentCreateRequest(BaseModel):
     body: str
     author_name: Optional[str] = None
-    author_email: Optional[str] = None
+    author_email: Optional[EmailStr] = None
 
     @field_validator("body")
     @classmethod

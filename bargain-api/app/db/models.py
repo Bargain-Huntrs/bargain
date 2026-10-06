@@ -605,3 +605,147 @@ class CrmActivity(Base):
     due_at = Column(DateTime, nullable=True)
     done_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class FeatureRequest(Base):
+    """Public feature-request board entry (the /roadmap page).
+
+    Anyone can submit — signed-in users are linked via user_id, anonymous
+    submitters leave author_name/author_email. Status is admin-managed:
+    under_review -> planned -> in_progress -> shipped (or declined).
+    """
+    __tablename__ = "feature_requests"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(160), nullable=False)
+    body = Column(Text)
+    category = Column(String(50), default="general", index=True)
+    status = Column(String(20), default="under_review", index=True)  # under_review|planned|in_progress|shipped|declined
+    votes = Column(Integer, default=0)  # denormalized; FeatureRequestVote is authoritative
+    author_name = Column(String(120))
+    author_email = Column(String(255))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FeatureRequestVote(Base):
+    """One vote per voter per feature request.
+
+    voter_id is 'user:<uuid>' for signed-in users or 'anon:<client-id>' for
+    anonymous voters (client-generated id stored in localStorage).
+    """
+    __tablename__ = "feature_request_votes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id = Column(UUID(as_uuid=True), ForeignKey("feature_requests.id", ondelete="CASCADE"), nullable=False, index=True)
+    voter_id = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("request_id", "voter_id", name="uq_feature_request_vote"),
+    )
+
+
+class DealThread(Base):
+    """Slickdeals-style community deal post — the public deal feed.
+
+    Distinct from UserSubmittedDeal (which is a moderation queue that promotes
+    into arbitrage_deals): threads publish immediately, support anonymous
+    authors/voters, and carry a comment count. status: published|hidden|flagged.
+    """
+    __tablename__ = "deal_threads"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    author_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    author_name = Column(String(120), nullable=False)
+    author_email = Column(String(255))  # anonymous fallback contact; never rendered publicly
+    title = Column(String(300), nullable=False)
+    body = Column(Text)
+    url = Column(String(1000))  # deal link — optional for discussion threads
+    retailer = Column(String(100))
+    price_cents = Column(Integer)          # deal price, cents
+    original_price_cents = Column(Integer)  # list/was price, cents
+    status = Column(String(20), default="published", index=True)  # published|hidden|flagged
+    upvotes = Column(Integer, default=0)    # denormalized; DealThreadVote is authoritative
+    comments_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    comments = relationship("DealThreadComment", back_populates="thread", cascade="all, delete-orphan")
+
+
+class DealThreadComment(Base):
+    """Comment on a community deal thread."""
+    __tablename__ = "deal_thread_comments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("deal_threads.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    author_name = Column(String(120), nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    thread = relationship("DealThread", back_populates="comments")
+
+
+class DealThreadVote(Base):
+    """One upvote per voter per thread. voter_id = 'user:<uuid>' or 'anon:<client-id>'."""
+    __tablename__ = "deal_thread_votes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("deal_threads.id", ondelete="CASCADE"), nullable=False, index=True)
+    voter_id = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("thread_id", "voter_id", name="uq_deal_thread_vote"),
+    )
+
+
+class DropshipProduct(Base):
+    """US-warehouse dropship catalog entry.
+
+    Starter catalog is seeded in code; rows are upserted by ``source`` +
+    ``supplier_sku`` so a real supplier feed (Inventory Source, Wholesale2b,
+    Zendrop-style API, CSV import) can take over without a schema change.
+    ``niche`` keys match niche_service.NICHES so user subscriptions drive
+    curation directly.
+    """
+    __tablename__ = "dropship_products"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sku = Column(String(120), unique=True, nullable=False, index=True)
+    title = Column(String(500), nullable=False)
+    description = Column(Text)
+    niche = Column(String(50), nullable=False, index=True)
+    supplier = Column(String(120), nullable=False)
+    warehouse_state = Column(String(2))  # US only — CA, NJ, TX, GA...
+    cost = Column(Numeric(10, 2), nullable=False)
+    suggested_price = Column(Numeric(10, 2), nullable=False)
+    shipping_days_min = Column(Integer, default=2)
+    shipping_days_max = Column(Integer, default=5)
+    image_url = Column(String(1000))
+    supplier_url = Column(String(1000))
+    trending_score = Column(Float, default=0)  # 0-100 demand heat
+    is_active = Column(Boolean, default=True, index=True)
+    source = Column(String(50), default="curated")  # curated|feed|manual
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DropshipSaved(Base):
+    """A paid user's saved dropship product — their working product list."""
+    __tablename__ = "dropship_saved"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    product_id = Column(UUID(as_uuid=True), ForeignKey("dropship_products.id"), nullable=False)
+    status = Column(String(20), default="saved", index=True)  # saved|listed|ordered
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    product = relationship("DropshipProduct")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "product_id", name="uq_dropship_saved_user_product"),
+    )

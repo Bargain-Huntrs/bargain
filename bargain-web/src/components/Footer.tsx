@@ -80,6 +80,7 @@ export default function Footer() {
               <li><Link href="/about" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">About</Link></li>
               <li><Link href="/contact" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Contact</Link></li>
               <li><Link href="/waitlist" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Join Waitlist</Link></li>
+              <li><Link href="/roadmap" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Feature Roadmap</Link></li>
               <li>
                 <a
                   href="mailto:hello@bargainhuntrs.com"

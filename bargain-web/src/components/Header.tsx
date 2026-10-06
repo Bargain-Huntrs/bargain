@@ -47,6 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
     children: [
       { href: "/community", label: "Community Feed", desc: "Deals shared by hunters" },
       { href: "/community/leaderboard", label: "Leaderboard", desc: "Top contributors" },
+      { href: "/roadmap", label: "Feature Roadmap", desc: "Vote on what we build next" },
       { href: "/seller", label: "Become a Seller", desc: "Get verified & post deals" },
       { href: "/referrals", label: "Referrals", desc: "Earn free months" },
     ],

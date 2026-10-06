@@ -854,6 +854,7 @@ def _thread_to_dict(t: DealThread, voted: bool = False) -> dict:
         "upvotes": t.upvotes or 0,
         "comments_count": t.comments_count or 0,
         "author_name": t.author_name,
+        "author_user_id": str(t.author_user_id) if t.author_user_id else None,
         "is_member": t.author_user_id is not None,
         "created_at": t.created_at.isoformat() if t.created_at else None,
         "voted": voted,

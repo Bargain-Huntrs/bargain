@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
+import FeedbackWidget from "@/components/FeedbackWidget";
 import GoogleAnalytics from "@/app/components/GoogleAnalytics";
 
 const geistSans = Geist({
@@ -89,6 +90,7 @@ export default function RootLayout({
           }}
         />
         <AuthProvider>{children}</AuthProvider>
+        <FeedbackWidget />
         <PwaInstallPrompt />
         <GoogleAnalytics />
       </body>

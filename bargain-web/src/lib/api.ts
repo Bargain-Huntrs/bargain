@@ -1493,3 +1493,186 @@ export async function completeCrmTask(token: string, taskId: string) {
 export async function getCrmPipeline(token: string): Promise<CrmPipeline> {
   return fetchWithAuth("/api/v1/crm/analytics/pipeline", token);
 }
+
+// ─── Feature Request Board (/roadmap) ───────────────────────────────────────
+
+export interface FeatureRequest {
+  id: string;
+  title: string;
+  body: string | null;
+  category: string;
+  status: "under_review" | "planned" | "in_progress" | "shipped" | "declined";
+  votes: number;
+  author_name: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  voted: boolean;
+}
+
+export async function getFeatureRequests(
+  params?: { status?: string; category?: string; include_declined?: boolean }
+) {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.category) qs.set("category", params.category);
+  if (params?.include_declined) qs.set("include_declined", "true");
+  const query = qs.toString();
+  return fetchPublic(`/api/v1/feedback${query ? `?${query}` : ""}`) as Promise<FeatureRequest[]>;
+}
+
+export async function submitFeatureRequest(
+  token: string | null,
+  data: {
+    title: string;
+    body?: string;
+    category?: string;
+    author_name?: string;
+    author_email?: string;
+  }
+) {
+  return fetchWithAuth("/api/v1/feedback", token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  }) as Promise<FeatureRequest>;
+}
+
+export async function voteFeatureRequest(
+  token: string | null,
+  requestId: string,
+  voterId?: string
+) {
+  return fetchWithAuth(`/api/v1/feedback/${requestId}/vote`, token, {
+    method: "POST",
+    body: JSON.stringify({ voter_id: voterId }),
+  }) as Promise<{ voted: boolean; votes: number }>;
+}
+
+// ─── Community Deal Threads (Slickdeals-style feed) ─────────────────────────
+
+export interface DealThread {
+  id: string;
+  title: string;
+  body: string | null;
+  url: string | null;
+  retailer: string | null;
+  price_cents: number | null;
+  original_price_cents: number | null;
+  status: string;
+  upvotes: number;
+  comments_count: number;
+  author_name: string;
+  author_user_id: string | null;
+  is_member: boolean;
+  created_at: string | null;
+  voted: boolean;
+  comments?: DealThreadComment[];
+}
+
+export interface DealThreadComment {
+  id: string;
+  author_name: string;
+  is_member: boolean;
+  body: string;
+  created_at: string | null;
+}
+
+export async function getCommunityThreads(
+  params?: { sort?: "hot" | "new"; limit?: number; offset?: number }
+) {
+  const qs = new URLSearchParams();
+  if (params?.sort) qs.set("sort", params.sort);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.offset) qs.set("offset", String(params.offset));
+  const query = qs.toString();
+  return fetchPublic(`/api/v1/community/threads${query ? `?${query}` : ""}`) as Promise<DealThread[]>;
+}
+
+export async function getCommunityThread(threadId: string) {
+  return fetchPublic(`/api/v1/community/threads/${threadId}`) as Promise<DealThread>;
+}
+
+export async function createCommunityThread(
+  token: string | null,
+  data: {
+    title: string;
+    body?: string;
+    url?: string;
+    retailer?: string;
+    price_cents?: number;
+    original_price_cents?: number;
+    author_name?: string;
+    author_email?: string;
+  }
+) {
+  return fetchWithAuth("/api/v1/community/threads", token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  }) as Promise<DealThread>;
+}
+
+export async function createThreadComment(
+  token: string | null,
+  threadId: string,
+  data: { body: string; author_name?: string; author_email?: string }
+) {
+  return fetchWithAuth(`/api/v1/community/threads/${threadId}/comments`, token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  }) as Promise<DealThreadComment>;
+}
+
+export async function voteCommunityThread(
+  token: string | null,
+  threadId: string,
+  voterId?: string
+) {
+  return fetchWithAuth(`/api/v1/community/threads/${threadId}/vote`, token, {
+    method: "POST",
+    body: JSON.stringify({ voter_id: voterId }),
+  }) as Promise<{ voted: boolean; upvotes: number }>;
+}
+
+export async function deleteCommunityThread(token: string, threadId: string) {
+  return fetchWithAuth(`/api/v1/community/threads/${threadId}`, token, {
+    method: "DELETE",
+  }) as Promise<{ deleted: boolean }>;
+}
+
+// ─── Anonymous voter identity (localStorage) ────────────────────────────────
+//
+// bargain_voter_id — stable client-generated id sent as voter_id so anonymous
+// votes stay one-per-person. bargain_voted — map of request/thread ids the
+// visitor has already voted on, for instant UI state without a login.
+
+export function getOrCreateVoterId(): string {
+  if (typeof window === "undefined") return "";
+  let id = window.localStorage.getItem("bargain_voter_id");
+  if (!id) {
+    id =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem("bargain_voter_id", id);
+  }
+  return id;
+}
+
+export function getVotedIds(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem("bargain_voted") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+export function setVotedFlag(id: string, voted: boolean) {
+  if (typeof window === "undefined") return;
+  const map = getVotedIds();
+  if (voted) {
+    map[id] = true;
+  } else {
+    delete map[id];
+  }
+  window.localStorage.setItem("bargain_voted", JSON.stringify(map));
+}

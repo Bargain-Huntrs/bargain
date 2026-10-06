@@ -1,7 +1,7 @@
 import random
 import string
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import bcrypt
 from jose import JWTError, jwt
@@ -572,8 +572,23 @@ class ResetPasswordRequest(BaseModel):
 
 
 @router.post("/forgot-password")
-async def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """Request a password reset link. Always returns success (don't leak if email exists)."""
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Request a password reset link. Always returns success (don't leak if email exists).
+
+    When called with the internal service key (x-internal-key header, used by
+    the trusted web worker), the response includes `_resetToken`/`_emailSent`
+    so the worker can send a Resend fallback email if the backend send failed.
+    Normal clients never receive those fields.
+    """
+    internal_key = request.headers.get("x-internal-key", "")
+    is_internal = bool(settings.INTERNAL_API_KEY) and internal_key == settings.INTERNAL_API_KEY
+
+    result: dict = {"success": True, "message": "If an account exists with that email, a reset link has been sent."}
+
     user = db.query(User).filter(User.email == body.email).first()
     if user:
         # Generate a short-lived reset token (1 hour)
@@ -582,9 +597,15 @@ async def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get
             settings.SECRET_KEY,
             algorithm=settings.ALGORITHM,
         )
-        send_password_reset_email(user.email, reset_token, user.first_name)
+        email_sent = send_password_reset_email(user.email, reset_token, user.first_name)
 
-    return {"success": True, "message": "If an account exists with that email, a reset link has been sent."}
+        if is_internal:
+            result["_resetToken"] = reset_token
+            result["_emailSent"] = email_sent
+            result["_sendTo"] = user.email
+            result["_firstName"] = user.first_name
+
+    return result
 
 
 @router.post("/reset-password")

@@ -50,6 +50,8 @@ services:
         sync: false
       - key: ALERT_FROM_EMAIL
         value: BargainHuntrs <deals@bargainhuntrs.com>
+      - key: INTERNAL_API_KEY
+        sync: false
       - key: IMPACT_API_KEY
         sync: false
       - key: IMPACT_ACCOUNT_ID

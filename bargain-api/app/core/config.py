@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     ALERT_FROM_EMAIL: str = "alerts@bargainhuntrs.com"
 
+    # Internal service-to-service key — lets the trusted web worker fetch
+    # reset internals (_resetToken/_emailSent) for the Resend fallback path.
+    # Never exposed to normal clients.
+    INTERNAL_API_KEY: str = ""
+
     # Scheduled Scanning
     AUTO_SCAN: bool = True
     SCAN_INTERVAL_MINUTES: int = 60

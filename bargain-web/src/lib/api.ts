@@ -771,10 +771,18 @@ export async function moderateCommunityDeal(
 // ─── Password Reset ───────────────────────────────────────────────────────────
 
 export async function requestPasswordReset(email: string) {
-  return fetchPublic("/api/v1/auth/forgot-password", {
+  // Same-origin worker route: proxies to the API and falls back to sending
+  // the reset email directly via Resend if the backend mailer fails.
+  const res = await fetch("/api/auth/forgot-password", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
-  }) as Promise<{ success: boolean; message: string }>;
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to send reset email");
+  }
+  return data as { success: boolean; message: string };
 }
 
 export async function resetPassword(token: string, new_password: string) {

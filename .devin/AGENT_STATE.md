@@ -15,7 +15,6 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 | Agent | Task | Files/areas |
 |---|---|---|
 | devin-bargain | full audit + P0/P1 fixes | whole repo |
-| devin-features | feature-request board + community deal feed | `bargain-api/app/routers/feedback.py` (new), `community.py` (appended thread endpoints only), `app/db/models.py` (appended models only), `alembic/versions/035_*`, `bargain-web/src/app/roadmap/**`, `src/app/community/**`, `src/components/FeedbackWidget.tsx`, `src/components/CommunityFeed*`, `src/lib/api.ts` (appended helpers only); one-line registrations in `app/main.py` + Header/Footer |
 
 ## Blocked on user
 
@@ -24,6 +23,8 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 - **Cloudflare Email Routing enable** — zone `ea39efb5615bd9bdbbb5079e899bbade`: MX + destination `bargain4huntrs@gmail.com` (verified) + catch-all rule staged, but zone-level routing flag needs enabling in the CF dashboard (Email > Email Routing > Get started) — token lacks that scope. Once enabled, all mail to *@bargainhuntrs.com forwards to the Gmail like Prime's setup.
 
 ## Recently landed
+
+- 2026-10-08 devin-features `6bec508` (+`8a05e3b`, `5cc29cc`) — **feature board + community deal feed**. API: `routers/feedback.py` (`/api/v1/feedback` — public board, anonymous votes via `voter_id`, admin PATCH via crm `require_admin`); `community.py` appended `deal_threads` endpoints (`/api/v1/community/threads` hot/new, comments, toggle vote w/ authoritative recount, owner/admin delete, in-mem 5-threads/hr + 30-comments/hr rate limit). Tables `feature_requests`/`feature_request_votes`/`deal_threads`/`deal_thread_comments`/`deal_thread_votes` — alembic 035 + lazy CREATE TABLE IF NOT EXISTS (Render runs no migrations; verified live 200s). NOTE: did NOT reuse `user_submitted_deals` — that's a moderation queue (pending→approved→promoted to arbitrage_deals); threads publish instantly + support guests/comments. Web: `/roadmap` board, `/community` rebuilt as thread feed + `/community/[id]` detail (generateStaticParams()=>[] pattern), `FeedbackWidget` edge tab in layout, nav/footer/sitemap links, `bargain_voter_id`/`bargain_voted` localStorage. Web deployed to Cloudflare (`ccb932e0`); API live on Render. Old aura/submit-for-moderation UI removed from /community (endpoints still exist; leaderboard untouched).
 
 - 2026-10-07 devin `a2219e6` — **weekly revenue-KPI workflow (Mon 13:10 UTC) — same pattern. Needs STRIPE_SECRET_KEY repo secret.**
 

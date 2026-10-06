@@ -24,6 +24,8 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 
 ## Recently landed
 
+- 2026-10-06 devin-ci `b9c1102` — **Workflow failure cleanup**: autofix pnpm/action-setup v2/9→v4/9.15.5; buffer-poster post step hard-failed on curl timeout 3x/day (endpoint legitimately runs >5min) — raised cap to 9min, dropped counterproductive retry, non-200 now ::warning:: (backend health still covered by health-check.yml).
+
 - devin `b543913` — **admin CRM UI**: `/admin/crm` (Overview/Members/Moderation/Tasks) wired to `/api/v1/crm/*` via new typed helpers in `lib/api.ts`. Fixed router prefix → `/api/v1/crm`. Admin link added to `/admin`.
 
 - devin `9dfa256` — **admin CRM** (`bargain-api/app/routers/crm.py`, alembic `034`): Prime-pattern CRM adapted to deals/affiliate — `/crm/dashboard/*` (members, paid tier, live deals, affiliate clicks/commissions, pending submissions, waitlist, referrals, tasks-due), `/crm/members` directory + detail (alert prefs, engagement), `/crm/leads` seller+community submission moderation pipeline with approve/reject, `/crm/activities` + `/crm/tasks`, `/crm/analytics` funnels. Admin-gated via JWT role check. `crm_activities` table has alembic 034 AND lazy `CREATE TABLE IF NOT EXISTS` (Render runs no migrations at boot).

@@ -590,3 +590,18 @@ class UserListItem(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     matched_deal = relationship("ArbitrageDeal")
+
+
+class CrmActivity(Base):
+    """Staff CRM note/task pinned to a user — support context, VIP flags,
+    follow-up reminders. Admin-only; never exposed to the subject user."""
+    __tablename__ = "crm_activities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    subject_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    type = Column(String(20), default="note", index=True)  # note|call|email|meeting|task|status_change
+    body = Column(Text, nullable=False)
+    due_at = Column(DateTime, nullable=True)
+    done_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

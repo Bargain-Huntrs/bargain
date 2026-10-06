@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -229,10 +230,20 @@ export default function AdminPage() {
       <Header />
 
       <main className="mx-auto max-w-6xl px-6 py-12">
-        <h1 className="text-2xl font-black text-zinc-900 dark:text-zinc-50">Admin Dashboard</h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Moderate community deals, run voucher draws, and view community stats.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-zinc-900 dark:text-zinc-50">Admin Dashboard</h1>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+              Moderate community deals, run voucher draws, and view community stats.
+            </p>
+          </div>
+          <Link
+            href="/admin/crm"
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-800"
+          >
+            CRM →
+          </Link>
+        </div>
 
         {/* Tabs */}
         <div className="mt-8 flex gap-1 rounded-xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">

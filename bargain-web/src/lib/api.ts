@@ -1345,3 +1345,139 @@ export async function postAiDescribe(
     body: JSON.stringify(body),
   });
 }
+
+// ── Admin CRM ──────────────────────────────────────────────────────────
+
+export interface CrmStats {
+  totalUsers: number;
+  paidUsers: number;
+  newsletterSubscribers: number;
+  liveDeals: number;
+  activeAlerts: number;
+  affiliateClicks: number;
+  conversions: number;
+  commissionEarned: number;
+  conversionRate: number;
+  pendingSellerSubmissions: number;
+  pendingCommunityDeals: number;
+  waitlistEntries: number;
+  referralClaims: number;
+  signupsThisMonth: number;
+  monthlyGrowth: number;
+  tasksDue: number;
+}
+
+export interface CrmActivityItem {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  status?: string;
+  timestamp?: string;
+}
+
+export interface CrmMember {
+  id: string;
+  email: string;
+  name: string;
+  tier: string;
+  role: string;
+  emailVerified: boolean;
+  emailAlerts: boolean;
+  smsAlerts: boolean;
+  createdAt?: string;
+}
+
+export interface CrmLead {
+  id: string;
+  kind: "seller" | "community";
+  title: string;
+  retailer?: string;
+  type?: string;
+  status: string;
+  url?: string;
+  score?: number;
+  createdAt?: string;
+}
+
+export interface CrmTask {
+  id: string;
+  body: string;
+  subjectUserId?: string;
+  dueAt?: string;
+  doneAt?: string;
+  createdAt?: string;
+}
+
+export interface CrmPipeline {
+  sellerSubmissions: Record<string, number>;
+  communityDeals: Record<string, number>;
+  membersByTier: Record<string, number>;
+  dealsByStatus: Record<string, number>;
+  clicksByRetailer: { retailer: string; clicks: number; commission: number }[];
+}
+
+export async function getCrmStats(token: string): Promise<CrmStats> {
+  return fetchWithAuth("/api/v1/crm/dashboard/stats", token);
+}
+
+export async function getCrmActivity(token: string): Promise<{ recentActivity: CrmActivityItem[] }> {
+  return fetchWithAuth("/api/v1/crm/dashboard/activity", token);
+}
+
+export async function getCrmMembers(
+  token: string,
+  params: { tier?: string; search?: string } = {}
+): Promise<CrmMember[]> {
+  const qs = new URLSearchParams();
+  if (params.tier) qs.set("tier", params.tier);
+  if (params.search) qs.set("search", params.search);
+  return fetchWithAuth(`/api/v1/crm/members?${qs.toString()}`, token);
+}
+
+export async function getCrmLeads(
+  token: string,
+  params: { status?: string; kind?: string } = {}
+): Promise<CrmLead[]> {
+  const qs = new URLSearchParams();
+  if (params.status) qs.set("status", params.status);
+  if (params.kind) qs.set("kind", params.kind);
+  return fetchWithAuth(`/api/v1/crm/leads?${qs.toString()}`, token);
+}
+
+export async function reviewCrmLead(
+  token: string,
+  kind: "seller" | "community",
+  id: string,
+  action: "approve" | "reject",
+  reason?: string
+) {
+  return fetchWithAuth(`/api/v1/crm/leads/${kind}/${id}/review`, token, {
+    method: "POST",
+    body: JSON.stringify({ action, reason }),
+  });
+}
+
+export async function getCrmTasks(token: string): Promise<CrmTask[]> {
+  return fetchWithAuth("/api/v1/crm/tasks", token);
+}
+
+export async function createCrmActivity(
+  token: string,
+  body: { body: string; type?: string; due_at?: string; subject_user_id?: string }
+) {
+  return fetchWithAuth("/api/v1/crm/activities", token, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function completeCrmTask(token: string, taskId: string) {
+  return fetchWithAuth(`/api/v1/crm/tasks/${taskId}/complete`, token, {
+    method: "POST",
+  });
+}
+
+export async function getCrmPipeline(token: string): Promise<CrmPipeline> {
+  return fetchWithAuth("/api/v1/crm/analytics/pipeline", token);
+}

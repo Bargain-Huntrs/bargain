@@ -29,7 +29,7 @@ from app.db.models import (
 )
 from app.routers.auth import get_current_user
 
-router = APIRouter(prefix="/crm", tags=["crm"])
+router = APIRouter(prefix="/api/v1/crm", tags=["crm"])
 
 _table_ensured = False
 

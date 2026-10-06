@@ -1676,3 +1676,128 @@ export function setVotedFlag(id: string, voted: boolean) {
   }
   window.localStorage.setItem("bargain_voted", JSON.stringify(map));
 }
+
+// ─── Dropship Pools — group-buy wholesale events ────────────────────────────
+// Hunters commit units to hit an MOQ at a pooled wholesale rate, then resell
+// their own units on their own stores. All-or-nothing: commits confirm on
+// fill, auto-cancel on expiry.
+
+export interface DropshipProduct {
+  id: string;
+  sku: string;
+  title: string;
+  description: string | null;
+  niche: string;
+  supplier: string;
+  warehouse_state: string | null;
+  cost: number;
+  suggested_price: number;
+  est_margin_pct: number | null;
+  shipping_days_min: number | null;
+  shipping_days_max: number | null;
+  image_url: string | null;
+  trending_score: number | null;
+  watching: boolean;
+  saved: boolean;
+  why?: string;
+}
+
+export interface DropshipPool {
+  id: string;
+  status: "open" | "filled" | "expired" | "settled";
+  product: DropshipProduct | null;
+  moq_units: number;
+  units_committed: number;
+  units_remaining: number;
+  fill_pct: number;
+  unit_cost: number;
+  target_price: number;
+  min_price: number | null;
+  est_margin_pct: number | null;
+  max_units_per_hunter: number;
+  deal_notes: string | null;
+  opens_at: string | null;
+  closes_at: string | null;
+  filled_at: string | null;
+  hunters?: number;
+  my_commit: { units: number; unit_price: number; status: string } | null;
+  commit_id?: string;
+}
+
+export interface DropshipNiche {
+  key: string;
+  display_name: string;
+  emoji: string;
+  count: number;
+}
+
+export async function getDropshipProducts(
+  token: string,
+  params?: { niche?: string; sort?: "trending" | "margin" | "new" }
+) {
+  const qs = new URLSearchParams();
+  if (params?.niche) qs.set("niche", params.niche);
+  if (params?.sort) qs.set("sort", params.sort);
+  const query = qs.toString();
+  return fetchWithAuth(`/api/v1/dropship/products${query ? `?${query}` : ""}`, token) as Promise<
+    DropshipProduct[]
+  >;
+}
+
+export async function getDropshipCurated(token: string) {
+  return fetchWithAuth("/api/v1/dropship/curated", token) as Promise<{
+    ai: boolean;
+    niches: string[] | null;
+    items: DropshipProduct[];
+  }>;
+}
+
+export async function toggleDropshipWatch(token: string, productId: string) {
+  return fetchWithAuth(`/api/v1/dropship/products/${productId}/watch`, token, {
+    method: "POST",
+  }) as Promise<{ watching: boolean; watchers: number }>;
+}
+
+export async function saveDropshipProduct(token: string, productId: string) {
+  return fetchWithAuth(`/api/v1/dropship/products/${productId}/save`, token, {
+    method: "POST",
+  }) as Promise<{ saved: boolean }>;
+}
+
+export async function unsaveDropshipProduct(token: string, productId: string) {
+  return fetchWithAuth(`/api/v1/dropship/products/${productId}/save`, token, {
+    method: "DELETE",
+  }) as Promise<{ saved: boolean }>;
+}
+
+export async function getDropshipSaved(token: string) {
+  return fetchWithAuth("/api/v1/dropship/saved", token) as Promise<DropshipProduct[]>;
+}
+
+export async function getDropshipPools(token: string, status?: string) {
+  const qs = status ? `?status=${status}` : "";
+  return fetchWithAuth(`/api/v1/dropship/pools${qs}`, token) as Promise<DropshipPool[]>;
+}
+
+export async function getDropshipPool(token: string, poolId: string) {
+  return fetchWithAuth(`/api/v1/dropship/pools/${poolId}`, token) as Promise<DropshipPool>;
+}
+
+export async function commitToDropshipPool(token: string, poolId: string, units: number) {
+  return fetchWithAuth(`/api/v1/dropship/pools/${poolId}/commit`, token, {
+    method: "POST",
+    body: JSON.stringify({ units }),
+  }) as Promise<{
+    commit: { units: number; unit_price: number; status: string };
+    pool_status: string;
+    units_committed: number;
+  }>;
+}
+
+export async function getMyDropshipCommits(token: string) {
+  return fetchWithAuth("/api/v1/dropship/commits", token) as Promise<DropshipPool[]>;
+}
+
+export async function getDropshipNiches(token: string) {
+  return fetchWithAuth("/api/v1/dropship/niches", token) as Promise<DropshipNiche[]>;
+}

@@ -749,3 +749,71 @@ class DropshipSaved(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "product_id", name="uq_dropship_saved_user_product"),
     )
+
+
+class DropshipWatch(Base):
+    """Demand vote — a hunter watching a product. Counts feed the AI
+    signal that decides which products graduate into pools."""
+    __tablename__ = "dropship_watches"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    product_id = Column(UUID(as_uuid=True), ForeignKey("dropship_products.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "product_id", name="uq_dropship_watch_user_product"),
+    )
+
+
+class DropshipPool(Base):
+    """A group-buy event for one product.
+
+    Hunters commit units to hit ``moq_units`` at ``unit_cost`` — the pooled
+    wholesale rate. All-or-nothing: commits are reserved while open and only
+    confirmed when the pool fills; an expired pool cancels every commit
+    (nobody is charged). Each hunter buys and owns their units — this is a
+    group purchase, not a pooled investment.
+    """
+    __tablename__ = "dropship_pools"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    product_id = Column(UUID(as_uuid=True), ForeignKey("dropship_products.id"), nullable=False, index=True)
+    moq_units = Column(Integer, nullable=False)          # units needed to unlock the rate
+    unit_cost = Column(Numeric(10, 2), nullable=False)   # pooled cost basis per unit
+    target_price = Column(Numeric(10, 2), nullable=False)  # AI target sell price
+    min_price = Column(Numeric(10, 2))                   # sell floor of the target band
+    max_units_per_hunter = Column(Integer, default=10)
+    units_committed = Column(Integer, default=0)
+    status = Column(String(20), default="open", index=True)  # open|filled|expired|settled
+    deal_notes = Column(Text)  # AI deal-sheet notes (why this product)
+    opens_at = Column(DateTime, default=datetime.utcnow)
+    closes_at = Column(DateTime, nullable=False)
+    filled_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    product = relationship("DropshipProduct")
+
+
+class DropshipPoolCommit(Base):
+    """A hunter's unit reservation inside a pool.
+
+    status: reserved (pool open, not yet filled) | confirmed (pool filled,
+    units locked) | cancelled (pool expired — never charged) | shipped.
+    """
+    __tablename__ = "dropship_pool_commits"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    pool_id = Column(UUID(as_uuid=True), ForeignKey("dropship_pools.id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    units = Column(Integer, nullable=False)
+    unit_price = Column(Numeric(10, 2), nullable=False)  # locked rate at commit time
+    status = Column(String(20), default="reserved", index=True)  # reserved|confirmed|cancelled|shipped
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    pool = relationship("DropshipPool")
+
+    __table_args__ = (
+        UniqueConstraint("pool_id", "user_id", name="uq_dropship_commit_pool_user"),
+    )

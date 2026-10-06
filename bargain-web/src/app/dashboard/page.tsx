@@ -32,6 +32,9 @@ import {
   type DealClaim,
   type UserListItem,
   type ProfitSummary,
+  getDropshipPools,
+  getMyDropshipCommits,
+  type DropshipPool,
 } from "@/lib/api";
 import PhoneVerify from "@/components/PhoneVerify";
 import ProfitCalculator from "@/components/tools/ProfitCalculator";
@@ -59,7 +62,7 @@ interface WatchlistItem {
   created_at: string;
 }
 
-type TabKey = "haul" | "saved" | "shopping" | "wishlist" | "bolo" | "watchlist" | "tools";
+type TabKey = "haul" | "saved" | "shopping" | "wishlist" | "bolo" | "watchlist" | "dropship" | "tools";
 type ToolKey = "profit" | "listing" | "realestate";
 
 interface ToolPrefill {
@@ -76,6 +79,7 @@ const TABS: { key: TabKey; label: string; hint: string }[] = [
   { key: "wishlist", label: "Wishlist", hint: "Wants you're watching" },
   { key: "bolo", label: "BOLO", hint: "Be on the lookout — we match new deals to these" },
   { key: "watchlist", label: "Watchlist", hint: "Price-tracking alerts" },
+  { key: "dropship", label: "Dropship", hint: "Pool buys — commit units with other hunters at bulk rates" },
   { key: "tools", label: "Tools", hint: "Calculators and generators — no need to leave your HQ" },
 ];
 
@@ -378,6 +382,8 @@ export default function DashboardPage() {
   const [verifyPhone, setVerifyPhone] = useState("");
   const [profileForm, setProfileForm] = useState({ firstName: "", lastName: "" });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [pools, setPools] = useState<DropshipPool[]>([]);
+  const [myPoolCommits, setMyPoolCommits] = useState<DropshipPool[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -398,6 +404,7 @@ export default function DashboardPage() {
       loadHaul();
       loadLists();
       loadSaved();
+      loadPools();
       getReferralStats(idToken)
         .then((stats) => {
           setReferralCount(stats.referral_count);
@@ -503,6 +510,20 @@ export default function DashboardPage() {
     try {
       const data = await getMyDeals(idToken);
       setMyDeals(data);
+    } catch {
+      // Non-critical
+    }
+  }
+
+  async function loadPools() {
+    if (!idToken) return;
+    try {
+      const [all, mine] = await Promise.all([
+        getDropshipPools(idToken, "all"),
+        getMyDropshipCommits(idToken),
+      ]);
+      setPools(all);
+      setMyPoolCommits(mine.filter((p) => p.my_commit));
     } catch {
       // Non-critical
     }
@@ -1083,6 +1104,86 @@ export default function DashboardPage() {
                     ))}
                   </ul>
                 )}
+              </div>
+            )}
+
+            {/* ── Dropship tab ── */}
+            {tab === "dropship" && (
+              <div className="space-y-4">
+                {myPoolCommits.length > 0 && (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+                    <p className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                      Your pool units
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {myPoolCommits.map((p) => (
+                        <span
+                          key={p.commit_id || p.id}
+                          className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400"
+                        >
+                          {p.my_commit!.units}× {p.product?.title?.slice(0, 40)} — {p.my_commit!.status}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(() => {
+                  const openPools = pools.filter((p) => p.status === "open");
+                  return openPools.length > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {openPools.slice(0, 6).map((p) => (
+                        <Link
+                          key={p.id}
+                          href="/dropship"
+                          className="rounded-2xl border border-zinc-200 bg-white p-4 transition-colors hover:border-emerald-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-800"
+                        >
+                          <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                            {p.product?.title}
+                          </p>
+                          <div className="mt-2 flex items-baseline justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                            <span>{p.units_committed}/{p.moq_units} units</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                              {p.est_margin_pct}% margin
+                            </span>
+                          </div>
+                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                            <div
+                              className="h-full rounded-full bg-emerald-500"
+                              style={{ width: `${Math.min(100, p.fill_pct)}%` }}
+                            />
+                          </div>
+                          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                            ${p.unit_cost.toFixed(2)}/unit → ${p.target_price.toFixed(2)} target
+                          </p>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-zinc-300 p-10 text-center dark:border-zinc-700">
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        No open pools right now — watch products in the catalog to vote the next one in.
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                <Link
+                  href="/dropship"
+                  className="block rounded-2xl border border-zinc-200 bg-white p-5 transition-colors hover:border-emerald-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-800"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
+                        Open the Dropship board →
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        Live pools, AI deal sheets, US-warehouse catalog — all in one place.
+                      </p>
+                    </div>
+                    <span className="text-2xl">📦</span>
+                  </div>
+                </Link>
               </div>
             )}
 

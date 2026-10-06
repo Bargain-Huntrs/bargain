@@ -33,6 +33,15 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Dropship",
+    href: "/dropship",
+    children: [
+      { href: "/dropship", label: "Pool Board", desc: "Group-buy deals — commit units, hit bulk rates" },
+      { href: "/dropship", label: "US-Warehouse Catalog", desc: "AI-curated products, 2–7 day shipping" },
+      { href: "/dashboard", label: "My Pool Units", desc: "Your committed units — Hunter HQ" },
+    ],
+  },
+  {
     label: "Tools",
     children: [
       { href: "/tools/profit-calculator", label: "Profit Calculator", desc: "Margin, ROI & break-even" },

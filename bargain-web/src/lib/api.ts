@@ -495,14 +495,26 @@ export async function unsubscribeFromNiche(token: string, niche: string) {
 
 // ─── Public Deals (no auth required) ────────────────────────────────────────
 
-export async function getPublicDeals(limit = 20, offset = 0, source?: string) {
+export async function getPublicDeals(limit = 20, offset = 0, source?: string, retailer?: string) {
   const qs = new URLSearchParams();
   qs.set("limit", String(limit));
   qs.set("offset", String(offset));
   if (source) qs.set("source", source);
+  if (retailer) qs.set("retailer", retailer);
   return fetchPublic(`/api/v1/arbitrage/deals/public?${qs.toString()}`, {
     method: "GET",
   }) as Promise<ArbitrageDeal[]>;
+}
+
+export interface PublicRetailer {
+  retailer: string;
+  deals: number;
+}
+
+export async function getPublicDealRetailers() {
+  const res = await fetch(`${API_URL}/api/v1/arbitrage/deals/public-retailers`);
+  if (!res.ok) throw new Error(`Failed to fetch retailers: ${res.status}`);
+  return res.json() as Promise<PublicRetailer[]>;
 }
 
 export async function getPublicDeal(dealId: string) {

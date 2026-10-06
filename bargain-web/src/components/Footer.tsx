@@ -65,6 +65,7 @@ export default function Footer() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-50 mb-4">Product</h4>
             <ul className="space-y-2.5 text-sm text-zinc-500 dark:text-zinc-400">
               <li><Link href="/#features" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Features</Link></li>
+              <li><Link href="/stores" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Deals by Store</Link></li>
               <li><Link href="/pricing" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Pricing</Link></li>
               <li><Link href="/dashboard" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Dashboard</Link></li>
               <li><Link href="/guides" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Guides</Link></li>

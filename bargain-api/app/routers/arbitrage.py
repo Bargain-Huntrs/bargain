@@ -94,6 +94,7 @@ class DealResponse(BaseModel):
 async def list_public_deals(
     tier: Optional[str] = Query(None, description="Filter by deal tier"),
     niche: Optional[str] = Query(None, description="Filter by niche"),
+    retailer: Optional[str] = Query(None, description="Filter by retailer slug (e.g. walmart, amazon)"),
     source: Optional[str] = Query(None, description="Filter by deal source: online, in_store, nearby"),
     limit: int = Query(20, le=200),
     offset: int = Query(0),
@@ -119,6 +120,9 @@ async def list_public_deals(
 
     if niche:
         query = query.filter(ArbitrageDeal.niche == niche)
+
+    if retailer:
+        query = query.filter(ArbitrageDeal.retailer == retailer)
 
     if source == "online":
         query = query.filter(ArbitrageDeal.deal_source == "online")
@@ -184,6 +188,28 @@ async def list_public_deals(
     # One coupon query for the whole page instead of N+1 per deal.
     best_coupons = _best_coupons_batch(deals, db)
     return [_deal_to_response(d, db=None, best_coupon=best_coupons.get(str(d.id))) for d in deals]
+
+
+@router.get("/deals/public-retailers", response_model=List[dict])
+async def list_public_deal_retailers(db: Session = Depends(get_db)):
+    """Retailers that currently have active profitable deals — public, no auth.
+
+    Used by the SEO /stores index and sitemap. Returns slugs + deal counts.
+    """
+    from sqlalchemy import func
+    rows = (
+        db.query(ArbitrageDeal.retailer, func.count().label("deals"))
+        .filter(
+            ArbitrageDeal.is_profitable == True,
+            ArbitrageDeal.status == "active",
+            ArbitrageDeal.retailer != None,
+            ArbitrageDeal.retailer != "",
+        )
+        .group_by(ArbitrageDeal.retailer)
+        .order_by(func.count().desc())
+        .all()
+    )
+    return [{"retailer": r, "deals": n} for r, n in rows]
 
 
 @router.get("/deals/public/{deal_id}", response_model=DealResponse)

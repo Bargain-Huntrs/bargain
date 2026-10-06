@@ -4,6 +4,8 @@ import type { MetadataRoute } from "next";
 // returned 404 under the OpenNext Workers deployment. Fetches active deals
 // from the public API at request time, paginating 200 at a time.
 
+import { retailerSlug } from "@/lib/retailers";
+
 const BASE_URL = "https://www.bargainhuntrs.com";
 const API_URL = "https://api.bargainhuntrs.com";
 const MAX_LIMIT = 200;
@@ -26,6 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/deals/trending`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${BASE_URL}/deals/retailers`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
     { url: `${BASE_URL}/retailers`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE_URL}/stores`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/deals/calendar`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE_URL}/community`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${BASE_URL}/seller`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
@@ -72,5 +75,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // If the API is unreachable, return static pages only
   }
 
-  return [...staticUrls, ...dealUrls];
+  let storeUrls: MetadataRoute.Sitemap = [];
+  try {
+    const res = await fetch(
+      `${API_URL}/api/v1/arbitrage/deals/public-retailers`,
+      { headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" } }
+    );
+    if (res.ok) {
+      const retailers = await res.json();
+      if (Array.isArray(retailers)) {
+        storeUrls = retailers.map((r: any) => ({
+          url: `${BASE_URL}/stores/${retailerSlug(String(r.retailer))}`,
+          lastModified: now,
+          changeFrequency: "hourly" as const,
+          priority: 0.7,
+        }));
+      }
+    }
+  } catch {
+    // API unreachable — skip store URLs
+  }
+
+  return [...staticUrls, ...storeUrls, ...dealUrls];
 }

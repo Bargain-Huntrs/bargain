@@ -24,6 +24,8 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 
 ## Recently landed
 
+- 2026-10-13 devin `e05d5bf` — **login hang fix**: all 8 `authService` fetches now share `fetchWithTimeout` (AbortController, 25s) — a Render cold-start no longer leaves "Signing in…" stuck forever; aborts show "server is waking up, try again" instead of generic network error. Deployed worker `d29c4dc8`, Playwright-verified button resets on 401.
+
 - 2026-10-09 devin-megaplan `5f2a7b9` — **AI pool read**: `GET /dropship/pools/{id}/ai-read` (Hunter-gated) — deterministic score (margin vs floor, fill pace vs deadline, channel fit, freight risk) + LLM narrative constrained to scored facts w/ template fallback. Web: "AI read" expander on each pool card (verdict badge, score, narrative, flags). tsc + app import verified.
 
 - 2026-10-08 devin `0c26089` — **Vote-to-unlock**: 25 product watchers auto-open a pool (`_maybe_open_pool` in toggle_watch — MOQ = watchers×4 clamped 50–500, unit cost ~75% of wholesale, cap = MOQ/20, 14-day window, skips if a live pool exists). Products now return `watchers`/`unlock_at` (one GROUP BY, no N+1); watch response returns `pool_opened`; cards show "N/25" + pool-opened notice refreshes the board. Verified on sqlite (opens at exactly 25, no dupes). Also shipped earlier this session: `d18214c` (managed_fba channel vote + cash_timeline payout-lag on deal sheets).

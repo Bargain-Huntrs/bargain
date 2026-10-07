@@ -1,6 +1,19 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.bargainhuntrs.com";
 
 const TOKEN_KEY = "bargain_auth_token";
+const REQUEST_TIMEOUT_MS = 25_000;
+
+/** fetch with a hard timeout — a cold-starting API must not wedge the UI. */
+function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(timer),
+  );
+}
 const USER_KEY = "bargain_user_data";
 const REFRESH_KEY = "bargain_refresh_token";
 
@@ -40,6 +53,13 @@ export interface RegisterData {
   phoneNumber: string;
   phoneIdToken?: string;
   referralCode?: string;
+}
+
+function friendlyError(error: unknown): string {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return "The server is taking too long — it may be waking up. Try again in a moment.";
+  }
+  return "Network error — check your connection and try again.";
 }
 
 function getStoredToken(): string | null {
@@ -127,33 +147,33 @@ async function handleAuthResponse(response: Response): Promise<AuthResponse> {
 class AuthService {
   async login(data: LoginData): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: data.email, password: data.password }),
       });
       return handleAuthResponse(response);
     } catch (error) {
-      return { success: false, error: "Network error", message: (error as Error).message };
+      return { success: false, error: friendlyError(error), message: (error as Error).message };
     }
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/register`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       return handleAuthResponse(response);
     } catch (error) {
-      return { success: false, error: "Network error", message: (error as Error).message };
+      return { success: false, error: friendlyError(error), message: (error as Error).message };
     }
   }
 
   async getProfile(): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/profile`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/profile`, {
         method: "GET",
         headers: getAuthHeaders(),
       });
@@ -172,7 +192,7 @@ class AuthService {
     if (!refreshToken) return { success: false, error: "No refresh token" };
 
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: refreshToken }),
@@ -194,7 +214,7 @@ class AuthService {
 
   async verifyEmail(token: string): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/verify-email`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
@@ -211,7 +231,7 @@ class AuthService {
 
   async resendVerification(): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/resend-verification`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/resend-verification`, {
         method: "POST",
         headers: getAuthHeaders(),
       });
@@ -227,7 +247,7 @@ class AuthService {
 
   async verifyPhone(idToken: string): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/verify-phone`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/verify-phone`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({ idToken }),
@@ -244,7 +264,7 @@ class AuthService {
 
   async updateProfile(data: { firstName?: string; lastName?: string }): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/me`, {
         method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify(data),

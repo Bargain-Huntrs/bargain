@@ -1830,6 +1830,28 @@ export async function getMyDropshipCommits(token: string) {
   return fetchWithAuth("/api/v1/dropship/commits", token) as Promise<DropshipPool[]>;
 }
 
+export interface DropshipPoolAiRead {
+  pool_id: string;
+  product: string;
+  verdict: "strong" | "fair" | "risky";
+  score: number;
+  narrative: string;
+  ai: boolean;
+  metrics: {
+    margin_pct: number | null;
+    fill_pct: number;
+    days_left: number;
+    channel: string;
+    freight_mode: string;
+  };
+  reasons: string[];
+  flags: string[];
+}
+
+export async function getDropshipPoolAiRead(token: string, poolId: string) {
+  return fetchWithAuth(`/api/v1/dropship/pools/${poolId}/ai-read`, token) as Promise<DropshipPoolAiRead>;
+}
+
 export async function getDropshipNiches(token: string) {
   return fetchWithAuth("/api/v1/dropship/niches", token) as Promise<DropshipNiche[]>;
 }

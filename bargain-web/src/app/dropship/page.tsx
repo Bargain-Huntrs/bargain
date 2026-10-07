@@ -18,7 +18,9 @@ import {
   unsaveDropshipProduct,
   getDropshipChannels,
   voteDropshipChannel,
+  getDropshipPoolAiRead,
   type DropshipPool,
+  type DropshipPoolAiRead,
   type DropshipProduct,
   type DropshipNiche,
   type DropshipChannel,
@@ -40,16 +42,21 @@ function timeLeft(iso: string | null): string {
 function PoolCard({
   pool,
   paid,
+  idToken,
   onCommit,
   committing,
 }: {
   pool: DropshipPool;
   paid: boolean;
+  idToken: string | null;
   onCommit: (pool: DropshipPool, units: number) => void;
   committing: boolean;
 }) {
   const [units, setUnits] = useState(1);
   const [confirming, setConfirming] = useState(false);
+  const [aiRead, setAiRead] = useState<DropshipPoolAiRead | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const p = pool.product;
   const open = pool.status === "open";
   const committed = !!pool.my_commit;
@@ -188,6 +195,62 @@ function PoolCard({
           )}
         </div>
       ) : null}
+      {/* AI read */}
+      {paid && (
+        <div className="mt-3">
+          {!aiRead ? (
+            <button
+              disabled={aiLoading || !idToken}
+              onClick={async () => {
+                if (!idToken) return;
+                setAiLoading(true);
+                setAiError(false);
+                try {
+                  setAiRead(await getDropshipPoolAiRead(idToken, pool.id));
+                } catch {
+                  setAiError(true);
+                } finally {
+                  setAiLoading(false);
+                }
+              }}
+              className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              {aiLoading ? "Reading pool…" : aiError ? "AI read failed — retry" : "✦ AI read"}
+            </button>
+          ) : (
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/50">
+              <div className="flex items-center justify-between">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    aiRead.verdict === "strong"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                      : aiRead.verdict === "fair"
+                        ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"
+                  }`}
+                >
+                  {aiRead.verdict} · {aiRead.score}/100
+                </span>
+                <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-400">
+                  {aiRead.ai ? "AI" : "rule-based"}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-snug text-zinc-700 dark:text-zinc-300">
+                {aiRead.narrative}
+              </p>
+              {aiRead.flags.length > 0 && (
+                <ul className="mt-2 space-y-0.5">
+                  {aiRead.flags.map((f) => (
+                    <li key={f} className="text-[10px] text-amber-700 dark:text-amber-400">
+                      ⚠ {f}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <p className="mt-2 text-center text-[10px] text-zinc-400 dark:text-zinc-500">
         {open
           ? `Reserved now — charged only if the pool fills.${
@@ -514,7 +577,7 @@ export default function DropshipPage() {
           ) : (
             <div className="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {openPools.map((p) => (
-                <PoolCard key={p.id} pool={p} paid={paid} onCommit={handleCommit} committing={committing} />
+                <PoolCard key={p.id} pool={p} paid={paid} idToken={idToken} onCommit={handleCommit} committing={committing} />
               ))}
             </div>
           )}

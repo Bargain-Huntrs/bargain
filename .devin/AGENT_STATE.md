@@ -24,6 +24,8 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 
 ## Recently landed
 
+- 2026-10-13 devin `97ad5ff` — **Stripe card auth-holds wired end-to-end**: `GET /dropship/payment-method` (has_card + payments_configured), web `PoolPaymentSetup` modal (Stripe Elements/PaymentElement → SetupIntent → saved card, graceful fallback when `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or backend Stripe is unconfigured), dropship page: card-status fetch in load(), "+ Add a card" nudges on committed + confirm states, commit notice now reports `hold: authorized|none`. Deps: `@stripe/react-stripe-js@7` + `@stripe/stripe-js@10`. Backend hold lifecycle verified: manual-capture PI per commit → `_settle_holds` captures all on fill / cancels all on lazy expiry pass; Stripe errors on already-settled intents logged (idempotent). Build + tsc clean. Remaining: Stripe holds expire ~7d so long-running pools can outlive authorizations; procurement/fulfillment automation after fill.
+
 - 2026-10-13 devin `e05d5bf` — **login hang fix**: all 8 `authService` fetches now share `fetchWithTimeout` (AbortController, 25s) — a Render cold-start no longer leaves "Signing in…" stuck forever; aborts show "server is waking up, try again" instead of generic network error. Deployed worker `d29c4dc8`, Playwright-verified button resets on 401.
 
 - 2026-10-09 devin-megaplan `5f2a7b9` — **AI pool read**: `GET /dropship/pools/{id}/ai-read` (Hunter-gated) — deterministic score (margin vs floor, fill pace vs deadline, channel fit, freight risk) + LLM narrative constrained to scored facts w/ template fallback. Web: "AI read" expander on each pool card (verdict badge, score, narrative, flags). tsc + app import verified.

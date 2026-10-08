@@ -1821,9 +1821,23 @@ export async function commitToDropshipPool(token: string, poolId: string, units:
     body: JSON.stringify({ units }),
   }) as Promise<{
     commit: { units: number; unit_price: number; status: string };
+    hold: "authorized" | "none";
     pool_status: string;
     units_committed: number;
   }>;
+}
+
+export async function getPoolPaymentMethod(token: string) {
+  return fetchWithAuth("/api/v1/dropship/payment-method", token) as Promise<{
+    has_card: boolean;
+    payments_configured: boolean;
+  }>;
+}
+
+export async function setupPoolPaymentMethod(token: string) {
+  return fetchWithAuth("/api/v1/dropship/payment-method/setup", token, {
+    method: "POST",
+  }) as Promise<{ client_secret: string }>;
 }
 
 export async function getMyDropshipCommits(token: string) {

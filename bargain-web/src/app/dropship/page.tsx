@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
+import PoolPaymentSetup from "@/components/PoolPaymentSetup";
 import {
   getDropshipPools,
   getDropshipCurated,
@@ -19,6 +20,7 @@ import {
   getDropshipChannels,
   voteDropshipChannel,
   getDropshipPoolAiRead,
+  getPoolPaymentMethod,
   type DropshipPool,
   type DropshipPoolAiRead,
   type DropshipProduct,
@@ -45,12 +47,16 @@ function PoolCard({
   idToken,
   onCommit,
   committing,
+  hasCard,
+  onAddCard,
 }: {
   pool: DropshipPool;
   paid: boolean;
   idToken: string | null;
   onCommit: (pool: DropshipPool, units: number) => void;
   committing: boolean;
+  hasCard: boolean;
+  onAddCard: () => void;
 }) {
   const [units, setUnits] = useState(1);
   const [confirming, setConfirming] = useState(false);
@@ -129,9 +135,19 @@ function PoolCard({
 
       {/* Commit controls */}
       {committed ? (
-        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400">
-          You&apos;re in — {pool.my_commit!.units} unit{pool.my_commit!.units === 1 ? "" : "s"} at{" "}
-          {money(pool.my_commit!.unit_price)} ({pool.my_commit!.status})
+        <div className="mt-4 space-y-1.5">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400">
+            You&apos;re in — {pool.my_commit!.units} unit{pool.my_commit!.units === 1 ? "" : "s"} at{" "}
+            {money(pool.my_commit!.unit_price)} ({pool.my_commit!.status})
+          </div>
+          {!hasCard && (
+            <button
+              onClick={onAddCard}
+              className="w-full rounded-lg border border-dashed border-zinc-300 px-3 py-1.5 text-[11px] font-semibold text-zinc-500 hover:border-blue-400 hover:text-blue-600 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
+            >
+              + Add a card — hold auto-charges on fill (no charge now)
+            </button>
+          )}
         </div>
       ) : open ? (
         <div className="mt-4 flex items-center gap-2">
@@ -168,6 +184,14 @@ function PoolCard({
                 You&apos;re buying {units} unit{units === 1 ? "" : "s"} of inventory at the group rate — resale
                 isn&apos;t guaranteed and you sell them yourself. Charged only if the pool fills.
               </p>
+              {!hasCard && (
+                <button
+                  onClick={onAddCard}
+                  className="text-[10px] font-semibold text-blue-600 underline underline-offset-2 hover:text-blue-700 dark:text-blue-400"
+                >
+                  Add a card first — otherwise the hold isn&apos;t secured
+                </button>
+              )}
               <div className="flex gap-1.5">
                 <button
                   disabled={committing}
@@ -350,6 +374,8 @@ export default function DropshipPage() {
   const [notice, setNotice] = useState("");
   const [committing, setCommitting] = useState(false);
   const [busy, setBusy] = useState(true);
+  const [hasCard, setHasCard] = useState(true);
+  const [paySetupOpen, setPaySetupOpen] = useState(false);
 
   const paid = tier !== "free";
 
@@ -357,15 +383,17 @@ export default function DropshipPage() {
     if (!idToken) return;
     setBusy(true);
     try {
-      const [poolRows, curatedRes, productRows, nicheRows, myRows, channelRows] = await Promise.all([
+      const [poolRows, curatedRes, productRows, nicheRows, myRows, channelRows, pm] = await Promise.all([
         getDropshipPools(idToken, "all").catch(() => []),
         getDropshipCurated(idToken).catch(() => null),
         getDropshipProducts(idToken, niche ? { niche } : {}).catch(() => []),
         getDropshipNiches(idToken).catch(() => []),
         getMyDropshipCommits(idToken).catch(() => []),
         getDropshipChannels(idToken).catch(() => []),
+        getPoolPaymentMethod(idToken).catch(() => null),
       ]);
       setPools(poolRows);
+      if (pm) setHasCard(pm.has_card);
       if (curatedRes) setCurated({ ai: curatedRes.ai, niches: curatedRes.niches, items: curatedRes.items });
       setProducts(productRows);
       setNiches(nicheRows);
@@ -401,7 +429,12 @@ export default function DropshipPage() {
       setNotice(
         res.pool_status === "filled"
           ? "Pool filled — your units are locked in at the group rate."
-          : `Committed ${units} unit${units === 1 ? "" : "s"} — you're charged only if the pool fills.`
+          : `Committed ${units} unit${units === 1 ? "" : "s"} — you're charged only if the pool fills.` +
+              (res.hold === "none" && !hasCard
+                ? " Add a card to secure a payment hold before it fills."
+                : res.hold === "authorized"
+                  ? " Hold authorized on your card."
+                  : "")
       );
       await load();
     } catch (e) {
@@ -577,7 +610,7 @@ export default function DropshipPage() {
           ) : (
             <div className="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {openPools.map((p) => (
-                <PoolCard key={p.id} pool={p} paid={paid} idToken={idToken} onCommit={handleCommit} committing={committing} />
+                <PoolCard key={p.id} pool={p} paid={paid} idToken={idToken} onCommit={handleCommit} committing={committing} hasCard={hasCard} onAddCard={() => setPaySetupOpen(true)} />
               ))}
             </div>
           )}
@@ -660,6 +693,17 @@ export default function DropshipPage() {
         </section>
       </main>
       <Footer />
+      {paySetupOpen && idToken && (
+        <PoolPaymentSetup
+          token={idToken}
+          onComplete={() => {
+            setPaySetupOpen(false);
+            setHasCard(true);
+            setNotice("Card saved — pool holds will auto-charge only when a pool fills.");
+          }}
+          onClose={() => setPaySetupOpen(false)}
+        />
+      )}
     </div>
   );
 }

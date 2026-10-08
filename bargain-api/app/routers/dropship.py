@@ -839,6 +839,19 @@ def vote_channel(
     return {"voted": voted, "channel": body.channel, "votes": votes}
 
 
+@router.get("/payment-method")
+def payment_method_status(
+    user: User = Depends(get_current_user),
+):
+    """Whether the hunter has a saved card for pool auth-holds, and whether
+    Stripe is configured at all (dev/staging run without it)."""
+    stripe_lib = _stripe()
+    return {
+        "has_card": bool(_user_card_pm(stripe_lib, user)) if stripe_lib else False,
+        "payments_configured": bool(stripe_lib),
+    }
+
+
 @router.post("/payment-method/setup")
 def setup_payment_method(
     user: User = Depends(get_current_user),

@@ -1021,6 +1021,15 @@ class ScanScheduler:
         from app.db.models import CouponCode
 
         logger.info("Starting coupon scrape cycle...")
+
+        # Refresh the Impact campaign cache so newly joined/transferred
+        # partnerships (e.g. Rakuten→Impact merchant migrations) pick up
+        # tracking links without a manual JSON export.
+        try:
+            from app.services.impact_affiliate import refresh_campaign_cache
+            await refresh_campaign_cache()
+        except Exception as e:
+            logger.warning(f"Impact campaign cache refresh failed: {e}")
         db = SessionLocal()
         try:
             scraped_coupons = await scrape_all_coupons()

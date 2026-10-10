@@ -619,6 +619,8 @@ def _normalize_retailer(campaign_name: str) -> str:
     name_lower = campaign_name.lower()
     if "walmart" in name_lower:
         return "walmart"
+    if "herbspro" in name_lower or "herbs pro" in name_lower:
+        return "herbspro"
     if "eufy" in name_lower:
         return "eufy"
     if "belkin" in name_lower:

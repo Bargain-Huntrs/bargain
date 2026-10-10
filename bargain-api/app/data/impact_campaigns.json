@@ -1,473 +1,477 @@
 [
-  {
-    "campaign_id": "4767",
-    "campaign_name": "MyPoints",
-    "advertiser": "Prodege, LLC",
-    "campaign_url": "http://www.mypoints.com",
-    "tracking_link": "https://mypoints.sjv.io/c/1208408/308333/4767",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "*mypoints.com*"
-    ]
-  },
-  {
-    "campaign_id": "2029",
-    "campaign_name": "AbeBooks Affiliate Program",
-    "advertiser": "AbeBooks Inc.",
-    "campaign_url": "http://www.abebooks.com",
-    "tracking_link": "https://affiliates.abebooks.com/c/1208408/77416/2029",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      ".IberLibro.",
-      ".abebooks.",
-      ".ZVAB."
-    ]
-  },
-  {
-    "campaign_id": "2075",
-    "campaign_name": "Dun & Bradstreet",
-    "advertiser": "Dun & Bradstreet",
-    "campaign_url": "http://www.dnb.com/",
-    "tracking_link": "https://dandb.7eer.net/c/1208408/84628/2075",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "dnb.com",
-      "dandb.com"
-    ]
-  },
-  {
-    "campaign_id": "2181",
-    "campaign_name": "Wine Express",
-    "advertiser": "Wine Express",
-    "campaign_url": "https://www.wineexpress.com/",
-    "tracking_link": "https://wineexpress.vneoga.net/c/1208408/88200/2181",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "www.wineexpress.com",
-      "dev.wineexpress.com"
-    ]
-  },
-  {
-    "campaign_id": "3022",
-    "campaign_name": "SentryPC",
-    "advertiser": "Spytech Software and Design, Inc. - sentrypc",
-    "campaign_url": "https://www.sentrypc.com/",
-    "tracking_link": "https://sentrypc.7eer.net/c/1208408/200311/3022",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "sentrypc.com"
-    ]
-  },
-  {
-    "campaign_id": "4130",
-    "campaign_name": "ClubsandSticks",
-    "advertiser": "King Par LLC",
-    "campaign_url": "http://www.clubsandsticks.com",
-    "tracking_link": "https://clubsandsticks.7eer.net/c/1208408/250586/4130",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "clubsandsticks.*"
-    ]
-  },
-  {
-    "campaign_id": "4475",
-    "campaign_name": "Real Estate Wealth Builder",
-    "advertiser": "DBS Consulting Inc - Advanced Property analysis",
-    "campaign_url": "http://www.advancedpropertyanalysis.com",
-    "tracking_link": "https://advancedpropertyanalysis.7eer.net/c/1208408/280639/4475",
-    "deeplinking": "false",
-    "deeplink_domains": []
-  },
-  {
-    "campaign_id": "4482",
-    "campaign_name": "Martinic Audio",
-    "advertiser": "Martinic - martinic",
-    "campaign_url": "https://www.martinic.com/",
-    "tracking_link": "https://martinic.evyy.net/c/1208408/281363/4482",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "martinic.com"
-    ]
-  },
-  {
-    "campaign_id": "4704",
-    "campaign_name": "United Airlines MileagePlus - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://www.points.com",
-    "tracking_link": "https://united.elfm.net/c/1208408/302886/4704",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      ".points.",
-      "mileageplus.com",
-      "unitedmileageplus.com",
-      "united.com"
-    ]
-  },
-  {
-    "campaign_id": "4705",
-    "campaign_name": "Southwest Airlines Rapid Rewards - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://www.points.com",
-    "tracking_link": "https://swa.eyjo.net/c/1208408/302888/4705",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      ".points.",
-      "southwest.com"
-    ]
-  },
-  {
-    "campaign_id": "4707",
-    "campaign_name": "Alaska Airlines ATMOS Rewards - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://www.points.com",
-    "tracking_link": "https://alaska.gqco.net/c/1208408/302892/4707",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      ".points."
-    ]
-  },
-  {
-    "campaign_id": "4797",
-    "campaign_name": "IHG Rewards Club - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://www.points.com",
-    "tracking_link": "https://ihg.hmxg.net/c/1208408/310617/4797",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "points.com",
-      "*.points.com"
-    ]
-  },
-  {
-    "campaign_id": "4823",
-    "campaign_name": "Hilton Honors Rewards - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://www.points.com",
-    "tracking_link": "https://hilton.ijrn.net/c/1208408/314255/4823",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      ".points."
-    ]
-  },
-  {
-    "campaign_id": "4882",
-    "campaign_name": "World of Hyatt - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "",
-    "tracking_link": "https://hyatt.jewn.net/c/1208408/319067/4882",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "*points.com",
-      "storefront.points.com"
-    ]
-  },
-  {
-    "campaign_id": "4883",
-    "campaign_name": "JetBlue TrueBlue - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://points.com",
-    "tracking_link": "https://jetblue.jyeh.net/c/1208408/319069/4883",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "points.com"
-    ]
-  },
-  {
-    "campaign_id": "4885",
-    "campaign_name": "Choice Privileges - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://points.com",
-    "tracking_link": "https://choice.mtko.net/c/1208408/319073/4885",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "points.com"
-    ]
-  },
-  {
-    "campaign_id": "4926",
-    "campaign_name": "Air France KLM Flying Blue - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://points.com",
-    "tracking_link": "https://afklm.tcux.net/c/1208408/321349/4926",
-    "deeplinking": "false",
-    "deeplink_domains": [
-      "points.com"
-    ]
-  },
-  {
-    "campaign_id": "4937",
-    "campaign_name": "Marriott Bonvoy - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://points.com",
-    "tracking_link": "https://marriott.pxf.io/c/1208408/321373/4937",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "points.com"
-    ]
-  },
-  {
-    "campaign_id": "5124",
-    "campaign_name": "Etihad Guest - Points.com",
-    "advertiser": "Points",
-    "campaign_url": "http://storefront.points.com/etihad-guest/en-US/buy?irgwc=1&referralCode=",
-    "tracking_link": "https://etihad.vkuz.net/c/1208408/343962/5124",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "points.com"
-    ]
-  },
-  {
-    "campaign_id": "5618",
-    "campaign_name": "Namecheap",
-    "advertiser": "Namecheap",
-    "campaign_url": "http://www.namecheap.com",
-    "tracking_link": "https://namecheap.pxf.io/c/1208408/386170/5618",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "namecheap.com",
-      "*.namecheap.com",
-      "www.googletagmanager.com",
-      "sandbox.namecheap.com"
-    ]
-  },
-  {
-    "campaign_id": "9312",
-    "campaign_name": "SSLs.com",
-    "advertiser": "Namecheap",
-    "campaign_url": "http://ssls.com",
-    "tracking_link": "https://ssls.sjv.io/c/1208408/559014/9312",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "ssls.com",
-      "*.ssls.com"
-    ]
-  },
-  {
-    "campaign_id": "5709",
-    "campaign_name": "Arbiship - eBay Dropshipping Automation",
-    "advertiser": "Arbiship",
-    "campaign_url": "http://arbiship.com",
-    "tracking_link": "https://arbishipebaydropshippingautomation.sjv.io/c/1208408/392638/5709",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "*.arbiship.com"
-    ]
-  },
-  {
-    "campaign_id": "11653",
-    "campaign_name": "ADOR",
-    "advertiser": "LightInTheBoxLimited",
-    "campaign_url": "http://www.ador.com",
-    "tracking_link": "https://ador.sjv.io/c/1208408/829468/11653",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "*.ador.com",
-      "ador.com"
-    ]
-  },
-  {
-    "campaign_id": "9383",
-    "campaign_name": "Walmart Affiliate Program",
-    "advertiser": "Walmart.com",
-    "campaign_url": "http://www.walmart.com",
-    "tracking_link": "https://goto.walmart.com/c/1208408/565706/9383?veh=aff&sourceid=imp_000011112222333344&u=https%3A%2F%2Fwww.walmart.com",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "walmart.com",
-      "walmartpetrx.com",
-      "walmart.ca",
-      "*.walmart.com",
-      "info.walmartbusiness.com"
-    ]
-  },
-  {
-    "campaign_id": "9634",
-    "campaign_name": "Lenovo India",
-    "advertiser": "Lenovo India",
-    "campaign_url": "http://Lenovo.com/in/en",
-    "tracking_link": "https://lenovo-in.zlvv.net/c/1208408/584269/9634",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "lenovo.com/in/en",
-      ".lenovo."
-    ]
-  },
-  {
-    "campaign_id": "9972",
-    "campaign_name": "Because Market",
-    "advertiser": "Because Market",
-    "campaign_url": "https://becausemarket.com",
-    "tracking_link": "https://becausemarket.sjv.io/c/1208408/610853/9972",
-    "deeplinking": "false",
-    "deeplink_domains": []
-  },
-  {
-    "campaign_id": "12108",
-    "campaign_name": "DHgate",
-    "advertiser": "Digitrading Hongkong Limited",
-    "campaign_url": "http://www.dhgate.com/",
-    "tracking_link": "https://dhgate.sjv.io/c/1208408/868543/12108",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "dhgate.com",
-      "*.dhgate.com"
-    ]
-  },
-  {
-    "campaign_id": "12258",
-    "campaign_name": "InVideo",
-    "advertiser": "InVideo",
-    "campaign_url": "http://invideo.io",
-    "tracking_link": "https://invideo.sjv.io/c/1208408/883681/12258",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "invideo.io",
-      "*.invideo.io",
-      "filmr-affiliate.onelink.me"
-    ]
-  },
-  {
-    "campaign_id": "13094",
-    "campaign_name": "Eufy US",
-    "advertiser": "Eufy US",
-    "campaign_url": "https://www.eufy.com",
-    "tracking_link": "https://eufy-us.sjv.io/c/1208408/999452/13094",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "us.eufylife.com",
-      "us.eufy.com",
-      "*.us.eufy.com",
-      "us.eufy.com*",
-      "eufy.com",
-      "eufy.com*",
-      "*.eufy.com"
-    ]
-  },
-  {
-    "campaign_id": "13292",
-    "campaign_name": "Sesame Care",
-    "advertiser": "Sesame Care",
-    "campaign_url": "https://sesamecare.com/",
-    "tracking_link": "https://sesame-care.pxf.io/c/1208408/1012646/13292",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "sesamecare.com",
-      "*.sesamecare.com"
-    ]
-  },
-  {
-    "campaign_id": "17026",
-    "campaign_name": "GOLF Partner",
-    "advertiser": "GOLF Partner",
-    "campaign_url": "http://golfpartnerusa.com/",
-    "tracking_link": "https://golfpartner.sjv.io/c/1208408/1433527/17026",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "golfpartnerusa.com",
-      "*.golfpartnerusa.com",
-      "golfpartner.myshopify.com",
-      "*.golfpartner.myshopify.com"
-    ]
-  },
-  {
-    "campaign_id": "17151",
-    "campaign_name": "Silver Cuisine",
-    "advertiser": "BistroMD",
-    "campaign_url": "https://www.silvercuisine.com/",
-    "tracking_link": "https://silver-cuisine.pxf.io/c/1208408/1443777/17151",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "silvercuisine.com",
-      "*.silvercuisine.com"
-    ]
-  },
-  {
-    "campaign_id": "17701",
-    "campaign_name": "Skystra, Inc.",
-    "advertiser": "Skystra, Inc.",
-    "campaign_url": "https://skystra.com",
-    "tracking_link": "https://skystra.sjv.io/c/1208408/1501630/17701",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "skystra.com",
-      "*.skystra.com"
-    ]
-  },
-  {
-    "campaign_id": "17885",
-    "campaign_name": "Natural Cycles",
-    "advertiser": "Natural Cycles",
-    "campaign_url": "https://www.naturalcycles.com/",
-    "tracking_link": "https://natural-cycles.sjv.io/c/1208408/1530057/17885",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "naturalcycles.com",
-      "*.naturalcycles.com"
-    ]
-  },
-  {
-    "campaign_id": "18089",
-    "campaign_name": "Coach Soak affiliate program",
-    "advertiser": "eBrands Global Oy",
-    "campaign_url": "https://coachsoak.com/",
-    "tracking_link": "https://coach-soak.sjv.io/c/1208408/1549982/18089",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "coachsoak.com",
-      "*.coachsoak.com",
-      "coach-soak.myshopify.com"
-    ]
-  },
-  {
-    "campaign_id": "19973",
-    "campaign_name": "shopflys.com",
-    "advertiser": "Utsource",
-    "campaign_url": "https://www.shopflys.com/",
-    "tracking_link": "https://shopflys.pxf.io/c/1208408/1717924/19973",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "shopflys.com",
-      "*.shopflys.com"
-    ]
-  },
-  {
-    "campaign_id": "23658",
-    "campaign_name": "GEVI",
-    "advertiser": "GEVI",
-    "campaign_url": "https://gevi.com",
-    "tracking_link": "https://gevi.pxf.io/c/1208408/1948847/23658",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "gevi.com",
-      "*.gevi.com",
-      "gevilife.com",
-      "*.821571.myshopify.com",
-      "821571.myshopify.com"
-    ]
-  },
-  {
-    "campaign_id": "40222",
-    "campaign_name": "GearUP",
-    "advertiser": "GearUP Portal Pte Ltd",
-    "campaign_url": "https://www.gearupbooster.com/",
-    "tracking_link": "https://gearup.sjv.io/c/1208408/3204502/40222",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "gearupbooster.com",
-      "*.gearupbooster.com"
-    ]
-  },
-  {
-    "campaign_id": "53221",
-    "campaign_name": "Boyd Sleep",
-    "advertiser": "Night Air",
-    "campaign_url": "https://nightairbeds.com",
-    "tracking_link": "https://boydsleep.sjv.io/c/1208408/3907043/53221",
-    "deeplinking": "true",
-    "deeplink_domains": [
-      "nightairbeds.com",
-      "*.nightairbeds.com",
-      "nightairbeds.myshopify.com"
-    ]
-  }
+ {
+  "campaign_id": "4767",
+  "campaign_name": "MyPoints",
+  "advertiser": "Prodege, LLC",
+  "campaign_url": "https://www.prodege.com/affiliate",
+  "tracking_link": "https://mypoints.sjv.io/c/1208408/308333/4767",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "*mypoints.com*"
+  ]
+ },
+ {
+  "campaign_id": "2029",
+  "campaign_name": "AbeBooks Affiliate Program",
+  "advertiser": "AbeBooks Inc.",
+  "campaign_url": "http://www.abebooks.com",
+  "tracking_link": "https://affiliates.abebooks.com/c/1208408/77416/2029",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   ".IberLibro.",
+   ".abebooks.",
+   ".ZVAB."
+  ]
+ },
+ {
+  "campaign_id": "2075",
+  "campaign_name": "Dun & Bradstreet",
+  "advertiser": "Dun & Bradstreet",
+  "campaign_url": "https://www.dnb.com/en-us/smb.html",
+  "tracking_link": "https://dandb.7eer.net/c/1208408/84628/2075",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "dnb.com",
+   "dandb.com"
+  ]
+ },
+ {
+  "campaign_id": "2181",
+  "campaign_name": "Wine Express",
+  "advertiser": "Wine Express",
+  "campaign_url": "https://www.wineexpress.com",
+  "tracking_link": "https://wineexpress.vneoga.net/c/1208408/88200/2181",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "www.wineexpress.com",
+   "dev.wineexpress.com"
+  ]
+ },
+ {
+  "campaign_id": "3022",
+  "campaign_name": "SentryPC",
+  "advertiser": "Spytech Software and Design, Inc. - sentrypc",
+  "campaign_url": "https://www.sentrypc.com",
+  "tracking_link": "https://sentrypc.7eer.net/c/1208408/200311/3022",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "sentrypc.com"
+  ]
+ },
+ {
+  "campaign_id": "4130",
+  "campaign_name": "ClubsandSticks",
+  "advertiser": "King Par LLC",
+  "campaign_url": "http://www.clubsandsticks.com/",
+  "tracking_link": "https://clubsandsticks.7eer.net/c/1208408/250586/4130",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "clubsandsticks.*"
+  ]
+ },
+ {
+  "campaign_id": "4475",
+  "campaign_name": "Real Estate Wealth Builder",
+  "advertiser": "DBS Consulting Inc - Advanced Property analysis",
+  "campaign_url": "http://www.advancedpropertyanalysis.com",
+  "tracking_link": "https://advancedpropertyanalysis.7eer.net/c/1208408/280639/4475",
+  "deeplinking": "false",
+  "deeplink_domains": [
+   "*advancedpropertyanalysis.com*"
+  ]
+ },
+ {
+  "campaign_id": "4482",
+  "campaign_name": "Martinic Audio",
+  "advertiser": "Martinic - martinic",
+  "campaign_url": "http://www.martinic.com",
+  "tracking_link": "https://martinic.evyy.net/c/1208408/281363/4482",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "martinic.com"
+  ]
+ },
+ {
+  "campaign_id": "4704",
+  "campaign_name": "United Airlines MileagePlus - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://united.elfm.net/c/1208408/302886/4704",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   ".points.",
+   "mileageplus.com",
+   "unitedmileageplus.com",
+   "united.com"
+  ]
+ },
+ {
+  "campaign_id": "4705",
+  "campaign_name": "Southwest Airlines Rapid Rewards - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://swa.eyjo.net/c/1208408/302888/4705",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   ".points.",
+   "southwest.com"
+  ]
+ },
+ {
+  "campaign_id": "4707",
+  "campaign_name": "Alaska Airlines ATMOS Rewards - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://alaska.gqco.net/c/1208408/302892/4707",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   ".points."
+  ]
+ },
+ {
+  "campaign_id": "4797",
+  "campaign_name": "IHG Rewards Club - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://ihg.hmxg.net/c/1208408/310617/4797",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "points.com",
+   "*.points.com"
+  ]
+ },
+ {
+  "campaign_id": "4823",
+  "campaign_name": "Hilton Honors Rewards - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://hilton.ijrn.net/c/1208408/314255/4823",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   ".points."
+  ]
+ },
+ {
+  "campaign_id": "4882",
+  "campaign_name": "World of Hyatt - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://hyatt.jewn.net/c/1208408/319067/4882",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "*points.com",
+   "storefront.points.com"
+  ]
+ },
+ {
+  "campaign_id": "4883",
+  "campaign_name": "JetBlue TrueBlue - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://jetblue.jyeh.net/c/1208408/319069/4883",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "points.com"
+  ]
+ },
+ {
+  "campaign_id": "4885",
+  "campaign_name": "Choice Privileges - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://choice.mtko.net/c/1208408/319073/4885",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "points.com"
+  ]
+ },
+ {
+  "campaign_id": "4926",
+  "campaign_name": "Air France KLM Flying Blue - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://afklm.tcux.net/c/1208408/321349/4926",
+  "deeplinking": "false",
+  "deeplink_domains": [
+   "points.com"
+  ]
+ },
+ {
+  "campaign_id": "4937",
+  "campaign_name": "Marriott Bonvoy - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://marriott.pxf.io/c/1208408/321373/4937",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "points.com"
+  ]
+ },
+ {
+  "campaign_id": "5124",
+  "campaign_name": "Etihad Guest - Points.com",
+  "advertiser": "Points",
+  "campaign_url": "http://www.points.com",
+  "tracking_link": "https://etihad.vkuz.net/c/1208408/343962/5124",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "points.com"
+  ]
+ },
+ {
+  "campaign_id": "5618",
+  "campaign_name": "Namecheap",
+  "advertiser": "Namecheap",
+  "campaign_url": "http://namecheap.com",
+  "tracking_link": "https://namecheap.pxf.io/c/1208408/386170/5618",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "namecheap.com",
+   "*.namecheap.com",
+   "www.googletagmanager.com",
+   "sandbox.namecheap.com"
+  ]
+ },
+ {
+  "campaign_id": "9312",
+  "campaign_name": "SSLs.com",
+  "advertiser": "Namecheap",
+  "campaign_url": "http://namecheap.com",
+  "tracking_link": "https://ssls.sjv.io/c/1208408/559014/9312",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "ssls.com",
+   "*.ssls.com"
+  ]
+ },
+ {
+  "campaign_id": "5709",
+  "campaign_name": "Arbiship - eBay Dropshipping Automation",
+  "advertiser": "Arbiship",
+  "campaign_url": "http://arbiship.com",
+  "tracking_link": "https://arbishipebaydropshippingautomation.sjv.io/c/1208408/392638/5709",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "*.arbiship.com"
+  ]
+ },
+ {
+  "campaign_id": "11653",
+  "campaign_name": "ADOR",
+  "advertiser": "LightInTheBoxLimited",
+  "campaign_url": "http://www.eechic.com",
+  "tracking_link": "https://ador.sjv.io/c/1208408/829468/11653",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "*.ador.com",
+   "ador.com"
+  ]
+ },
+ {
+  "campaign_id": "9383",
+  "campaign_name": "Walmart Affiliate Program",
+  "advertiser": "Walmart.com",
+  "campaign_url": "https://www.walmart.com",
+  "tracking_link": "https://goto.walmart.com/c/1208408/565706/9383?veh=aff&sourceid=imp_000011112222333344&u=https%3A%2F%2Fwww.walmart.com",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "walmart.com",
+   "walmartpetrx.com",
+   "walmart.ca",
+   "*.walmart.com",
+   "info.walmartbusiness.com"
+  ]
+ },
+ {
+  "campaign_id": "9634",
+  "campaign_name": "Lenovo India",
+  "advertiser": "Lenovo India",
+  "campaign_url": "http://www.lenovo.com/in/en",
+  "tracking_link": "https://lenovo-in.zlvv.net/c/1208408/584269/9634",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "lenovo.com/in/en",
+   ".lenovo."
+  ]
+ },
+ {
+  "campaign_id": "9972",
+  "campaign_name": "Because Market",
+  "advertiser": "Because Market",
+  "campaign_url": "http://www.becausemarket.com",
+  "tracking_link": "https://becausemarket.sjv.io/c/1208408/610853/9972",
+  "deeplinking": "false",
+  "deeplink_domains": [
+   "*becausemarket.com*"
+  ]
+ },
+ {
+  "campaign_id": "12108",
+  "campaign_name": "DHgate",
+  "advertiser": "Digitrading Hongkong Limited",
+  "campaign_url": "https://www.dhgate.com",
+  "tracking_link": "https://dhgate.sjv.io/c/1208408/868543/12108",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "dhgate.com",
+   "*.dhgate.com"
+  ]
+ },
+ {
+  "campaign_id": "12258",
+  "campaign_name": "InVideo",
+  "advertiser": "InVideo",
+  "campaign_url": "http://www.invideo.io",
+  "tracking_link": "https://invideo.sjv.io/c/1208408/883681/12258",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "invideo.io",
+   "*.invideo.io",
+   "filmr-affiliate.onelink.me"
+  ]
+ },
+ {
+  "campaign_id": "13094",
+  "campaign_name": "Eufy US",
+  "advertiser": "Eufy US",
+  "campaign_url": "http://www.eufy.com",
+  "tracking_link": "https://eufy-us.sjv.io/c/1208408/999452/13094",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "us.eufylife.com",
+   "us.eufy.com",
+   "*.us.eufy.com",
+   "us.eufy.com*",
+   "eufy.com",
+   "eufy.com*",
+   "*.eufy.com"
+  ]
+ },
+ {
+  "campaign_id": "13292",
+  "campaign_name": "Sesame Care",
+  "advertiser": "Sesame Care",
+  "campaign_url": "http://sesamecare.com/",
+  "tracking_link": "https://sesame-care.pxf.io/c/1208408/1012646/13292",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "sesamecare.com",
+   "*.sesamecare.com"
+  ]
+ },
+ {
+  "campaign_id": "17026",
+  "campaign_name": "GOLF Partner",
+  "advertiser": "GOLF Partner",
+  "campaign_url": "golfpartnerusa.com/",
+  "tracking_link": "https://golfpartner.sjv.io/c/1208408/1433527/17026",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "golfpartnerusa.com",
+   "*.golfpartnerusa.com",
+   "golfpartner.myshopify.com",
+   "*.golfpartner.myshopify.com"
+  ]
+ },
+ {
+  "campaign_id": "17151",
+  "campaign_name": "Silver Cuisine",
+  "advertiser": "BistroMD",
+  "campaign_url": "http://www.bistromd.com",
+  "tracking_link": "https://silver-cuisine.pxf.io/c/1208408/1443777/17151",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "silvercuisine.com",
+   "*.silvercuisine.com"
+  ]
+ },
+ {
+  "campaign_id": "17701",
+  "campaign_name": "Skystra, Inc.",
+  "advertiser": "Skystra, Inc.",
+  "campaign_url": "https://skystra.com",
+  "tracking_link": "https://skystra.sjv.io/c/1208408/1501630/17701",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "skystra.com",
+   "*.skystra.com"
+  ]
+ },
+ {
+  "campaign_id": "17885",
+  "campaign_name": "Natural Cycles",
+  "advertiser": "Natural Cycles",
+  "campaign_url": "https://www.naturalcycles.com/",
+  "tracking_link": "https://natural-cycles.sjv.io/c/1208408/1530057/17885",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "naturalcycles.com",
+   "*.naturalcycles.com"
+  ]
+ },
+ {
+  "campaign_id": "18089",
+  "campaign_name": "Coach Soak affiliate program",
+  "advertiser": "eBrands Global Oy",
+  "campaign_url": "https://ebrands.com/",
+  "tracking_link": "https://coach-soak.sjv.io/c/1208408/1549982/18089",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "coachsoak.com",
+   "*.coachsoak.com",
+   "coach-soak.myshopify.com"
+  ]
+ },
+ {
+  "campaign_id": "19973",
+  "campaign_name": "shopflys.com",
+  "advertiser": "Utsource",
+  "campaign_url": "http://www.utsource.net",
+  "tracking_link": "https://shopflys.pxf.io/c/1208408/1717924/19973",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "shopflys.com",
+   "*.shopflys.com"
+  ]
+ },
+ {
+  "campaign_id": "23658",
+  "campaign_name": "GEVI",
+  "advertiser": "GEVI",
+  "campaign_url": "gevi.com",
+  "tracking_link": "https://gevi.pxf.io/c/1208408/1948847/23658",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "gevi.com",
+   "*.gevi.com",
+   "gevilife.com",
+   "*.821571.myshopify.com",
+   "821571.myshopify.com"
+  ]
+ },
+ {
+  "campaign_id": "40222",
+  "campaign_name": "GearUP",
+  "advertiser": "GearUP Portal Pte Ltd",
+  "campaign_url": "https://www.gearupbooster.com/",
+  "tracking_link": "https://gearup.sjv.io/c/1208408/3204502/40222",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "gearupbooster.com",
+   "*.gearupbooster.com"
+  ]
+ },
+ {
+  "campaign_id": "53221",
+  "campaign_name": "Boyd Sleep",
+  "advertiser": "Night Air",
+  "campaign_url": "https://nightairbeds.com",
+  "tracking_link": "https://boydsleep.sjv.io/c/1208408/3907043/53221",
+  "deeplinking": "true",
+  "deeplink_domains": [
+   "nightairbeds.com",
+   "*.nightairbeds.com",
+   "nightairbeds.myshopify.com"
+  ]
+ }
 ]

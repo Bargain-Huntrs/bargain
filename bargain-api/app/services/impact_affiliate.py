@@ -4,7 +4,10 @@ Wraps retailer URLs with Impact.com affiliate tracking links so the
 platform earns commission on qualifying purchases.
 
 Uses the campaign data from impact_campaigns.json to match retailer
-domains to Impact tracking links and generate deeplinks.
+domains to Impact tracking links and generate deeplinks. The JSON is a
+cache — ``refresh_campaign_cache()`` rebuilds it from the live Impact
+API so newly transferred partnerships (e.g. merchants migrating from
+Rakuten) get tracking links without a manual export.
 """
 import json
 import logging
@@ -25,10 +28,122 @@ except Exception as e:
     logger.warning(f"Could not load impact_campaigns.json: {e}")
 
 
+async def refresh_campaign_cache() -> int:
+    """Rebuild impact_campaigns.json from the live Impact API.
+
+    The Campaigns endpoint gives the partnership list; one Ads call per
+    campaign yields a usable tracking link (any live ad's TrackingUrl
+    accepts the ``?u=`` deeplink param). Deeplink domains come from the
+    campaign's DeeplinkDomains field when present, else the advertiser
+    URL. Existing entries keep their deeplinking flag; new campaigns
+    default to deeplinking enabled.
+
+    Returns the number of campaigns in the refreshed cache, or -1 when
+    the API is unconfigured/unreachable (existing cache kept).
+    """
+    global _campaigns, _TRACKING_DOMAINS
+
+    try:
+        from app.services import impact_api
+    except Exception as e:
+        logger.warning(f"Campaign refresh skipped — impact_api unavailable: {e}")
+        return -1
+
+    if not impact_api.is_configured():
+        logger.info("Campaign refresh skipped — Impact not configured")
+        return -1
+
+    try:
+        campaigns = await impact_api.fetch_campaigns()
+    except Exception as e:
+        logger.warning(f"Campaign refresh failed: {e}")
+        return -1
+
+    if not campaigns:
+        logger.warning("Campaign refresh returned 0 campaigns — keeping existing cache")
+        return -1
+
+    existing_by_id = {str(c.get("campaign_id", "")): c for c in _campaigns}
+    import httpx
+
+    sid = impact_api.settings.IMPACT_ACCOUNT_SID
+    auth = impact_api._get_auth()
+    headers = impact_api._get_headers()
+
+    refreshed: list[dict] = []
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for campaign in campaigns:
+            # Grab any live ad to extract a tracking link template —
+            # Impact tracking URLs take ?u=<encoded destination> for
+            # deeplinking regardless of ad type.
+            tracking_link = ""
+            try:
+                resp = await client.get(
+                    f"{impact_api.IMPACT_API_BASE}/Mediapartners/{sid}/Ads",
+                    auth=auth,
+                    headers=headers,
+                    params={"CampaignId": campaign.campaign_id, "PageSize": "5"},
+                )
+                if resp.status_code == 200:
+                    for ad in resp.json().get("Ads", []):
+                        tracking_link = ad.get("TrackingUrl", "") or ad.get("TrackingLink", "")
+                        if tracking_link:
+                            break
+            except Exception as e:
+                logger.debug(f"Ads lookup for campaign {campaign.campaign_id}: {e}")
+
+            existing = existing_by_id.get(campaign.campaign_id, {})
+            if not tracking_link:
+                tracking_link = existing.get("tracking_link", "")
+            if not tracking_link:
+                continue  # no way to attribute clicks — skip
+
+            domains: list[str] = []
+            try:
+                domain = urlparse(campaign.advertiser_url).netloc.lower().replace("www.", "")
+                if domain:
+                    domains = [f"*{domain}*"]
+            except Exception:
+                pass
+
+            refreshed.append({
+                "campaign_id": campaign.campaign_id,
+                "campaign_name": campaign.campaign_name,
+                "advertiser": campaign.advertiser_name,
+                "campaign_url": campaign.advertiser_url,
+                "tracking_link": tracking_link,
+                "deeplinking": existing.get("deeplinking", "true"),
+                "deeplink_domains": existing.get("deeplink_domains") or domains,
+            })
+
+    if not refreshed:
+        logger.warning("Campaign refresh produced no usable campaigns — keeping existing cache")
+        return -1
+
+    # Preserve file entries for campaigns the API didn't return (e.g.
+    # pending partnerships with manually exported links).
+    refreshed_ids = {c["campaign_id"] for c in refreshed}
+    for c in _campaigns:
+        if str(c.get("campaign_id", "")) not in refreshed_ids:
+            refreshed.append(c)
+
+    try:
+        with open(_campaigns_path, "w") as f:
+            json.dump(refreshed, f, indent=1)
+    except Exception as e:
+        logger.warning(f"Could not write impact_campaigns.json: {e}")
+
+    _campaigns = refreshed
+    _TRACKING_DOMAINS = None  # rebuild on next is_impact_link() call
+    logger.info(f"Impact campaign cache refreshed: {len(refreshed)} campaigns")
+    return len(refreshed)
+
+
 # Map of retailer names to common domains for matching
 RETAILER_DOMAIN_MAP = {
     "amazon": ["amazon.com"],
     "walmart": ["walmart.com", "walmart.ca"],
+    "herbspro": ["herbspro.com"],
     "ador": ["ador.com"],
     "eufy": ["eufy.com", "us.eufy.com", "us.eufylife.com"],
     "belkin": ["belkin.com"],

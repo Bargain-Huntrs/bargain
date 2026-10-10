@@ -511,6 +511,9 @@ async def convert_skimlinks_url(url: str) -> str:
 _RETAILER_MAP = {
     "walmart": "walmart",
     "walmart.com": "walmart",
+    "herbspro": "herbspro",
+    "herbspro.com": "herbspro",
+    "herbs pro": "herbspro",
     "home depot": "home_depot",
     "homedepot.com": "home_depot",
     "the home depot": "home_depot",

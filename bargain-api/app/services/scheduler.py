@@ -692,7 +692,19 @@ class ScanScheduler:
                             platforms = result.get("platforms_used", [])
                             logger.info(f"  Posted: {deal.title[:50]} ({', '.join(platforms) or 'buffer'})")
                         else:
-                            logger.warning(f"  Post failed: {result.get('error')}")
+                            err = str(result.get("error") or "")
+                            logger.warning(f"  Post failed: {err}")
+                            if "queue full" in err.lower():
+                                # Full Buffer queue rejects every post — stop
+                                # hammering and surface the real fix. Unalerted
+                                # deals retry next cycle once the queue drains.
+                                logger.error(
+                                    "Buffer queue full on all active channels — "
+                                    "aborting this posting cycle. Clear via POST "
+                                    "/arbitrage/buffer/clear-queue/public or reconnect "
+                                    "stuck channels in Buffer."
+                                )
+                                break
 
                         # Small delay between posts
                         await asyncio.sleep(5)

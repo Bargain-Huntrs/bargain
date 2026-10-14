@@ -65,20 +65,44 @@ jobs:
           echo "HTTP Status: $HTTP_CODE"
           echo "Response: $BODY"
 
+          # Always report the outcome to the step summary so a run that
+          # published nothing can never pass silently behind a green check.
+          {
+            echo "## Buffer poster run — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo ""
+            echo "- HTTP status: \`$HTTP_CODE\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
           if [ "$HTTP_CODE" != "200" ]; then
-            # Warn rather than fail: this is a best-effort marketing cron that
-            # runs 3x/day. A failing backend is visible via health-check.yml —
-            # hard-failing here just spams failure emails.
-            echo "::warning::Deal posting returned HTTP $HTTP_CODE — will retry next scheduled run"
-            exit 0
+            # Hard-fail: a non-200 means zero posts were published, and a
+            # green checkmark must never claim a successful posting cycle.
+            echo "- **Result: FAILED** — API returned HTTP $HTTP_CODE, 0 posts published" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Deal posting returned HTTP $HTTP_CODE — zero posts published. Backend health: see health-check.yml"
+            exit 1
           fi
 
-          # Parse the posted count from the response
-          POSTED=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin).get('posted',0))" 2>/dev/null || echo "0")
-          echo "Deals posted: $POSTED"
+          # Parse the posted count + skip reasons from the response
+          PARSED=$(echo "$BODY" | python3 -c "
+          import sys, json
+          try:
+              d = json.load(sys.stdin)
+          except Exception:
+              d = {}
+          print(d.get('posted', 0), d.get('skipped_no_image', 0), d.get('skipped_non_english', 0), d.get('skipped_dedup', 0))
+          " 2>/dev/null || echo "0 0 0 0")
+          read POSTED SKIP_IMG SKIP_LANG SKIP_DEDUP <<< "$PARSED"
+
+          {
+            echo "- Posts published: **$POSTED**"
+            echo "- Skipped — no image: $SKIP_IMG, non-English: $SKIP_LANG, recent dedup: $SKIP_DEDUP"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Deals posted: $POSTED (skipped: ${SKIP_IMG} no-image, ${SKIP_LANG} non-English, ${SKIP_DEDUP} dedup)"
 
           if [ "$POSTED" -eq 0 ]; then
-            echo "No new deals were posted (may be none available or all already posted)"
+            echo "- **Result: FAILED** — 0 posts published" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Zero deals published this cycle (skipped: ${SKIP_IMG} no-image, ${SKIP_LANG} non-English, ${SKIP_DEDUP} dedup). Check scraper output + Buffer/channel config."
+            exit 1
           fi
 
+          echo "- **Result: OK** — $POSTED post(s) published" >> "$GITHUB_STEP_SUMMARY"
           echo "Deal posting cycle completed successfully"

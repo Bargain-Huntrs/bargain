@@ -24,6 +24,8 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 
 ## Recently landed
 
+- 2026-10-21 devin `54301f9` — **$16K plan refreshed**: P0 flag — `api.bargainhuntrs.com` dead (timeout/000, Render origin 404s `/health` though source has it — suspended/stale deploy); corrected to live Hunter $9.99/mo pricing; phase gates in `docs/16K_MONTHLY_GROWTH_PLAN.md`.
+
 
 - 2026-10-20 devin `f13592b` — **Buffer queue-full circuit-breaker.** scheduler aborts the posting cycle with a loud error when all active Buffer channels are saturated (was hammering every deal against a full queue). Unalerted deals retry next cycle; clear via POST /arbitrage/buffer/clear-queue/public. Queue-extended repos this session: Settle/Favestate/Reid (through 10-30), Notyced (through 11-04).
 - 2026-10-13 devin `2501d10` — **Dependabot sweep: 46 GH alerts → 1 advisory.** `next 16.2.12→16.3.8` (clears both criticals + high/med/low next advisories), pnpm overrides for proxy-addr 2.0.8 (critical), fast-uri 3.1.8, js-yaml 4.3.2, sharp 0.35.5, source-map-js, @grpc/grpc-js 1.13.6, undici@7 7.29.1, brace-expansion 5.0.12 + nested minimatch path → 2.1.7. Sole remaining: `braces ≤3.0.3` — NO published fix, build-tool transitive via micromatch (ReDoS needs attacker glob input — not reachable). bargain-web rebuilt (60/60) + deployed to Cloudflare — worker version `4bad7f78`; dropship page live 200, `/dropship/payment-method` live 401-gated. Stripe publishable key confirmed set on the Worker.

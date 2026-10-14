@@ -728,7 +728,11 @@ class DropshipProduct(Base):
     supplier_url = Column(String(1000))
     trending_score = Column(Float, default=0)  # 0-100 demand heat
     is_active = Column(Boolean, default=True, index=True)
-    source = Column(String(50), default="curated")  # curated|feed|manual
+    source = Column(String(50), default="curated")  # curated|feed|manual|supplier_import
+    # Lifecycle for supplier-imported rows: draft (admin review) | active |
+    # archived. Catalog rows seeded in code are 'active'; supplier imports
+    # land as 'draft' + is_active=False until an admin publishes the pool.
+    status = Column(String(20), default="active", index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -785,7 +789,9 @@ class DropshipPool(Base):
     min_price = Column(Numeric(10, 2))                   # sell floor of the target band
     max_units_per_hunter = Column(Integer, default=10)
     units_committed = Column(Integer, default=0)
-    status = Column(String(20), default="open", index=True)  # open|filled|expired|settled
+    # draft|pending_review = imported, awaiting admin fulfillable review —
+    # never shown to hunters and cannot be committed to until opened.
+    status = Column(String(20), default="open", index=True)  # draft|pending_review|open|filled|expired|settled|rejected
     # Fulfillment channel the pool targets — hunters vote on which channels
     # get added; amazon_fba is v1 (hunters' own SP-API-connected accounts).
     channel = Column(String(30), default="amazon_fba", index=True)

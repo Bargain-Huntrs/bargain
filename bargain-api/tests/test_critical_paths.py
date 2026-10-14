@@ -48,6 +48,7 @@ class TestAuthFlow:
                     "password": "SecretPass123!",
                     "firstName": "Test",
                     "lastName": "User",
+                    "phoneNumber": "+15551234567",
                 },
             )
 
@@ -74,6 +75,7 @@ class TestAuthFlow:
                     "password": "SecretPass123!",
                     "firstName": "Flow",
                     "lastName": "Tester",
+                    "phoneNumber": "+15552223333",
                 },
             )
         assert resp.status_code == 200, resp.text
@@ -121,7 +123,9 @@ class TestAuthFlow:
         with patch("app.routers.auth.send_welcome_email"):
             client.post(
                 "/api/v1/auth/register",
-                json={"email": "wrongpw@test.com", "password": "SecretPass123!"},
+                json={"email": "wrongpw@test.com", "password": "SecretPass123!",
+                      "firstName": "Wrong", "lastName": "Pw",
+                      "phoneNumber": "+15554445555"},
             )
         registered_user = db_mock.added[0]
 
@@ -149,7 +153,9 @@ class TestAuthFlow:
         with patch("app.routers.auth.send_welcome_email"):
             resp = client.post(
                 "/api/v1/auth/register",
-                json={"email": "jwt@test.com", "password": "SecretPass123!"},
+                json={"email": "jwt@test.com", "password": "SecretPass123!",
+                      "firstName": "Jwt", "lastName": "Token",
+                      "phoneNumber": "+15556667777"},
             )
         token = resp.json()["accessToken"]
 
@@ -163,7 +169,9 @@ class TestAuthFlow:
         with patch("app.routers.auth.send_welcome_email"):
             resp = client.post(
                 "/api/v1/auth/register",
-                json={"email": "refresh@test.com", "password": "SecretPass123!"},
+                json={"email": "refresh@test.com", "password": "SecretPass123!",
+                      "firstName": "Ref", "lastName": "Resh",
+                      "phoneNumber": "+15558889999"},
             )
         data = resp.json()
         refresh_token = data["refreshToken"]
@@ -390,6 +398,7 @@ class TestResaleListingEndpoints:
                     "password": "SecretPass123!",
                     "firstName": "Re",
                     "lastName": "Seller",
+                    "phoneNumber": "+15550001111",
                 },
             )
         assert resp.status_code == 200, resp.text

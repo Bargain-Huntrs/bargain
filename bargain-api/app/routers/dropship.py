@@ -153,6 +153,7 @@ def _ensure_tables(db: Session) -> None:
             "ALTER TABLE dropship_pools ADD COLUMN IF NOT EXISTS delivery_days_max INTEGER DEFAULT 7",
             "ALTER TABLE dropship_pool_commits ADD COLUMN IF NOT EXISTS stripe_payment_intent_id VARCHAR(80)",
             "ALTER TABLE dropship_pool_commits ADD COLUMN IF NOT EXISTS hold_amount_cents INTEGER",
+            "ALTER TABLE dropship_products ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'",
         ):
             db.execute(text(stmt))
         db.commit()
@@ -294,6 +295,21 @@ def _settle_holds(db: Session, pool_id, capture: bool) -> None:
 def _require_paid(user: User) -> None:
     if (user.subscription_tier or "free").lower() == "free":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=PAID_DETAIL)
+
+
+def _is_admin(user: User) -> bool:
+    return (user.role or "").lower() == "admin"
+
+
+def _require_admin(user: User) -> User:
+    if not _is_admin(user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    return user
+
+
+#: Pool statuses that must never surface to hunters — supplier imports land
+#: as drafts and only go ``open`` when an admin marks them fulfillable.
+_HIDDEN_POOL_STATUSES = ("draft", "pending_review", "rejected")
 
 
 def _product_out(p: DropshipProduct, watching: set, saved: set,
@@ -643,6 +659,9 @@ def list_pools(
     q = db.query(DropshipPool)
     if status_filter != "all":
         q = q.filter(DropshipPool.status == status_filter)
+    elif not _is_admin(user):
+        # "all" must not leak unreviewed supplier-import drafts to hunters.
+        q = q.filter(~DropshipPool.status.in_(_HIDDEN_POOL_STATUSES))
     pools = q.order_by(
         (DropshipPool.status == "open").desc(), DropshipPool.closes_at.asc()
     ).limit(50).all()
@@ -663,7 +682,7 @@ def get_pool(
     _ensure_tables(db)
     _expire_stale_pools(db)
     pool = db.query(DropshipPool).filter(DropshipPool.id == pool_id).first()
-    if not pool:
+    if not pool or (pool.status in _HIDDEN_POOL_STATUSES and not _is_admin(user)):
         raise HTTPException(status_code=404, detail="Pool not found")
     my_commit = (
         db.query(DropshipPoolCommit)
@@ -897,3 +916,112 @@ def dropship_niches(
          "count": counts.get(n.key, 0)}
         for n in get_all_niches()
     ]
+
+
+# ── Admin: supplier deal-sheet import + pool review ─────────────────────
+# Bulk Buy America wholesale flow: admin pastes the emailed deal sheet, the
+# importer creates DRAFT products (is_active=False, status='draft') and
+# DRAFT pools. Pools never auto-publish — they go open only when an admin
+# marks them fulfillable via /admin/pools/{id}/review.
+
+
+class SupplierImportBody(BaseModel):
+    text: str = Field(min_length=1, max_length=100_000)
+    # Sheet-level fallback comp price for rows that didn't carry their own.
+    reference_price: Optional[float] = Field(None, gt=0)
+    niche: str = Field("general", max_length=50)
+    pool_days: int = Field(14, ge=1, le=90)
+    default_max_per_hunter: int = Field(10, ge=1, le=500)
+
+
+@router.post("/admin/import/bulk-buy-america")
+def import_bulk_buy_america(
+    body: SupplierImportBody,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Paste a Bulk Buy America deal-sheet email → DRAFT product+pool rows.
+
+    Each parsed deal returns a ``margin_flag`` (ok|below_floor|unknown) vs
+    the ~40% gross-margin floor, computed against its comp price or the
+    request-level ``reference_price``. Admin only; nothing auto-publishes.
+    """
+    _require_admin(user)
+    _ensure_tables(db)
+    from app.services.supplier_importer import import_deal_sheet
+
+    result = import_deal_sheet(
+        db,
+        body.text,
+        reference_price=body.reference_price,
+        niche=body.niche,
+        pool_days=body.pool_days,
+        default_max_per_hunter=body.default_max_per_hunter,
+    )
+    return result
+
+
+@router.get("/admin/pools")
+def admin_list_pools(
+    status_filter: str = Query("draft", alias="status",
+                               pattern="^(draft|pending_review|rejected|open|filled|expired|all)$"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Review queue for imported pools — defaults to drafts."""
+    _require_admin(user)
+    _ensure_tables(db)
+    q = db.query(DropshipPool)
+    if status_filter != "all":
+        q = q.filter(DropshipPool.status == status_filter)
+    pools = q.order_by(DropshipPool.created_at.desc()).limit(100).all()
+    return [_pool_out(p) for p in pools]
+
+
+class PoolReviewBody(BaseModel):
+    action: str = Field(pattern="^(open|reject)$")
+    days_open: int = Field(14, ge=1, le=90)
+    note: Optional[str] = Field(None, max_length=2000)
+
+
+@router.post("/admin/pools/{pool_id}/review")
+def admin_review_pool(
+    pool_id: UUID,
+    body: PoolReviewBody,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Mark an imported draft pool fulfillable (open it to hunters) or reject
+    it. Opening flips the product live too — a live pool implies a visible
+    product. Rejected pools stay hidden and can never be committed to."""
+    _require_admin(user)
+    _ensure_tables(db)
+    pool = db.query(DropshipPool).filter(DropshipPool.id == pool_id).first()
+    if not pool:
+        raise HTTPException(status_code=404, detail="Pool not found")
+    if pool.status not in ("draft", "pending_review"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Pool is '{pool.status}' — only draft/pending_review pools can be reviewed",
+        )
+
+    if body.action == "open":
+        pool.status = "open"
+        pool.opens_at = datetime.utcnow()
+        pool.closes_at = datetime.utcnow() + timedelta(days=body.days_open)
+        product = db.query(DropshipProduct).filter(DropshipProduct.id == pool.product_id).first()
+        if product:
+            product.is_active = True
+            product.status = "active"
+        if body.note:
+            pool.deal_notes = (pool.deal_notes or "") + f" Admin: {body.note}"
+    else:
+        pool.status = "rejected"
+        product = db.query(DropshipProduct).filter(DropshipProduct.id == pool.product_id).first()
+        if product:
+            product.status = "archived"
+        if body.note:
+            pool.deal_notes = (pool.deal_notes or "") + f" Rejected: {body.note}"
+
+    db.commit()
+    return {"pool_id": str(pool.id), "status": pool.status}

@@ -38,6 +38,12 @@ services:
         value: "false"
       - key: AUTO_SCAN
         value: "true"
+      # Keep the free-tier service warm: ping our own public /health every
+      # 10 min so Render's 15-min idle spin-down never triggers a cold start.
+      - key: SELF_PING_URL
+        value: https://api.bargainhuntrs.com/health
+      - key: SELF_PING_INTERVAL_MINUTES
+        value: "10"
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET

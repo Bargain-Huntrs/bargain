@@ -33,10 +33,24 @@ jobs:
             echo "::warning::API health check failed ($STATUS)"
           fi
 
-      - name: Ping Web
+      - name: Ping API Render origin
         run: |
-          echo "Pinging Bargain web..."
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://bargain-web.onrender.com || echo "000")
+          echo "Pinging API Render origin (bargain-api-1o0n)..."
+          # NOTE: the real Render subdomain is bargain-api-1o0n.onrender.com —
+          # Render appends a random suffix. bargain-api.onrender.com is NOT
+          # this service and correctly returns 404 (x-render-routing: no-server).
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://bargain-api-1o0n.onrender.com/health || echo "000")
+          echo "API origin health: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::API origin health check failed ($STATUS)"
+          fi
+
+      - name: Ping Web (Cloudflare Workers)
+        run: |
+          echo "Pinging Bargain web (workers.dev)..."
+          # Frontend lives on Cloudflare Workers; the old Render bargain-web
+          # service is suspended — do not ping it.
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://bargain-web.bargain4huntrs.workers.dev || echo "000")
           echo "Web health: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "::warning::Web health check failed ($STATUS)"

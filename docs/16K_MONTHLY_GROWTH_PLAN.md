@@ -12,17 +12,17 @@
 | Piece | State | Evidence |
 |---|---|---|
 | Web (Cloudflare Worker `bargain-web`) | ✅ `bargainhuntrs.com` → 200 | live probe |
-| **API (Render `bargain-api`)** | 🔴 **DOWN** — `api.bargainhuntrs.com` times out; `bargain-api.onrender.com` returns 404 → service likely **suspended or domain mis-pointed**. Every API call on the site currently fails | live probe 2026-10-21 |
+| **API (Render `bargain-api`)** | ✅ **UP** — `api.bargainhuntrs.com/health` → 200; real origin is **`bargain-api-1o0n.onrender.com`** (Render appends a random suffix — `bargain-api.onrender.com` was never ours; its 404 `x-render-routing: no-server` is expected). Earlier "down/000" = **free-plan cold start** (15-min idle spin-down → ~50-90s wake > probe timeout). In-app keep-alive self-ping shipped (`SELF_PING_URL`) — see Phase 0.1 | live re-probe 2026-10-14 |
 | Sitemap | ✅ `/sitemap.xml` → 200 (stores/deals routes) | live probe |
 | Affiliate integrations | ⚠️ Code built for Amazon, eBay, Walmart, CJ, Impact, Rakuten, Awin (`app/services/affiliate_*.py`, `*_scraper.py`) — live-credential coverage unknown | code audit |
 | CRM module | ✅ `bargain-api/app/routers/crm.py` + `/admin/crm` shipped | repo |
 | Social autoposter | ⚠️ Built, fails loudly without platform secrets | workflow |
 | Stripe checkout | ⚠️ Built (`/subscriptions/create-checkout-session`); **unverifiable while API is down** | code |
 | Password reset | 🔴 Broken chain — `RESEND_API_KEY` on Render corrupted, `INTERNAL_API_KEY` + `ALERT_FROM_EMAIL` must be pasted to Render | AGENT_STATE |
-| Render deploys | ⚠️ Org rename `obdulr/bargain → Bargain-Huntrs/bargain` may have killed auto-deploy | AGENT_STATE 2026-10-06 |
+| Render deploys | ✅ Auto-deploy confirmed working — endpoints from Oct-8+ commits (`/api/v1/feedback`, `/api/v1/community/threads`, dropship) are live in prod | live probe 2026-10-14 |
 | Revenue baseline | ~$0–500 | no settled data |
 
-**One-line read:** the frontend sells a product whose backend is dead. **Phase 0 is reviving `bargain-api` — nothing else matters until API health returns.**
+**One-line read:** the API is alive — the earlier "down" reading caught a free-tier cold start plus a wrong origin hostname in our docs. Phase 0 is now **keeping it warm** (keep-alive + paid plan eventually) and finishing the env-var plumbing so reset emails and checkout actually work end-to-end.
 
 ---
 
@@ -70,12 +70,12 @@
 
 ## 3. Phase-Gated Execution Plan
 
-### Phase 0 — Resurrect the API (this week — nothing else proceeds without it)
-**Exit gate: `api.bargainhuntrs.com/health` → 200 and a real checkout session can be created.**
+### Phase 0 — Keep the API warm + working plumbing (this week)
+**Exit gate: `api.bargainhuntrs.com/health` → 200 consistently (no cold-start 000s) and a real checkout session can be created.**
 
 | # | Task | Where |
 |---|------|-------|
-| 0.1 | Diagnose `bargain-api`: Render dashboard — is the service suspended? is `api.bargainhuntrs.com` CNAME pointed at the right `*.onrender.com` host? | Render + Cloudflare DNS (user) |
+| 0.1 | ~~Diagnose `bargain-api`~~ **DONE 2026-10-14**: service is live; CNAME `api.bargainhuntrs.com → bargain-api-1o0n.onrender.com` (verified via Cloudflare API). Cold-start fix shipped: in-app self-ping every 10 min (`SELF_PING_URL`, gated on `RENDER` env var) + health-check workflow now pings the real origin. Optional backup: free external pinger (cron-job.org/UptimeRobot) on `/health` | shipped |
 | 0.2 | Verify repo connection survived `obdulr/bargain → Bargain-Huntrs` org rename; recent commits (`2c061f9`, `da9e755`) may never have deployed | Render dashboard (user) |
 | 0.3 | Paste reset-email env vars to Render: `RESEND_API_KEY` (new send-only — current is corrupted), `INTERNAL_API_KEY` (= worker secret in `bargain-api/.env`), `ALERT_FROM_EMAIL` | Render dashboard (user) |
 | 0.4 | Confirm `DATABASE_URL` + Render Postgres live; `SQL_ECHO` must stay `false` in prod | Render dashboard |

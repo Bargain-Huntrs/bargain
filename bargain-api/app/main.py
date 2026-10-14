@@ -14,6 +14,7 @@ except ImportError:
 from app.services.scheduler import scheduler
 from app.core.config import settings
 
+import asyncio
 import os
 app = FastAPI(
     title="BargainHuntrs API",
@@ -108,6 +109,33 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+async def _self_ping_loop():
+    """Ping our own public /health URL on an interval.
+
+    Render's free plan spins a service down after ~15 min without inbound
+    traffic; the next request then hits a ~50-90s cold start and short-timeout
+    health probes report 000/"down" even though the service is fine. An inbound
+    request through the public URL resets the idle timer, so this keeps the
+    service warm. Runs only on Render (RENDER env var auto-set) — never in
+    local dev or tests. Disable by setting SELF_PING_URL="".
+    """
+    import asyncio
+    import httpx
+
+    interval = max(1, settings.SELF_PING_INTERVAL_MINUTES) * 60
+    url = settings.SELF_PING_URL
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.get(url)
+                print(f"[KeepAlive] self-ping {url} -> {resp.status_code}")
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"[KeepAlive] self-ping failed: {e}")
+
+
 @app.on_event("startup")
 async def startup_event():
     """Start the background scanner on app startup if AUTO_SCAN is enabled."""
@@ -126,10 +154,17 @@ async def startup_event():
     else:
         print("[Startup] Auto-scan disabled — scheduler not started")
 
+    if os.getenv("RENDER") and settings.SELF_PING_URL:
+        app.state._keepalive_task = asyncio.create_task(_self_ping_loop())
+        print(f"[Startup] Keep-alive self-ping enabled (every {settings.SELF_PING_INTERVAL_MINUTES}min -> {settings.SELF_PING_URL})")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Stop the background scanner on app shutdown."""
+    task = getattr(app.state, "_keepalive_task", None)
+    if task and not task.done():
+        task.cancel()
     if scheduler.is_running:
         scheduler.stop()
         print("[Shutdown] Scheduler stopped")

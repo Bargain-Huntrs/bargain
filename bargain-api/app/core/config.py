@@ -67,6 +67,14 @@ class Settings(BaseSettings):
     AUTO_SCAN: bool = True
     SCAN_INTERVAL_MINUTES: int = 60
 
+    # Keep-alive self-ping — Render free tier idles out after ~15 min with no
+    # inbound traffic, and cold starts (~50-90s) make health checks time out
+    # (curl 000). Ping our own public URL on an interval so the service stays
+    # warm. Only runs when the RENDER env var is present (auto-set by Render),
+    # so local dev and tests never hit prod. Set SELF_PING_URL="" to disable.
+    SELF_PING_URL: str = "https://api.bargainhuntrs.com/health"
+    SELF_PING_INTERVAL_MINUTES: int = 10
+
     # Deal posting (X / social media)
     MAX_DEALS_PER_CYCLE: int = 5          # Max deals posted per scrape cycle
     POST_INTERVAL_MINUTES: int = 90       # How often the deal scrape + posting loop runs

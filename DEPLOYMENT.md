@@ -6,15 +6,22 @@
 ## Current Deployment Architecture
 
 ```
-Frontend: Render
-  - Next.js on port 3030
-  - bargain-web.onrender.com
-  - Configured via render.yaml
+Frontend: Cloudflare Workers (OpenNext)
+  - bargainhuntrs.com, www.bargainhuntrs.com
+  - bargain-web.bargain4huntrs.workers.dev
+  - Deploy: cd bargain-web && pnpm run deploy
+  - NOTE: the old Render bargain-web service is SUSPENDED — do not redeploy
 
 Backend: Render
   - FastAPI on port 4030
-  - api.bargainhuntrs.com
-  - Configured via Dockerfile
+  - api.bargainhuntrs.com → CNAME → bargain-api-1o0n.onrender.com
+  - IMPORTANT: the real Render origin is bargain-api-1o0n.onrender.com
+    (Render appends a random suffix to service subdomains).
+    bargain-api.onrender.com is NOT this service — it returns a
+    Render-edge 404 (x-render-routing: no-server).
+  - Free plan: idles out after ~15 min; an in-app self-ping
+    (SELF_PING_URL) hits /health every 10 min to keep it warm
+  - Configured via root Dockerfile + render.yaml
   - Render PostgreSQL
 ```
 
@@ -45,12 +52,18 @@ git push origin main
 - `Dockerfile` - Python 3.11 FastAPI setup
 - Root directory set to `bargain-api` in Render dashboard
 
-## Frontend Deployment (Render)
+## Frontend Deployment (Cloudflare Workers — OpenNext)
 
 ### Status: Deployed
-The frontend is deployed on Render.
+The frontend deploys to **Cloudflare Workers** via `@opennextjs/cloudflare` and serves `bargainhuntrs.com` / `www.bargainhuntrs.com` / `bargain-web.bargain4huntrs.workers.dev`. The legacy Render `bargain-web` service is **suspended** — the section below is kept for history only; do not redeploy it.
 
-### Configuration
+### Deploy
+```bash
+cd bargain-web
+CLOUDFLARE_API_TOKEN=<token from .env.cloudflare> pnpm run deploy
+```
+
+### Legacy Render Configuration (SUSPENDED)
 - **Root Directory**: `bargain-web`
 - **Port**: 3030
 - **Build Command**: `corepack enable && corepack prepare pnpm@9.15.5 --activate && pnpm install --frozen-lockfile=false && pnpm run build`
@@ -163,8 +176,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 4030
 ```
 
 ### Production URLs
-- **Frontend**: https://bargain-web.onrender.com
-- **Backend**: https://api.bargainhuntrs.com
+- **Frontend**: https://bargainhuntrs.com (Cloudflare Workers; bargain-web.bargain4huntrs.workers.dev)
+- **Backend**: https://api.bargainhuntrs.com (origin: https://bargain-api-1o0n.onrender.com)
 - **API**: https://api.bargainhuntrs.com/health
 
 ## Support

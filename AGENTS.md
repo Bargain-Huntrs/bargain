@@ -1,4 +1,9 @@
 # Project Notes for AI Agents
+## Owner Identity (mandatory for all outbound communications)
+
+- The owner's name is **Obdul Reid** — spelled O-B-D-U-L. Never "Abdul", never any other variant.
+- Any email, letter, signature, or message signed on behalf of the owner MUST use "Obdul Reid". Verify the spelling before sending.
+
 
 ## SMS Provider: Telnyx ONLY
 

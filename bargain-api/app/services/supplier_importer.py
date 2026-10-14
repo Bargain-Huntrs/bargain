@@ -384,6 +384,10 @@ def import_deal_sheet(
 
         ref = deal.reference_price or reference_price
         flag = margin_flag(deal.wholesale_price, ref)
+        margin_pct = (
+            round((ref - deal.wholesale_price) / ref * 100)
+            if ref and ref > 0 else None
+        )
         moq = deal.moq or deal.max_qty or 50
         if deal.moq is None:
             deal.warnings.append(f"MOQ defaulted to {moq}")
@@ -445,7 +449,7 @@ def import_deal_sheet(
                     notes += f" Comps: {', '.join(deal.comp_links)}."
                 notes += (
                     f" Gross margin vs ref: "
-                    f"{deal.gross_margin_pct if deal.gross_margin_pct is not None else 'n/a'}% "
+                    f"{margin_pct if margin_pct is not None else 'n/a'}% "
                     f"({flag}, floor {int(GROSS_MARGIN_FLOOR * 100)}%)."
                 )
                 pool = DropshipPool(
@@ -478,7 +482,7 @@ def import_deal_sheet(
                 "pool_status": "draft" if pool_status == "draft_created" else pool.status,
                 "wholesale_price": deal.wholesale_price,
                 "reference_price": ref,
-                "gross_margin_pct": deal.gross_margin_pct,
+                "gross_margin_pct": margin_pct,
                 "margin_flag": flag,
                 "moq": moq,
                 "max_qty_per_hunter": max_per,

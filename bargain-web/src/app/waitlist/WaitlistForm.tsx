@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { captureLead, consentText } from "@/lib/leadCapture";
 
 type FormState = "idle" | "submitting" | "success" | "error";
 
@@ -37,6 +38,14 @@ export default function WaitlistForm() {
         body: JSON.stringify(form),
       });
       if (!response.ok) throw new Error("Submission failed");
+      // Mirror into the central LeadOps store — best-effort, never blocks UX.
+      void captureLead({
+        email: form.email.trim(),
+        name: form.name.trim(),
+        vertical: "deal-alerts",
+        source_page: "/waitlist",
+        meta: { funnel: "waitlist", plan: form.plan, source: form.source },
+      }).catch(() => undefined);
       setState("success");
     } catch {
       setState("error");
@@ -167,7 +176,7 @@ export default function WaitlistForm() {
       )}
 
       <p className="text-center text-xs text-zinc-400 dark:text-zinc-600">
-        No spam. Ever. We only email about your waitlist status and major product updates.
+        No spam. Ever. {consentText()}
       </p>
     </form>
   );

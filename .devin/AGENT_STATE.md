@@ -15,7 +15,7 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 | Agent | Task | Files/areas |
 |---|---|---|
 | devin-bargain | full audit + P0/P1 fixes | whole repo |
-| devin-seo | programmatic coupon pages + Pro/Agency tiers — awaiting rebuild+deploy | bargain-web/src/app/coupons/[slug], sitemap.ts, plans.ts, bargain-api stripe_service/config/alerts |
+
 
 ## Backlog — claimable work
 
@@ -29,7 +29,7 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 
 ## Recently landed
 
-- 2026-10-21 devin-seo `1e7a1bf` — **Coupon SEO pages + Pro/Agency tiers (16K item 2.1 + catalog gap).** New `coupons/[slug]` server pages (verified badges, success-rate, expiry, junk-code blocklist — RSS scrape produced fake codes like "FINAL"/"CODES"; FTC disclosure + source links; noindex on unresolved slugs). Sitemap emits `/coupons/<slug>` per retailer — **26 pages live on deploy**, auto-growing with the coupon pipeline. Stripe: created Pro `prod_VTUCF6EyMxTiqA` ($19/mo `price_1USXEKGlmkIVHbkRxALuAv4r`, $190/yr `price_1USXENGlmkIVHbkRcikFdg3e`) + Agency `prod_VTUCrmQcaTKY9D` ($49/mo `price_1USXEMGlmkIVHbkRyyMknhG9`); wired into SUBSCRIPTION_PLANS/config/plans.ts. **Fixed stale tier gates**: arbitrage `is_paid` excluded "hunter" (paid users treated as free at line 1880); SMS alerts hunter-only → all paid tiers; TIER_LIMITS now covers pro/agency. **Env:** `STRIPE_PRICE_PRO`/`STRIPE_PRICE_AGENCY` set in `bargain-api/.env` — still need pasting into Render `bargain-api` env vars before checkout works for the new tiers.
+- 2026-10-21 devin-seo `1e7a1bf`+`f02f7fd` — **Coupon SEO pages + Pro/Agency tiers — DEPLOYED** (worker `a38f8ed8`; `/coupons/walmart` verified 200, sitemap emits 26 coupon URLs). Graceful-checkout guard added so Pro/Agency cards show a clean "not yet available" until `STRIPE_PRICE_PRO`/`STRIPE_PRICE_AGENCY` are pasted on Render. New `coupons/[slug]` server pages (verified badges, success-rate, expiry, junk-code blocklist — RSS scrape produced fake codes like "FINAL"/"CODES"; FTC disclosure + source links; noindex on unresolved slugs). Sitemap emits `/coupons/<slug>` per retailer — **26 pages live on deploy**, auto-growing with the coupon pipeline. Stripe: created Pro `prod_VTUCF6EyMxTiqA` ($19/mo `price_1USXEKGlmkIVHbkRxALuAv4r`, $190/yr `price_1USXENGlmkIVHbkRcikFdg3e`) + Agency `prod_VTUCrmQcaTKY9D` ($49/mo `price_1USXEMGlmkIVHbkRyyMknhG9`); wired into SUBSCRIPTION_PLANS/config/plans.ts. **Fixed stale tier gates**: arbitrage `is_paid` excluded "hunter" (paid users treated as free at line 1880); SMS alerts hunter-only → all paid tiers; TIER_LIMITS now covers pro/agency. **Env:** `STRIPE_PRICE_PRO`/`STRIPE_PRICE_AGENCY` set in `bargain-api/.env` — still need pasting into Render `bargain-api` env vars before checkout works for the new tiers.
 
 - 2026-10-17 devin-leadops — **Central lead engine wired (LeadOps).** Consent-aware mirror → `leadops-capture` worker (`https://leadops-capture.rideprimetransit.workers.dev/capture`) → `leadops_leads` table on Prime Supabase (RLS: insert-only via SECURITY DEFINER RPC; suppression honored). Canonical helper: `/Volumes/Os_Sites/LeadOps/consent/leadCapture.ts`; export via `LeadOps/export.mjs` (needs DATABASE_URL, `--resale` filters consent + drops mentorship).
 

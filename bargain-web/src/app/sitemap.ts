@@ -97,5 +97,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // API unreachable — skip store URLs
   }
 
-  return [...staticUrls, ...storeUrls, ...dealUrls];
+  let couponUrls: MetadataRoute.Sitemap = [];
+  try {
+    const res = await fetch(`${API_URL}/api/v1/coupons/public/retailers`, {
+      headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" },
+    });
+    if (res.ok) {
+      const retailers = await res.json();
+      if (Array.isArray(retailers)) {
+        couponUrls = retailers.map((r: any) => ({
+          url: `${BASE_URL}/coupons/${retailerSlug(String(r))}`,
+          lastModified: now,
+          changeFrequency: "daily" as const,
+          priority: 0.7,
+        }));
+      }
+    }
+  } catch {
+    // API unreachable — skip coupon URLs
+  }
+
+  return [...staticUrls, ...storeUrls, ...couponUrls, ...dealUrls];
 }

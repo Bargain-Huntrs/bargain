@@ -12,7 +12,7 @@ export interface PlanFeature {
 
 export interface Plan {
   name: string;
-  planId: "free" | "hunter";
+  planId: "free" | "hunter" | "pro" | "agency";
   price: string;
   period: string;
   tagline: string;
@@ -71,6 +71,47 @@ export const plans: Plan[] = [
       { label: "Priority deals", value: "✓" },
       { label: "Early access to glitches", value: "✓" },
       { label: "Support", value: "Email" },
+    ],
+  },
+  {
+    name: "Pro",
+    planId: "pro",
+    price: "$19",
+    period: "/ month",
+    tagline: "For serious resellers.",
+    description:
+      "Everything in Hunter plus API access, bulk deal export, and margin analytics for sourcing at volume.",
+    cta: "Go Pro",
+    href: "/signup",
+    highlight: false,
+    badge: null,
+    features: [
+      { label: "Everything in Hunter", value: "✓" },
+      { label: "Deal API access", value: "✓" },
+      { label: "Bulk export (CSV)", value: "✓" },
+      { label: "Margin analytics", value: "✓" },
+      { label: "Multi-channel alerts", value: "✓" },
+      { label: "Support", value: "Priority" },
+    ],
+  },
+  {
+    name: "Agency",
+    planId: "agency",
+    price: "$49",
+    period: "/ month",
+    tagline: "Deal sourcing for teams.",
+    description:
+      "Multi-seat access, white-label alerts, and pooled deal flow for reselling teams and agencies.",
+    cta: "Go Agency",
+    href: "/signup",
+    highlight: false,
+    badge: null,
+    features: [
+      { label: "Everything in Pro", value: "✓" },
+      { label: "Team seats", value: "5" },
+      { label: "White-label alerts", value: "✓" },
+      { label: "Pooled deal flow", value: "✓" },
+      { label: "Support", value: "Dedicated" },
     ],
   },
 ];

@@ -453,9 +453,9 @@ def get_sms_recipients(db: Session, niche: Optional[str] = None) -> list[str]:
 
     recipients: list[str] = []
     for u in users:
-        # Only Hunter tier users get SMS alerts
+        # Only paid-tier users get SMS alerts
         tier = (u.subscription_tier or "free").lower()
-        if tier != "hunter":
+        if tier not in ("hunter", "pro", "agency"):
             continue
 
         # Respect SMS deal alert preference

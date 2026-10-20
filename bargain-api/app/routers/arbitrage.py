@@ -1878,7 +1878,7 @@ async def get_price_prediction(
     quality = price_predictor.score_deal_quality(price_history, current_price, historical_avg)
 
     tier = (current_user.subscription_tier or "free").lower()
-    is_paid = tier in ("pro", "enterprise")
+    is_paid = tier != "free"
 
     if is_paid:
         return {

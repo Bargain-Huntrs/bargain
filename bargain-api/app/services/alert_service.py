@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 TIER_LIMITS = {
     "free": {"daily_limit": 5, "delay_hours": 24},
     "hunter": {"daily_limit": None, "delay_hours": 0},
+    "pro": {"daily_limit": None, "delay_hours": 0},
+    "agency": {"daily_limit": None, "delay_hours": 0},
 }
 
 # Valid alert types

@@ -42,6 +42,18 @@ SUBSCRIPTION_PLANS: dict[str, dict[str, Any]] = {
         "interval": "month",
         "stripe_price_id": settings.STRIPE_PRICE_HUNTER,
     },
+    "pro": {
+        "name": "Pro",
+        "price": 19.0,
+        "interval": "month",
+        "stripe_price_id": settings.STRIPE_PRICE_PRO,
+    },
+    "agency": {
+        "name": "Agency",
+        "price": 49.0,
+        "interval": "month",
+        "stripe_price_id": settings.STRIPE_PRICE_AGENCY,
+    },
 }
 
 

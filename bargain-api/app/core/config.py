@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PRICE_FREE: str = ""
     STRIPE_PRICE_HUNTER: str = ""
+    STRIPE_PRICE_PRO: str = ""
+    STRIPE_PRICE_AGENCY: str = ""
     FRONTEND_URL: str = "https://bargainhuntrs.com"
 
     # WebAuthn (passkeys)

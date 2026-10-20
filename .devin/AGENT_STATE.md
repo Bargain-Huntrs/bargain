@@ -15,6 +15,11 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 | Agent | Task | Files/areas |
 |---|---|---|
 | devin-bargain | full audit + P0/P1 fixes | whole repo |
+| devin-seo | programmatic coupon pages (16K plan item 2.1) | bargain-web/src/app/coupons/[slug], sitemap.ts, CopyCouponCode |
+
+## Backlog — claimable work
+
+- **Buffer/social daily-post audit for Bargain (owner request 2026-10-18)** — owner asked that agents check Buffer posting for EVERY project and confirm posts go out daily. Find this project's social tooling (tools/social, scripts, cron/workflows, posted-state files) and verify: (a) posts actually published per day per platform — not just queued, (b) Buffer queue coverage going forward, (c) any platform that's gone silent (Prime's LinkedIn died ~Oct 15 — check if this project has the same gap). Record findings under "Recently landed" or "Blocked on user" if creds are missing. If this project has NO social pipeline yet, note that — it may need one.
 
 ## Blocked on user
 

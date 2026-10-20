@@ -206,13 +206,13 @@ async def update_notification_preferences(
 
     SMS deal alerts require a Hunter subscription.
     """
-    is_hunter = (current_user.subscription_tier or "").lower() == "hunter"
+    is_paid = (current_user.subscription_tier or "").lower() in ("hunter", "pro", "agency")
 
-    # SMS alerts are restricted to Hunter tier users.
-    if body.sms_deal_alerts is True and not is_hunter:
+    # SMS alerts are restricted to paid tiers.
+    if body.sms_deal_alerts is True and not is_paid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="SMS deal alerts require a Hunter subscription.",
+            detail="SMS deal alerts require a paid subscription.",
         )
 
     # Validate the new limit fields before touching the user row.

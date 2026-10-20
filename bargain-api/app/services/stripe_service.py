@@ -93,6 +93,11 @@ def create_checkout_session(user_id: UUID, plan_id: str, db: Session) -> dict[st
         # Free plan does not require a Stripe checkout session.
         return {"url": None, "session_id": None, "plan": plan_id, "free": True}
 
+    if not plan["stripe_price_id"]:
+        raise ValueError(
+            f"{plan['name']} is not yet available for checkout. Please check back soon."
+        )
+
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise ValueError("User not found")

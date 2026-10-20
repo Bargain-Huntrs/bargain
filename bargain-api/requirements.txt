@@ -21,9 +21,8 @@ httpx-oauth>=0.14.0
 psycopg2-binary>=2.9.9
 email-validator>=2.1.0
 stripe>=7.9.0
-# python-webauthn is optional — used for passkey authentication.
-# Not available on all platforms. Install manually if needed.
-# python-webauthn>=2.0.0
+# python-webauthn — passkey authentication (pure-python, safe for Render builds).
+webauthn>=2.0.0
 # scikit-learn and numpy are optional — used by price_predictor.py
 # The predictor falls back to a simple algorithm without them.
 # Commented out because they're heavy and cause Render build failures.

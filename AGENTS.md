@@ -44,3 +44,10 @@
 
 - `SQL_ECHO` env var controls SQLAlchemy query logging (default: `false`)
 - **Never set `SQL_ECHO=true` in production** — it floods logs at ~500/sec and causes Render to drop scheduler/error messages
+
+## Multi-Agent Coordination (mandatory)
+
+- **Before starting any task, read `.devin/AGENT_STATE.md`** — it lists who is working on what, recently landed commits, and blockers. Claim your work under "Active"; move it to "Recently landed" with the commit hash when done.
+- **Check `.devin/OWNER_FLAGS.md` before starting work** — the owner posts live issues/requests there from the command center (synced every ~5 min); treat new lines as priority items. Read-only — don't edit it; record what you did in AGENT_STATE.md.
+- **Check `.devin/OWNER_TASKS.md`** — owner-assigned tasks land here; work them and mark the line `- [x]` — the sync reports it done to the owner.
+- **Human-blocked?** append one line to `.devin/NEEDS_HUMAN.md` (`- <date> | <blocked> | needs: <action> | ref:`) — it surfaces in the owner's command-center inbox.

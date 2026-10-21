@@ -63,3 +63,8 @@ ENV/
 
 # Self-healing error reports (generated)
 .errors/
+
+# Command-center owner flags/tasks + attachments (rsynced from opsbox — never commit)
+.devin/OWNER_FLAGS.md
+.devin/OWNER_TASKS.md
+.devin/attachments/

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import {
   getPublicDeals,
   getDeals,
@@ -259,6 +260,7 @@ export default function TrendingDealsClient() {
               </div>
             ) : (
               <div className="space-y-12">
+                <AffiliateDisclosure />
                 {sections.map((section) => {
                   if (activeSection !== section.key) return null;
                   const visible = section.deals.slice(0, visibleCounts[section.key]);

@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import GoogleAnalytics from "@/app/components/GoogleAnalytics";
+import CookieNotice from "@/components/CookieNotice";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -92,6 +93,7 @@ export default function RootLayout({
         <AuthProvider>{children}</AuthProvider>
         <FeedbackWidget />
         <PwaInstallPrompt />
+        <CookieNotice />
         <GoogleAnalytics />
       </body>
     </html>

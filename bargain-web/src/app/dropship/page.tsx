@@ -184,6 +184,13 @@ function PoolCard({
                 You&apos;re buying {units} unit{units === 1 ? "" : "s"} of inventory at the group rate — resale
                 isn&apos;t guaranteed and you sell them yourself. Charged only if the pool fills.
               </p>
+              <p className="text-[10px] leading-snug text-zinc-400 dark:text-zinc-500">
+                By committing you agree to the{" "}
+                <Link href="/dropship-terms" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">
+                  Group Purchase Terms
+                </Link>
+                .
+              </p>
               {!hasCard && (
                 <button
                   onClick={onAddCard}

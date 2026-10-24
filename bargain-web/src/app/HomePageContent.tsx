@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import NewsletterPopup from "@/components/NewsletterPopup";
 import LiveActivityFeed from "@/components/LiveActivityFeed";
 import { getPublicDeals, clickAffiliatePublic, getCommunityStats, addUtmParameters, getProperties, getListings, getPublicCoupons, getPublicCommunityDeals, getPublicLeaderboard, type ArbitrageDeal, type CommunityStats } from "@/lib/api";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -391,6 +392,7 @@ export default function HomePageContent() {
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                   Biggest verified discounts on the feed this minute.
                 </p>
+                <AffiliateDisclosure className="mt-1" />
               </div>
               <Link
                 href="/deals"

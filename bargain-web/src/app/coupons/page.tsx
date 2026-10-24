@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import {
   getCoupons,
   getPublicCoupons,
@@ -224,6 +225,7 @@ export default function CouponsPage() {
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                   Real promo codes from affiliate networks and deal feeds. Stack on top of deals for extra savings.
                 </p>
+                <AffiliateDisclosure className="mt-2" />
               </div>
               <div className="flex gap-2">
                 <button

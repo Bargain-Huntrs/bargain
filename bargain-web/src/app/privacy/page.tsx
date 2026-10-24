@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "How BargainHuntrs collects, uses, and protects your personal information.",
 };
 
-const LAST_UPDATED = "July 16, 2026";
+const LAST_UPDATED = "October 24, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -88,11 +88,28 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 mb-3">4. Cookies and tracking</h2>
-              <p>
-                We use essential cookies to keep you logged in and maintain your session. We may use
-                analytics tools (such as Plausible or a self-hosted alternative) to understand aggregate
-                traffic patterns. These tools do not fingerprint individual users or share data with
-                advertising networks.
+              <p className="mb-3">
+                We use essential cookies to keep you logged in and maintain your session. In
+                addition, the following tracking technologies may run on our site:
+              </p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  <strong className="text-zinc-700 dark:text-zinc-300">Analytics:</strong>{" "}
+                  Google Analytics 4 (gtag.js) may be used to understand aggregate traffic
+                  patterns. Google processes this data under its own privacy policy.
+                </li>
+                <li>
+                  <strong className="text-zinc-700 dark:text-zinc-300">Affiliate attribution:</strong>{" "}
+                  Deal and retailer links on this site are tracked so partner networks (including
+                  Impact, Awin, Amazon Associates, and similar programs) can attribute clicks and
+                  purchases to BargainHuntrs. These networks may set or read cookies and use
+                  tracking scripts to credit commissions. See our{" "}
+                  <a href="/disclosure" className="underline hover:text-zinc-900 dark:hover:text-zinc-50">Affiliate Disclosure</a>.
+                </li>
+              </ul>
+              <p className="mt-3">
+                You can control cookies through your browser settings; blocking essential cookies
+                may prevent login and other core features from working.
               </p>
             </section>
 

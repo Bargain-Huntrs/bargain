@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DealAssistant from "@/components/DealAssistant";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import {
   getPublicDeals,
   getDeals,
@@ -542,10 +543,11 @@ export default function DealsPage() {
               </div>
             ) : (
               <>
-                <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="mb-2 text-sm text-zinc-500 dark:text-zinc-400">
                   {visibleDeals.length} deal{visibleDeals.length !== 1 ? "s" : ""}
                   {searchQuery.trim() && ` matching "${searchQuery.trim()}"`}
                 </p>
+                <AffiliateDisclosure className="mb-4" />
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
                   {visibleDeals.map((deal) => {
                     const tier = formatTier(deal.deal_tier);

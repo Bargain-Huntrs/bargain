@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import AiVerdict from "@/components/AiVerdict";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import { addUtmParameters, getPublicDeal, reportDeadDeal, type ArbitrageDeal } from "@/lib/api";
 
 function retailerName(retailer?: string): string {
@@ -222,14 +223,17 @@ export default function DealPageClient() {
                 )}
 
                 {dealUrl ? (
-                  <a
-                    href={dealUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-6 inline-flex w-fit items-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-700"
-                  >
-                    View Deal →
-                  </a>
+                  <>
+                    <a
+                      href={dealUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-6 inline-flex w-fit items-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-700"
+                    >
+                      View Deal →
+                    </a>
+                    <AffiliateDisclosure className="mt-2" />
+                  </>
                 ) : (
                   <p className="mt-6 text-sm text-zinc-500">No purchase link available.</p>
                 )}

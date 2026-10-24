@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import type { ArbitrageDeal } from "@/lib/api";
 import SeoDealCard from "@/components/SeoDealCard";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 
 export interface SeoPageConfig {
   title: string;
@@ -88,7 +89,7 @@ export default function SeoPageLayout({
               </div>
             ) : (
               <>
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">
                     {deals.length} deal{deals.length !== 1 ? "s" : ""} found
                   </p>
@@ -99,6 +100,7 @@ export default function SeoPageLayout({
                     Browse All Deals
                   </Link>
                 </div>
+                <AffiliateDisclosure className="mb-4" />
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                   {deals.map((deal, idx) => (
                     <SeoDealCard

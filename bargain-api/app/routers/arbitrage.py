@@ -10,6 +10,7 @@ import hashlib
 import logging
 import os
 import re
+import urllib.parse
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status, Header
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -2232,6 +2233,7 @@ async def short_link_redirect(
 
     retailer = deal.retailer or detect_retailer(buy_url) or "amazon"
     affiliate_url = add_affiliate_tag(buy_url, retailer, deal.asin or "")
+    affiliate_url = _preserve_utm_params(affiliate_url, request)
 
     # Record the click (best-effort)
     try:
@@ -2257,6 +2259,29 @@ async def short_link_redirect(
 
 
 # ─── Affiliate Click Tracking (redirect-based) ──────────────────────────────
+
+def _preserve_utm_params(url: str, request: Optional[Request]) -> str:
+    """Forward inbound utm_* query params onto the outbound URL.
+
+    /d/{id} and /deals/{id}/click links can carry per-surface UTMs
+    (e.g. ?utm_campaign=deal_detail); add_affiliate_tag applies defaults,
+    so only params not already present on the final URL are appended.
+    Never breaks the redirect on a parse failure.
+    """
+    try:
+        if request is None:
+            return url
+        utm = [(k, v) for k, v in request.query_params.items() if k.startswith("utm_")]
+        if not utm:
+            return url
+        parsed = urllib.parse.urlparse(url)
+        query = urllib.parse.parse_qsl(parsed.query)
+        existing = {k for k, _ in query}
+        query.extend((k, v) for k, v in utm if k not in existing)
+        return urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(query)))
+    except Exception:
+        return url
+
 
 def _hash_ip(ip: str) -> str:
     """SHA-256 hash an IP address for privacy-preserving analytics."""
@@ -2298,6 +2323,7 @@ async def track_deal_click(
 
     retailer = deal.retailer or detect_retailer(buy_url) or "amazon"
     affiliate_url = add_affiliate_tag(buy_url, retailer, deal.asin or "")
+    affiliate_url = _preserve_utm_params(affiliate_url, request)
 
     # Record the click (best-effort -- never block the redirect on a DB error)
     try:

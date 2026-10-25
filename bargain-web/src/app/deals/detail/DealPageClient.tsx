@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import AiVerdict from "@/components/AiVerdict";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
-import { addUtmParameters, getPublicDeal, reportDeadDeal, type ArbitrageDeal } from "@/lib/api";
+import { getPublicDeal, reportDeadDeal, type ArbitrageDeal } from "@/lib/api";
 
 function retailerName(retailer?: string): string {
   if (!retailer) return "Amazon";
@@ -127,12 +127,11 @@ export default function DealPageClient() {
   const { discount, savings } = formatDeal(deal);
   const retailer = retailerName(deal.retailer);
 
-  const dealUrl = addUtmParameters(
-    deal.buy_url || "",
-    "bargainhuntrs",
-    "deal_page",
-    "deal_detail"
-  );
+  // Click-outs go through the /d/{id} short link: the API logs the click and
+  // 302s to the affiliate-tagged URL (Impact/Awin/direct tags + UTMs), so
+  // every deal-page click is monetized and measured — even when buy_url
+  // was stored untagged by the scraper.
+  const clickUrl = `/d/${deal.id}?utm_source=bargainhuntrs&utm_medium=deal_page&utm_campaign=deal_detail`;
 
   const dealDescription = savings
     ? `$${deal.buy_price.toFixed(2)} (was $${deal.historical_avg!.toFixed(2)}) at ${retailer}. Save $${savings.toFixed(2)}.`
@@ -222,10 +221,10 @@ export default function DealPageClient() {
                   </p>
                 )}
 
-                {dealUrl ? (
+                {deal.buy_url ? (
                   <>
                     <a
-                      href={dealUrl}
+                      href={clickUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-6 inline-flex w-fit items-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-700"

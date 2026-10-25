@@ -33,9 +33,9 @@ export const metadata: Metadata = {
 const RELATED_LINKS = [
   { href: "/deals/today", label: "Today's Best Deals" },
   { href: "/deals/walmart-deals", label: "Walmart Deals" },
-  { href: "/deals/glitches", label: "Price Glitches" },
+  { href: "/guides/how-to-find-price-glitches", label: "Price Glitch Guide" },
   { href: "/deals/over-50-off", label: "Over 50% Off" },
-  { href: "/deals/free-stuff", label: "Free Stuff" },
+  { href: "/deals/under-10", label: "Deals Under $10" },
 ];
 
 const FAQS = [

@@ -34,9 +34,9 @@ const RELATED_LINKS = [
   { href: "/deals/today", label: "Today's Best Deals" },
   { href: "/deals/price-drops", label: "Price Drops" },
   { href: "/deals/over-50-off", label: "Over 50% Off" },
-  { href: "/deals/under-25", label: "Deals Under $25" },
-  { href: "/deals/glitches", label: "Price Glitches" },
-  { href: "/blog/amazon-prime-day-guide", label: "Prime Day Guide" },
+  { href: "/deals/under-10", label: "Deals Under $10" },
+  { href: "/guides/how-to-find-price-glitches", label: "Price Glitch Guide" },
+  { href: "/guides/best-times-to-find-deals", label: "Best Times to Find Deals" },
 ];
 
 const FAQS = [

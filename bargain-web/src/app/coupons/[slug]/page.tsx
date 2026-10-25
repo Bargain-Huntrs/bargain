@@ -6,6 +6,7 @@ import CopyCouponCode from "@/components/CopyCouponCode";
 import {
   getPublicCoupons,
   getPublicCouponRetailers,
+  addUtmParameters,
   type Coupon,
 } from "@/lib/api";
 import { retailerSlug, retailerDisplayName } from "@/lib/retailers";
@@ -206,7 +207,12 @@ export default async function StoreCouponsPage({
                         <CopyCouponCode code={coupon.code} />
                         {coupon.product_url && (
                           <a
-                            href={coupon.product_url}
+                            href={addUtmParameters(
+                              coupon.product_url,
+                              "bargainhuntrs",
+                              "coupon_page",
+                              `coupon_${slug}`
+                            )}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-zinc-500 underline hover:text-zinc-700 dark:hover:text-zinc-300"

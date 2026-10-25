@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import { useAuth } from "@/context/AuthContext";
 import {
   createThreadComment,
@@ -14,8 +15,24 @@ import {
   getVotedIds,
   setVotedFlag,
   voteCommunityThread,
+  clickAffiliatePublic,
+  addUtmParameters,
   type DealThread,
 } from "@/lib/api";
+
+// User-submitted deal links click out through the public affiliate tracker —
+// the API injects the correct network tag and logs the click. Falls back to
+// the UTM-tagged URL on failure.
+async function openDealLink(url: string, e: React.MouseEvent) {
+  e.preventDefault();
+  const tagged = addUtmParameters(url, "bargainhuntrs", "community", "community_deal");
+  try {
+    const result = await clickAffiliatePublic({ url: tagged });
+    window.open(result.affiliate_url || tagged, "_blank", "noopener,noreferrer");
+  } catch {
+    window.open(tagged, "_blank", "noopener,noreferrer");
+  }
+}
 
 function getTimeAgo(iso: string | null): string {
   if (!iso) return "";
@@ -223,7 +240,8 @@ export default function CommunityThread() {
                 <div className="mt-4 flex items-center gap-4">
                   {thread.url && (
                     <a
-                      href={thread.url}
+                      href={addUtmParameters(thread.url, "bargainhuntrs", "community", "community_deal")}
+                      onClick={(e) => openDealLink(thread.url!, e)}
                       target="_blank"
                       rel="noopener noreferrer nofollow"
                       className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700"
@@ -231,6 +249,7 @@ export default function CommunityThread() {
                       Get this deal →
                     </a>
                   )}
+                  {thread.url && <AffiliateDisclosure />}
                   {canDelete && (
                     <button
                       onClick={handleDelete}

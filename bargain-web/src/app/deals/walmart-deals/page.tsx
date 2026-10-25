@@ -34,7 +34,7 @@ const RELATED_LINKS = [
   { href: "/deals/today", label: "Today's Best Deals" },
   { href: "/deals/amazon-deals", label: "Amazon Deals" },
   { href: "/deals/clearance", label: "Clearance Deals" },
-  { href: "/deals/under-25", label: "Deals Under $25" },
+  { href: "/deals/under-10", label: "Deals Under $10" },
   { href: "/deals/over-50-off", label: "Over 50% Off" },
 ];
 

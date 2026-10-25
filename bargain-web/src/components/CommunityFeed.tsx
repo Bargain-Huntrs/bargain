@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import {
   createCommunityThread,
   getCommunityThreads,
@@ -10,8 +11,24 @@ import {
   getVotedIds,
   setVotedFlag,
   voteCommunityThread,
+  clickAffiliatePublic,
+  addUtmParameters,
   type DealThread,
 } from "@/lib/api";
+
+// User-submitted deal links click out through the public affiliate tracker —
+// the API injects the correct network tag and logs the click. Falls back to
+// the UTM-tagged URL on failure.
+async function openDealLink(url: string, e: React.MouseEvent) {
+  e.preventDefault();
+  const tagged = addUtmParameters(url, "bargainhuntrs", "community", "community_deal");
+  try {
+    const result = await clickAffiliatePublic({ url: tagged });
+    window.open(result.affiliate_url || tagged, "_blank", "noopener,noreferrer");
+  } catch {
+    window.open(tagged, "_blank", "noopener,noreferrer");
+  }
+}
 
 function getTimeAgo(iso: string | null): string {
   if (!iso) return "";
@@ -292,6 +309,7 @@ export default function CommunityFeed() {
         </div>
       ) : (
         <div className="space-y-3">
+          <AffiliateDisclosure />
           {threads.map((t) => (
             <ThreadCard key={t.id} thread={t} onVote={handleVote} />
           ))}
@@ -389,7 +407,8 @@ function ThreadCard({
           </Link>
           {thread.url && (
             <a
-              href={thread.url}
+              href={addUtmParameters(thread.url, "bargainhuntrs", "community", "community_deal")}
+              onClick={(e) => openDealLink(thread.url!, e)}
               target="_blank"
               rel="noopener noreferrer nofollow"
               className="ml-auto font-medium text-blue-600 hover:text-blue-700"

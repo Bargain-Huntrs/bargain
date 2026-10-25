@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import {
   getPublicDeals,
   getPublicDealRetailers,
@@ -134,6 +135,7 @@ export default async function StoreDealsPage({
               <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
                 {deals.length} {name} deal{deals.length !== 1 ? "s" : ""}
               </p>
+              <AffiliateDisclosure className="mt-1" />
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                 {deals.map((deal) => {
                   const discount = discountPercent(deal);

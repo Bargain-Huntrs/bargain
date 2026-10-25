@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getPublicDeals, addUtmParameters, type ArbitrageDeal } from "@/lib/api";
+import AffiliateDisclosure from "@/components/AffiliateDisclosure";
+import { getPublicDeals, type ArbitrageDeal } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Best Deals This Week — Save Up to 70% | BargainHuntrs",
@@ -97,16 +98,12 @@ export default async function BestDealsPage() {
               </p>
             </div>
           ) : (
-            <div className="mt-8 space-y-3">
+            <>
+              <AffiliateDisclosure className="mt-6" />
+            <div className="mt-4 space-y-3">
               {deals.map((deal, idx) => {
                 const discount = discountPercent(deal);
                 const retailer = retailerName(deal.retailer);
-                const dealUrl = addUtmParameters(
-                  deal.buy_url || "",
-                  "bargainhuntrs",
-                  "best_deals",
-                  `rank_${idx + 1}`
-                );
                 return (
                   <Link
                     key={deal.id}
@@ -171,6 +168,7 @@ export default async function BestDealsPage() {
                 );
               })}
             </div>
+            </>
           )}
         </div>
       </main>

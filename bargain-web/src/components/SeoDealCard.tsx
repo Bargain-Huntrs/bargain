@@ -1,26 +1,21 @@
 import Link from "next/link";
 import type { ArbitrageDeal } from "@/lib/api";
-import { discountPercent, retailerName, timeAgo, addUtmParameters } from "@/lib/seo-helpers";
+import { discountPercent, retailerName, timeAgo } from "@/lib/seo-helpers";
 
 export default function SeoDealCard({
   deal,
-  source,
   showRank,
   rank,
 }: {
   deal: ArbitrageDeal;
-  source: string;
+  // Retained in the type for call sites; cards currently link internally
+  // and per-surface attribution happens on the deal page's /d/{id} click-out.
+  source?: string;
   showRank?: boolean;
   rank?: number;
 }) {
   const discount = discountPercent(deal);
   const retailer = retailerName(deal.retailer);
-  const dealUrl = addUtmParameters(
-    deal.buy_url || "",
-    "bargainhuntrs",
-    source,
-    showRank && rank != null ? `rank_${rank}` : "deal_card"
-  );
 
   return (
     <Link

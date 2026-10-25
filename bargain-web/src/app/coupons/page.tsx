@@ -16,6 +16,8 @@ import {
   scrapeCoupons,
   submitCoupon,
   submitCouponFeedback,
+  clickAffiliatePublic,
+  addUtmParameters,
   type Coupon,
 } from "@/lib/api";
 
@@ -146,6 +148,24 @@ export default function CouponsPage() {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
+  }
+
+  // Route coupon click-outs through the affiliate tracker: the API injects
+  // the right network tag (Impact/Awin/direct) and logs the click. Falls
+  // back to the UTM-tagged product URL if tracking fails.
+  async function handleCouponClick(coupon: Coupon, e: React.MouseEvent) {
+    e.preventDefault();
+    if (!coupon.product_url) return;
+    const tagged = addUtmParameters(coupon.product_url, "bargainhuntrs", "coupon_card", "coupon_click");
+    try {
+      const result = await clickAffiliatePublic({
+        url: tagged,
+        retailer: coupon.retailer,
+      });
+      window.open(result.affiliate_url || tagged, "_blank", "noopener,noreferrer");
+    } catch {
+      window.open(tagged, "_blank", "noopener,noreferrer");
+    }
   }
 
   async function handleSubmitCoupon(e: React.FormEvent) {
@@ -562,10 +582,11 @@ export default function CouponsPage() {
                         </div>
                       </div>
 
-                      {/* Product link */}
+                      {/* Product link — tracked affiliate click-out */}
                       {coupon.product_url && (
                         <a
-                          href={coupon.product_url}
+                          href={addUtmParameters(coupon.product_url, "bargainhuntrs", "coupon_card", "coupon_click")}
+                          onClick={(e) => handleCouponClick(coupon, e)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="mt-3 block text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"

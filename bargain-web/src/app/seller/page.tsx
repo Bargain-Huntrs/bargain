@@ -341,7 +341,7 @@ export default function SellerPortalPage() {
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
                 rows={10}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-base text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
               />
               <button type="submit" disabled={submittingBulk} className="mt-4 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-50">
                 {submittingBulk ? "Submitting..." : "Bulk Submit"}

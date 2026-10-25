@@ -90,7 +90,7 @@ const TOOLS: { key: ToolKey; label: string; desc: string }[] = [
 ];
 
 const inputCls =
-  "rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-emerald-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+  "rounded-lg border border-zinc-300 px-3 py-2 text-base text-zinc-900 placeholder-zinc-400 focus:border-emerald-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
 
 function money(n: number | string | null | undefined): string {
   const v = typeof n === "string" ? parseFloat(n) : n;
@@ -273,7 +273,7 @@ function ClaimCard({
                 value={listingInput}
                 onChange={(e) => setListingInput(e.target.value)}
                 placeholder="Paste listing URL"
-                className={`${inputCls} w-40 py-1.5 text-xs`}
+                className={`${inputCls} w-40 py-1.5 text-base`}
               />
               <button
                 disabled={busy}
@@ -306,7 +306,7 @@ function ClaimCard({
                 onChange={(e) => setSoldInput(e.target.value.replace(/[^\d.]/g, ""))}
                 placeholder="Sold for $"
                 inputMode="decimal"
-                className={`${inputCls} w-28 py-1.5 text-xs`}
+                className={`${inputCls} w-28 py-1.5 text-base`}
               />
               <button
                 disabled={busy || !soldInput}
@@ -720,7 +720,7 @@ export default function DashboardPage() {
                   value={verifyPhone}
                   onChange={(e) => setVerifyPhone(e.target.value)}
                   placeholder="+15551234567"
-                  className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-amber-500 focus:outline-none dark:border-amber-800 dark:bg-zinc-900 dark:text-zinc-50"
+                  className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-base text-zinc-900 placeholder-zinc-400 focus:border-amber-500 focus:outline-none dark:border-amber-800 dark:bg-zinc-900 dark:text-zinc-50"
                 />
                 <PhoneVerify
                   phone={verifyPhone}

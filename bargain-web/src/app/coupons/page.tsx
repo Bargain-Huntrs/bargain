@@ -283,7 +283,7 @@ export default function CouponsPage() {
                       value={submitForm.code}
                       onChange={(e) => setSubmitForm({ ...submitForm, code: e.target.value })}
                       placeholder="SAVE20"
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       required
                     />
                   </div>
@@ -294,7 +294,7 @@ export default function CouponsPage() {
                       value={submitForm.retailer}
                       onChange={(e) => setSubmitForm({ ...submitForm, retailer: e.target.value })}
                       placeholder="amazon, walmart, target..."
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       required
                     />
                   </div>
@@ -305,7 +305,7 @@ export default function CouponsPage() {
                       value={submitForm.title}
                       onChange={(e) => setSubmitForm({ ...submitForm, title: e.target.value })}
                       placeholder="20% off home & kitchen items"
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       required
                     />
                   </div>
@@ -314,7 +314,7 @@ export default function CouponsPage() {
                     <select
                       value={submitForm.discount_type}
                       onChange={(e) => setSubmitForm({ ...submitForm, discount_type: e.target.value })}
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="percentage">Percentage (%)</option>
                       <option value="fixed">Fixed ($)</option>
@@ -328,7 +328,7 @@ export default function CouponsPage() {
                       value={submitForm.discount_value}
                       onChange={(e) => setSubmitForm({ ...submitForm, discount_value: e.target.value })}
                       placeholder="20"
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -338,7 +338,7 @@ export default function CouponsPage() {
                       value={submitForm.category}
                       onChange={(e) => setSubmitForm({ ...submitForm, category: e.target.value })}
                       placeholder="electronics, home, fashion..."
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -347,7 +347,7 @@ export default function CouponsPage() {
                       type="date"
                       value={submitForm.expires_at}
                       onChange={(e) => setSubmitForm({ ...submitForm, expires_at: e.target.value })}
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -357,7 +357,7 @@ export default function CouponsPage() {
                       value={submitForm.product_url}
                       onChange={(e) => setSubmitForm({ ...submitForm, product_url: e.target.value })}
                       placeholder="https://..."
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -427,7 +427,7 @@ export default function CouponsPage() {
             <select
               value={selectedRetailer}
               onChange={(e) => setSelectedRetailer(e.target.value)}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">All retailers</option>
               {retailers.map((r) => (
@@ -455,7 +455,7 @@ export default function CouponsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search coupons..."
-                className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="submit"

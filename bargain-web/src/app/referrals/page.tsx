@@ -124,7 +124,7 @@ export default function ReferralsPage() {
               type="text"
               readOnly
               value={referralLink}
-              className="flex-1 rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+              className="flex-1 rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-3 text-base text-zinc-900 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
             />
             <button
               onClick={copyLink}

@@ -78,7 +78,7 @@ export default function PhoneVerify({ phone, onVerified, onError, compact }: Pro
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             placeholder="6-digit code"
-            className="flex-1 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500"
+            className="flex-1 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-slate-500 text-base focus:outline-none focus:border-blue-500"
           />
           <button
             type="button"

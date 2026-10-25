@@ -452,7 +452,7 @@ export default function DealsPage() {
             <select
               value={selectedTier}
               onChange={(e) => setSelectedTier(e.target.value)}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">All tiers</option>
               <option value="glitch">⚡ Glitch</option>
@@ -466,7 +466,7 @@ export default function DealsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search deals..."
-              className="w-48 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-48 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
 
             <input
@@ -474,13 +474,13 @@ export default function DealsPage() {
               value={minProfit}
               onChange={(e) => setMinProfit(e.target.value)}
               placeholder="Min profit $"
-              className="w-32 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-32 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
 
             <select
               value={filterCategory || ""}
               onChange={(e) => setFilterCategory(e.target.value || null)}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="">All categories</option>
               {availableCategories.map((c) => (

@@ -363,7 +363,7 @@ export default function AdminPage() {
                             placeholder="Rejection reason (optional)"
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
-                            className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder:text-zinc-500"
+                            className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:placeholder:text-zinc-500"
                           />
                           <div className="flex gap-2">
                             <button

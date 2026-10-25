@@ -261,7 +261,7 @@ export default function HomePageContent() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search deals, stores, or categories..."
-                className="w-full rounded-xl border border-zinc-300 bg-white py-3.5 pl-12 pr-28 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500"
+                className="w-full rounded-xl border border-zinc-300 bg-white py-3.5 pl-12 pr-28 text-base text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500"
               />
               <button
                 type="submit"

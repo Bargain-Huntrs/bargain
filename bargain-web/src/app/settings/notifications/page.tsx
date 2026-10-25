@@ -417,7 +417,7 @@ export default function NotificationSettingsPage() {
                 onChange={(e) =>
                   updateLimit("alert_max_per_day", Math.max(0, parseInt(e.target.value) || 0))
                 }
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
               />
               <span className="mt-1 block text-xs text-zinc-500">0 = unlimited</span>
             </label>
@@ -431,7 +431,7 @@ export default function NotificationSettingsPage() {
                 onChange={(e) =>
                   updateLimit("quiet_start_hour", e.target.value === "" ? null : Number(e.target.value))
                 }
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
               >
                 <option value="">Off</option>
                 {HOUR_OPTIONS.map((h) => (
@@ -449,7 +449,7 @@ export default function NotificationSettingsPage() {
                 onChange={(e) =>
                   updateLimit("quiet_end_hour", e.target.value === "" ? null : Number(e.target.value))
                 }
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
               >
                 <option value="">Off</option>
                 {HOUR_OPTIONS.map((h) => (

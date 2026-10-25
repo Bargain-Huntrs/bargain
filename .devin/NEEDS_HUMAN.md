@@ -1,0 +1,3 @@
+# Needs Human
+- 2026-10-25 | Sec-audit: arbitrage /public endpoints now require X-Cron-Secret; buffer-poster.yml sends `secrets.SCRAPE_CRON_SECRET` | needs: add SCRAPE_CRON_SECRET as a GitHub repo secret (same value as the Render env var already used by scrape-*/newsletter/coupons cron endpoints) or the 3x/day poster workflow fails with 403/503 | ref: bargain-api/app/routers/arbitrage.py, .github/workflows/buffer-poster.yml
+- 2026-10-25 | Sec-audit collision: ~9 bargain-web WIP files (devin-legal-docs work) were dropped from the worktree during concurrent commit churn | needs: recover via `git checkout 7c9164c -- bargain-web/src/...` if that work is still wanted (orphan commit holds the eslint-fixed snapshot) | ref: git reflog, commits 7c9164c/f54776a

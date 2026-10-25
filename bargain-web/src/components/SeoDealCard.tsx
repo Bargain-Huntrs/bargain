@@ -27,8 +27,7 @@ export default function SeoDealCard({
           <img
             src={deal.image_url}
             alt={deal.title}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-          />
+            className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" decoding="async" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-4xl">
             <span className="text-zinc-300 dark:text-zinc-600">No image</span>

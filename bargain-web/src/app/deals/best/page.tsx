@@ -115,8 +115,7 @@ export default async function BestDealsPage() {
                         <img
                           src={deal.image_url}
                           alt={deal.title}
-                          className="h-full w-full object-cover"
-                        />
+                          className="h-full w-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-3xl">
                           🏷️

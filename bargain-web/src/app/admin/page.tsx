@@ -310,8 +310,7 @@ export default function AdminPage() {
                         <img
                           src={deal.image_url}
                           alt={deal.title}
-                          className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
-                        />
+                          className="h-24 w-24 flex-shrink-0 rounded-lg object-cover" loading="lazy" decoding="async" />
                       )}
                       <div className="flex-1">
                         <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{deal.title}</h3>

@@ -334,8 +334,7 @@ export default function TrendingDealsClient() {
                                         fallback.textContent = "🏷️";
                                         parent.appendChild(fallback);
                                       }
-                                    }}
-                                  />
+                                    }} loading="lazy" decoding="async" />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center text-4xl">
                                     🏷️

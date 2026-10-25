@@ -730,8 +730,9 @@ async def scrape_all_deals_public(
 @router.post("/deals/test-buffer/public", response_model=dict)
 async def test_buffer_post_public(
     db: Session = Depends(get_db),
+    _: None = Depends(_verify_cron_secret),
 ):
-    """Test Buffer posting to all configured channels — no auth required.
+    """Test Buffer posting to all configured channels — cron-secret gated.
 
     Picks the most recent active deal and attempts to post it to all
     configured Buffer channels (X, Instagram, Facebook). Returns the
@@ -788,8 +789,9 @@ async def test_buffer_post_public(
 @router.post("/deals/test-social/public", response_model=dict)
 async def test_social_posting_public(
     db: Session = Depends(get_db),
+    _: None = Depends(_verify_cron_secret),
 ):
-    """Test all direct social posting channels — no auth required.
+    """Test all direct social posting channels — cron-secret gated.
 
     Tests X direct API, Reddit, and Discord webhook posting using
     the most recent active deal. Returns per-channel results.
@@ -871,8 +873,9 @@ async def test_social_posting_public(
 async def update_deal_images_public(
     max_updates: int = Query(10, le=20),
     db: Session = Depends(get_db),
+    _: None = Depends(_verify_cron_secret),
 ):
-    """Public endpoint to fetch missing deal images — no auth required.
+    """Fetch missing deal images — cron-secret gated.
 
     Iterates through active deals without images and fetches them
     from Amazon product pages. Rate-limited to avoid blocking.
@@ -958,8 +961,9 @@ async def get_deal_placeholder_image(
 async def backfill_placeholder_images_public(
     db: Session = Depends(get_db),
     max_updates: int = Query(500, le=2000),
+    _: None = Depends(_verify_cron_secret),
 ):
-    """Set placeholder image URLs for active deals missing images — no auth.
+    """Set placeholder image URLs for active deals missing images — cron-secret gated.
 
     Generates a data-URI SVG placeholder for each deal without an image_url
     and saves it to the database. This runs once to backfill existing deals;
@@ -1006,8 +1010,9 @@ async def backfill_placeholder_images_public(
 async def post_deal_to_x_public(
     deal_id: str,
     db: Session = Depends(get_db),
+    _: None = Depends(_verify_cron_secret),
 ):
-    """Post a specific deal to all social platforms — no auth required.
+    """Post a specific deal to all social platforms — cron-secret gated.
 
     Only posts deals with affiliate tracking links.
     Posts to X, Instagram, and Facebook via Buffer.
@@ -1075,8 +1080,9 @@ def _has_affiliate_link(url: str) -> bool:
 @router.post("/deals/scrape-impact/public", response_model=dict)
 async def scrape_impact_deals_public(
     db: Session = Depends(get_db),
+    _: None = Depends(_verify_cron_secret),
 ):
-    """Public endpoint to scrape Impact.com deals — no auth required.
+    """Scrape Impact.com deals — cron-secret gated.
 
     Fetches discounted products and promo codes from joined Impact.com
     campaigns and saves them to the database with affiliate tracking links.
@@ -1248,8 +1254,9 @@ async def scrape_impact_deals_public(
 async def post_new_deals_to_x_public(
     max_posts: int = Query(5, le=10),
     db: Session = Depends(get_db),
+    _: None = Depends(_verify_cron_secret),
 ):
-    """Post deals that haven't been posted to social media yet — no auth required.
+    """Post deals that haven't been posted to social media yet — cron-secret gated.
 
     Only posts deals that have affiliate tracking links.
     Posts directly to X, Facebook, and Instagram via native APIs (bypassing
@@ -1413,13 +1420,14 @@ async def post_new_deals_to_x_public(
 @router.post("/deals/cleanup-non-english/public", response_model=dict)
 async def cleanup_non_english_deals_public(
     db: Session = Depends(get_db),
+    _: None = Depends(_verify_cron_secret),
 ):
     """Expire non-English (French/German/Spanish/Italian) deals from the database.
 
     Scans active deals and marks any with non-English titles as expired.
     This cleans up localized ADOR products that were saved before the
     language filter was added to the scrape pipeline.
-    No auth required — safe to call from GitHub Actions or manually.
+    Cron-secret gated — GitHub Actions sends X-Cron-Secret.
     """
     from app.services.impact_api import _is_non_english_title
 
@@ -1446,8 +1454,9 @@ async def cleanup_non_english_deals_public(
 @router.post("/deals/cleanup-duplicates/public", response_model=dict)
 async def cleanup_duplicate_deals_public(
     db: Session = Depends(get_db),
+    _: None = Depends(_verify_cron_secret),
 ):
-    """Remove duplicate deals from the database — no auth required.
+    """Remove duplicate deals from the database — cron-secret gated.
 
     Finds and expires duplicates based on:
     1. Exact same buy_url (keeps the oldest deal, expires the rest)
@@ -1537,10 +1546,10 @@ async def cleanup_duplicate_deals_public(
 
 
 @router.post("/buffer/clear-queue/public", response_model=dict)
-async def clear_buffer_queue_public():
+async def clear_buffer_queue_public(_: None = Depends(_verify_cron_secret)):
     """Delete all scheduled posts from Buffer to clear clogged queues.
 
-    No auth required — called manually when Buffer queue is full of
+    Cron-secret gated — called manually when Buffer queue is full of
     failed/stuck posts that need to be cleared before new posts can flow.
     """
     from app.services.x_poster import clear_buffer_queue
@@ -1951,7 +1960,9 @@ async def delete_all_deals(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Delete all arbitrage deals. Useful for clearing stale data."""
+    """Delete all arbitrage deals. Useful for clearing stale data. Admin only."""
+    if (current_user.role or "").lower() != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     count = db.query(ArbitrageDeal).count()
     db.query(ArbitrageDeal).delete()
     db.commit()

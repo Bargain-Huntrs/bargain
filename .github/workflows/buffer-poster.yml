@@ -28,11 +28,13 @@ jobs:
 
           # Fetch discounted products and promo codes from joined Impact
           # campaigns and save them to the database with affiliate links.
-          # No auth required — public endpoint.
+          # Cron-secret gated — requires the SCRAPE_CRON_SECRET repo secret
+          # (same value as the Render env var of the same name).
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             --max-time 120 \
             --retry 2 \
             --retry-delay 10 \
+            -H "X-Cron-Secret: ${{ secrets.SCRAPE_CRON_SECRET }}" \
             "https://api.bargainhuntrs.com/api/v1/arbitrage/deals/scrape-impact/public")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
@@ -50,12 +52,13 @@ jobs:
           echo "Triggering deal posting at $(date -u)"
 
           # The post-new-to-x/public endpoint posts already-scraped deals
-          # that have affiliate links. No auth required.
+          # that have affiliate links. Cron-secret gated (X-Cron-Secret header).
           # Posting fans out to X/FB/IG/Buffer sequentially and can exceed
           # 5min on a cold backend — use a 9min cap and drop --retry (retrying
           # a slow POST just re-runs the whole post cycle).
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             --max-time 540 \
+            -H "X-Cron-Secret: ${{ secrets.SCRAPE_CRON_SECRET }}" \
             "https://api.bargainhuntrs.com/api/v1/arbitrage/deals/post-new-to-x/public?max_posts=5" \
             || echo -e "\n000")
 

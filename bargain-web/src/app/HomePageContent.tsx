@@ -602,7 +602,7 @@ export default function HomePageContent() {
         </section>
 
         {/* ── Free vs Hunter ───────────────────────────────────────────── */}
-        <section className="border-b border-zinc-200 bg-zinc-50/60 px-6 py-12 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <section id="vs-competitors" className="border-b border-zinc-200 bg-zinc-50/60 px-6 py-12 dark:border-zinc-800 dark:bg-zinc-900/40">
           <div className="mx-auto max-w-5xl">
             <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Free vs. Hunter

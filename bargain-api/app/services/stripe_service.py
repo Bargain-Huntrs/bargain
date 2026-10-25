@@ -203,7 +203,10 @@ def handle_webhook(payload: bytes, signature: str, db: Session) -> dict[str, Any
     data = event["data"]["object"]
     logger.info("Processing Stripe webhook: %s", event_type)
 
-    if event_type == "checkout.session.completed":
+    if event_type in (
+        "checkout.session.completed",
+        "checkout.session.async_payment_succeeded",
+    ):
         _handle_checkout_completed(db, data)
     elif event_type in (
         "customer.subscription.created",
@@ -222,6 +225,12 @@ def handle_webhook(payload: bytes, signature: str, db: Session) -> dict[str, Any
 
 
 def _handle_checkout_completed(db: Session, session: dict[str, Any]) -> None:
+    # Async payment methods complete the session with payment_status='unpaid'
+    # and settle later via checkout.session.async_payment_succeeded — do not
+    # grant the tier before money is confirmed.
+    if session.get("payment_status") == "unpaid":
+        logger.info("Checkout session %s unpaid — awaiting async settlement", session.get("id"))
+        return
     user_id = session.get("metadata", {}).get("user_id")
     plan_id = session.get("metadata", {}).get("plan_id")
     if not user_id:

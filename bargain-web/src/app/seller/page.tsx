@@ -375,6 +375,32 @@ export default function SellerPortalPage() {
             )}
           </div>
         )}
+
+        {/* Business banking — partner offer (referral link, disclosed) */}
+        <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+            Partner offer · Sponsored
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            Bank your business with Mercury — $250 bonus
+          </h2>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            Running a reselling operation? Mercury offers fee-free business banking with no
+            minimums. Sign up through our referral link and when you deposit $10K in your first
+            90 days, you get a $250 bonus — and so do we.
+          </p>
+          <a
+            href="https://mercury.com/r/prime-transit"
+            target="_blank"
+            rel="noopener sponsored"
+            className="mt-5 inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+          >
+            Open a Mercury account →
+          </a>
+          <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+            Referral link — we earn the same $250 bonus when you qualify.
+          </p>
+        </div>
       </main>
 
       <Footer />

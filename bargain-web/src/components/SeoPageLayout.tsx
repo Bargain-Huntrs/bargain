@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import type { ArbitrageDeal } from "@/lib/api";
 import SeoDealCard from "@/components/SeoDealCard";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
+import { stringifyJsonLd } from "@/lib/jsonld";
 
 export interface SeoPageConfig {
   title: string;
@@ -40,7 +41,7 @@ export default function SeoPageLayout({
         <script
           key={i}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+          dangerouslySetInnerHTML={{ __html: stringifyJsonLd(ld) }}
         />
       ))}
 

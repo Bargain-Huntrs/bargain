@@ -9,6 +9,7 @@ import PriceHistoryChart from "@/components/PriceHistoryChart";
 import AiVerdict from "@/components/AiVerdict";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import { getPublicDeal, reportDeadDeal, type ArbitrageDeal } from "@/lib/api";
+import { stringifyJsonLd } from "@/lib/jsonld";
 
 function retailerName(retailer?: string): string {
   if (!retailer) return "Amazon";
@@ -158,7 +159,7 @@ export default function DealPageClient() {
     <div className="flex flex-col min-h-full bg-white dark:bg-zinc-950">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(productJsonLd) }}
       />
       <Header />
 

@@ -10,6 +10,7 @@ Flow:
 3. We exchange the code for an access token and return it
 """
 
+import hashlib
 import logging
 import os
 from fastapi import APIRouter, HTTPException, Query
@@ -29,19 +30,41 @@ REDIRECT_URI = "https://api.bargainhuntrs.com/api/v1/pinterest/callback"
 SCOPES = "boards:read,pins:read,pins:write,boards:write,user_accounts:read"
 
 
+def _setup_secret() -> str:
+    """The shared ops secret that gates this one-time owner flow."""
+    secret = os.getenv("SCRAPE_CRON_SECRET", "")
+    if not secret:
+        raise HTTPException(
+            status_code=503,
+            detail="Pinterest setup disabled. Set SCRAPE_CRON_SECRET first.",
+        )
+    return secret
+
+
+def _oauth_state() -> str:
+    """Unforgeable OAuth state — derived from the ops secret so only a flow
+    started through /auth (which requires the key) can produce a callback."""
+    return hashlib.sha256(f"{_setup_secret()}|pinterest-oauth".encode()).hexdigest()[:24]
+
+
 @router.get("/auth")
-async def pinterest_auth():
-    """Redirect user to Pinterest OAuth consent screen."""
+async def pinterest_auth(key: str = Query("", description="Ops setup key (SCRAPE_CRON_SECRET)")):
+    """Redirect user to Pinterest OAuth consent screen.
+
+    Owner-only bootstrap: requires ?key=<SCRAPE_CRON_SECRET>. Without it
+    anyone could kick off an OAuth grant against our app id."""
     app_id = os.getenv("PINTEREST_APP_ID", "")
     if not app_id:
         raise HTTPException(status_code=503, detail="PINTEREST_APP_ID not configured")
+    if key != _setup_secret():
+        raise HTTPException(status_code=403, detail="Invalid or missing setup key.")
 
     auth_url = (
         f"{PINTEREST_AUTH_URL}?response_type=code"
         f"&client_id={app_id}"
         f"&redirect_uri={REDIRECT_URI}"
         f"&scope={SCOPES}"
-        f"&state=bargainhuntrs_oauth"
+        f"&state={_oauth_state()}"
     )
     return RedirectResponse(url=auth_url)
 
@@ -49,9 +72,12 @@ async def pinterest_auth():
 @router.get("/callback")
 async def pinterest_callback(
     code: str = Query(..., description="OAuth authorization code"),
-    state: str = Query("bargainhuntrs_oauth"),
+    state: str = Query("", description="OAuth state issued by /auth"),
 ):
     """Handle OAuth callback and exchange code for access token."""
+    if state != _oauth_state():
+        raise HTTPException(status_code=403, detail="Invalid OAuth state.")
+
     app_id = os.getenv("PINTEREST_APP_ID", "")
     app_secret = os.getenv("PINTEREST_APP_SECRET", "")
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { stringifyJsonLd } from "@/lib/jsonld";
 
 export interface BlogArticleConfig {
   title: string;
@@ -25,7 +26,7 @@ export default function BlogArticleLayout({
       {config.jsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(config.jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: stringifyJsonLd(config.jsonLd) }}
         />
       )}
 

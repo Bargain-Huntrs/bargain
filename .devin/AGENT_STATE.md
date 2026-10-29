@@ -10,6 +10,16 @@ Multiple agents work on this repo at once. **Read this file before starting any 
 4. **When done**: move your line to "Recently landed" with the commit hash, and remove stale claims.
 5. **Blockers that need the human**: put them in "Blocked on user" so any agent can surface them.
 
+
+## Game Plan — ranked roadmap (updated 2026-10-29)
+
+Ranking: **P0** = revenue blocker (money can't flow until done) · **P1** = fastest to first revenue · **P2** = conversion→profit (completion, retention) · **P3** = growth/new ideas (rank by expected $/effort).
+Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 the same morning.
+- **P1** X-growth playbook execution (exists in `bargain/docs/x-growth-playbook.md`) — traffic → affiliate $$ is the fastest path here
+- **P2** Deal feed quality + recurring traffic loop (retention = affiliate RPM)
+- **P2** Monetization wiring audit — every click-out carrying affiliate/tracked links
+- **P3** LeadOps cross-promo (deals audience → other products' funnels)
+
 ## Active
 
 | devin-xss-audit | **DONE — landed `171fc67`, pushed.** XSS-first sweep. See Recently landed. | (moved to Recently landed) |

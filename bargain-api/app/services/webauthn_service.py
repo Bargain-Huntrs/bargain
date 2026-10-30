@@ -32,6 +32,7 @@ from webauthn.helpers.structs import (
     AuthenticatorAttachment,
     UserVerificationRequirement,
     PublicKeyCredentialDescriptor,
+    ResidentKeyRequirement,
 )
 
 from app.core.config import settings
@@ -84,6 +85,7 @@ def generate_registration_options(user_id: UUID, db: Session) -> str:
         user_display_name=user.full_name,
         authenticator_selection=AuthenticatorSelectionCriteria(
             authenticator_attachment=AuthenticatorAttachment.PLATFORM,
+            resident_key=ResidentKeyRequirement.REQUIRED,
             user_verification=UserVerificationRequirement.PREFERRED,
         ),
         exclude_credentials=exclude_credentials or None,

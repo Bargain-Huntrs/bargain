@@ -848,3 +848,33 @@ class DropshipChannelVote(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "channel", name="uq_dropship_chvote_user_channel"),
     )
+
+
+class WebAuthnCredential(Base):
+    """Per-device passkey — replaces the single users.credential_id columns."""
+
+    __tablename__ = "webauthn_credentials"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    credential_id = Column(String(255), unique=True, nullable=False, index=True)
+    public_key = Column(LargeBinary, nullable=False)
+    sign_count = Column(Integer, nullable=False, default=0)
+    aaguid = Column(String(64), nullable=True)
+    transports = Column(JSON, nullable=True)
+    device_name = Column(String(120), nullable=True)
+    backed_up = Column(Boolean, default=False)
+    last_used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WebAuthnChallenge(Base):
+    """DB-persisted ceremony challenges (survives restarts/multi-instance)."""
+
+    __tablename__ = "webauthn_challenges"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    key = Column(String(255), unique=True, nullable=False, index=True)  # reg:{uid} | auth:{email}
+    challenge = Column(LargeBinary, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

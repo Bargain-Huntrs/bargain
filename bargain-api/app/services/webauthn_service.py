@@ -20,9 +20,9 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from webauthn import (
-    generate_registration_options,
+    generate_registration_options as _gen_reg_options,
     verify_registration_response,
-    generate_authentication_options,
+    generate_authentication_options as _gen_auth_options,
     verify_authentication_response,
     options_to_json,
 )
@@ -36,7 +36,9 @@ from webauthn.helpers.structs import (
 )
 
 from app.core.config import settings
-from app.db.models import User
+from app.db.models import User, WebAuthnCredential, WebAuthnChallenge
+from app.db.session import engine
+from datetime import datetime, timedelta
 from app.routers.auth import create_access_token, create_refresh_token
 
 logger = logging.getLogger(__name__)
@@ -77,7 +79,7 @@ def generate_registration_options(user_id: UUID, db: Session) -> str:
             PublicKeyCredentialDescriptor(id=base64url_to_bytes(user.credential_id))
         )
 
-    options = generate_registration_options(
+    options = _gen_reg_options(
         rp_id=_rp_id(),
         rp_name=_rp_name(),
         user_name=user.email,
@@ -92,7 +94,7 @@ def generate_registration_options(user_id: UUID, db: Session) -> str:
     )
 
     # Store the challenge for verification in the next step.
-    _registration_challenges[str(user_id)] = options.challenge
+    _store_challenge(db, f'reg:{user_id}', options.challenge)
 
     return options_to_json(options)
 
@@ -112,7 +114,7 @@ def verify_registration(user_id: UUID, credential: str, db: Session) -> dict[str
     if user is None:
         raise ValueError("User not found")
 
-    challenge = _registration_challenges.pop(str(user_id), None)
+    challenge = _pop_challenge(db, f'reg:{user_id}')
     if challenge is None:
         raise ValueError("No pending registration challenge. Start registration again.")
 
@@ -123,8 +125,20 @@ def verify_registration(user_id: UUID, credential: str, db: Session) -> dict[str
         expected_origin=_origin(),
     )
 
-    # Store the credential on the user.
-    user.credential_id = bytes_to_base64url(verified.credential_id)
+    # Store per-device credential row; keep legacy user.* cols synced (the
+    # latest credential) for any surface still reading them.
+    cred_id_b64 = bytes_to_base64url(verified.credential_id)
+    _ensure_tables(db)
+    db.add(WebAuthnCredential(
+        user_id=user.id,
+        credential_id=cred_id_b64,
+        public_key=bytes(verified.credential_public_key),
+        sign_count=verified.sign_count,
+        aaguid=str(verified.aaguid) if getattr(verified, "aaguid", None) else None,
+        transports=[t.value for t in (verified.transports or [])] if getattr(verified, "transports", None) else None,
+        backed_up=bool(getattr(verified, "credential_backed_up", False)),
+    ))
+    user.credential_id = cred_id_b64
     user.public_key = verified.credential_public_key
     user.sign_count = verified.sign_count
     user.aaguid = str(verified.aaguid) if getattr(verified, "aaguid", None) else None
@@ -147,23 +161,28 @@ def generate_authentication_options(email: str, db: Session) -> str:
     user = db.query(User).filter(User.email == email).first()
     if user is None:
         # Don't leak whether the email exists — return generic options.
-        options = generate_authentication_options(rp_id=_rp_id())
-        _authentication_challenges[email] = options.challenge
+        options = _gen_auth_options(rp_id=_rp_id())
+        _store_challenge(db, f'auth:{email}', options.challenge)
         return options_to_json(options)
 
+    _ensure_tables(db)
+    seen = set()
     allow_credentials: list[PublicKeyCredentialDescriptor] = []
-    if user.credential_id:
+    for row in db.query(WebAuthnCredential).filter(WebAuthnCredential.user_id == user.id).all():
+        seen.add(row.credential_id)
+        allow_credentials.append(PublicKeyCredentialDescriptor(id=base64url_to_bytes(row.credential_id)))
+    if user.credential_id and user.credential_id not in seen:
         allow_credentials.append(
             PublicKeyCredentialDescriptor(id=base64url_to_bytes(user.credential_id))
         )
 
-    options = generate_authentication_options(
+    options = _gen_auth_options(
         rp_id=_rp_id(),
         allow_credentials=allow_credentials or None,
         user_verification=UserVerificationRequirement.PREFERRED,
     )
 
-    _authentication_challenges[email] = options.challenge
+    _store_challenge(db, f'auth:{email}', options.challenge)
     return options_to_json(options)
 
 
@@ -179,7 +198,7 @@ def verify_authentication(credential: str, email: str, db: Session) -> dict[str,
         Dict containing access/refresh tokens and the user, mirroring the
         password login response shape.
     """
-    challenge = _authentication_challenges.pop(email, None)
+    challenge = _pop_challenge(db, f'auth:{email}')
     if challenge is None:
         raise ValueError("No pending authentication challenge. Start login again.")
 
@@ -188,16 +207,36 @@ def verify_authentication(credential: str, email: str, db: Session) -> dict[str,
     if user is None or not user.credential_id or not user.public_key:
         raise ValueError("No passkey registered for this user")
 
+    # Resolve which credential was asserted — per-device row if present,
+    # legacy user.* columns otherwise.
+    import json as _json
+    cred_json = _json.loads(credential) if isinstance(credential, str) else credential
+    asserted_id = cred_json.get("id")
+    cred_row = None
+    _ensure_tables(db)
+    if asserted_id:
+        cred_row = db.query(WebAuthnCredential).filter(
+            WebAuthnCredential.credential_id == asserted_id,
+            WebAuthnCredential.user_id == user.id,
+        ).first()
+    public_key = bytes(cred_row.public_key) if cred_row else user.public_key
+    sign_count = cred_row.sign_count if cred_row else (user.sign_count or 0)
+    if not public_key:
+        raise ValueError("No passkey registered for this user")
+
     verified = verify_authentication_response(
         credential=credential,
         expected_challenge=challenge,
         expected_rp_id=_rp_id(),
         expected_origin=_origin(),
-        credential_public_key=user.public_key,
-        credential_current_sign_count=user.sign_count,
+        credential_public_key=public_key,
+        credential_current_sign_count=sign_count,
     )
 
     # Update the stored sign count to detect cloned authenticators.
+    if cred_row:
+        cred_row.sign_count = verified.new_sign_count
+        cred_row.last_used_at = datetime.utcnow()
     user.sign_count = verified.new_sign_count
     db.commit()
 

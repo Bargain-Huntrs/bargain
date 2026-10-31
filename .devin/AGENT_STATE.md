@@ -22,6 +22,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
+| devin-parity-matrix | 2026-10-31 — parity matrix: `/Volumes/Os_Sites/MOBILE_PARITY_MATRIX.md`. No bargain-mobile exists — OWNER DECISION NEEDED: real Expo app (push deal-alerts = killer feature, portfolio-shell clone) vs PWA vs stay web-only. |
+
 | devin-xss-audit | **DONE — landed `171fc67`, pushed.** XSS-first sweep. See Recently landed. | (moved to Recently landed) |
 
 | devin-perf-audit | **Perf + mobile audit — LANDED `6131e89` + swept-into `bc4b7d8`, pushed.** 22 files inputs <16px → text-base (login/signup/waitlist/contact/coupons/dashboard/admin); +9 files lazy-load deal-grid imgs (detail hero kept eager); +footer social icons 32→44px. ⚠️ SECOND BATCH SWEPT into another agent's commit bc4b7d8 (staged-index race — changes live, attribution wrong). Reported: 0 next/dynamic — @stripe/stripe-js statically bundled into /dropship via PoolPaymentSetup (lazy it); images.unoptimized:true so next/image adds nothing until that flips; 23/63 client pages incl. static /billing/cancel + thin tool-page wrappers → RSC candidates. | `bargain-web/**` |

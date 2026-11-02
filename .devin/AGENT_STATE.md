@@ -106,3 +106,4 @@ ack flag 4b1a777a9c7e (devin-mercury-ref — read; this task is a scoped placeme
 
 - Audited Stripe account via API (live key present in repo env). See portfolio report for cross-account details.
 - devin | pnpm-ONLY rule recorded globally + here — never npm/yarn, never package-lock/yarn.lock.
+- 2026-11-01 | devin-migrate bargain-api Render→opsbox COMPLETE: py3.12 uv venv (webauthn2.1/cbor2 5.6.5/cryptography 44 pins for macOS12), .env incl AWIN 2986011 creds, pm2 bargain-api :4035 healthy, AUTO_SCAN=true (startup-hang fix 7149bdc pushed), cf-tunnel-bargain e0a01d10 + DNS CNAME flipped — x-render header gone, api.bargainhuntrs.com/health 200 via tunnel. Render service now idle — safe to suspend/delete in dashboard. NEEDS: new Awin acct token→AWIN_API_TOKEN swap; Render cleanup. | ref: ~/apps/Bargain, pm2 bargain-api, ~/.cloudflared/config-bargain.yml

@@ -198,6 +198,8 @@ class ScanScheduler:
         await self._run_scan()
 
         while self._running:
+
+            await asyncio.sleep(0)
             # Calculate sleep time until next scan
             self._next_scan_at = datetime.utcnow() + timedelta(minutes=self.interval_minutes)
             sleep_seconds = self.interval_minutes * 60
@@ -223,6 +225,8 @@ class ScanScheduler:
         logger.info(f"Deal scrape + Buffer posting loop started (times: {post_times} {timezone})")
 
         while self._running:
+
+            await asyncio.sleep(0)
             sleep_seconds = self._seconds_until_next_post()
             logger.info(f"Next Buffer post in {sleep_seconds}s")
 
@@ -251,6 +255,8 @@ class ScanScheduler:
         logger.info("X engagement loop started (every 30min)")
 
         while self._running:
+
+            await asyncio.sleep(0)
             try:
                 from app.services.engagement_bot import run_engagement_cycle, is_configured
 
@@ -275,6 +281,8 @@ class ScanScheduler:
         logger.info("Resale repricing loop started (every 24h)")
 
         while self._running:
+
+            await asyncio.sleep(0)
             try:
                 await self._refresh_resale_listings()
                 self._last_resale_reprice_at = datetime.utcnow()
@@ -911,6 +919,7 @@ class ScanScheduler:
         """Background loop that sends the daily deal digest at 8 AM ET."""
         logger.info("Newsletter daily digest loop started (8 AM ET daily)")
         while self._running:
+            await asyncio.sleep(0)
             try:
                 now = datetime.utcnow()
                 # 8 AM ET = 12 PM UTC (during EDT) or 1 PM UTC (during EST)
@@ -941,6 +950,7 @@ class ScanScheduler:
         """Background loop that sends the weekly deal digest on Mondays at 9 AM ET."""
         logger.info("Newsletter weekly digest loop started (Mondays 9 AM ET)")
         while self._running:
+            await asyncio.sleep(0)
             try:
                 now = datetime.utcnow()
                 # Monday = 0, 9 AM ET ≈ 13 UTC (EDT) or 14 UTC (EST)
@@ -983,6 +993,8 @@ class ScanScheduler:
             return
 
         while self._running:
+
+            await asyncio.sleep(0)
             try:
                 await self._scrape_and_store_coupons()
                 self._last_coupon_scrape_at = datetime.utcnow()
@@ -1010,6 +1022,8 @@ class ScanScheduler:
             return
 
         while self._running:
+
+            await asyncio.sleep(0)
             db = SessionLocal()
             try:
                 stats = await aggregate_gsa_listings(db)

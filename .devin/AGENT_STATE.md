@@ -108,3 +108,8 @@ ack flag 4b1a777a9c7e (devin-mercury-ref — read; this task is a scoped placeme
 - devin | pnpm-ONLY rule recorded globally + here — never npm/yarn, never package-lock/yarn.lock.
 - 2026-10-31 | OWNER CONVENTION | **SI not AI** — write 'SI'/'SI agent' (Super Intelligence) in state notes + new user-facing naming. Code identifiers stay ai-*. Per owner directive.
 - 2026-11-01 | devin | Bargain verified live on opsbox: tunnel api.bargainhuntrs.com → uvicorn :4035 (bargain-api), current code, REAL data — /api/v1/listings serves GSA surplus auctions (Dell CPU $87/2 bids). Deploy_id reads stale 'bcrypt-fix-2026-07-08' but code is current e65c9cd. Mobile gap = full scaffold (no bargain-mobile). Pattern: reid-mobile thin-client clone → listings feed + watchlist + price alerts. Prefix = /api/v1/.
+
+## 2026-11-03 — SI transformation
+- Owner directive: all apps powered by **SI (Super Intelligence)**. SI Agents = the branded upgrade of AI agents.
+- Relabel user-facing AI→SI where natural (assistant names, feature labels, marketing); code identifiers/endpoints/env vars stay `ai-*` (brand layer only).
+- New features ship SI-first (Dexana's siEntry flag is the pattern). Every SI feature degrades gracefully when unconfigured.

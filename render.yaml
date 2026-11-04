@@ -17,7 +17,7 @@ services:
     autoDeploy: true
     envVars:
       - key: PORT
-        value: 4030
+        value: 4040
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: DATABASE_URL

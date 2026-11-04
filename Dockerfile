@@ -20,11 +20,11 @@ COPY bargain-api ./bargain-api
 RUN echo "Force rebuild for Render deployment - SQL echo fix"
 
 ENV PYTHONUNBUFFERED=1
-ENV PORT=4030
+ENV PORT=4040
 
 # Change to app directory before starting
 WORKDIR /app/bargain-api
 
-EXPOSE 4030
+EXPOSE 4040
 
-CMD ["sh", "-c", "cd /app/bargain-api && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-4030}"]
+CMD ["sh", "-c", "cd /app/bargain-api && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-4040}"]

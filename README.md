@@ -82,10 +82,10 @@ cd bargain-web
 pnpm run dev
 # Visit http://localhost:3030
 
-# Backend (FastAPI) - Port 4030
+# Backend (FastAPI) - Port 4040
 cd bargain-api
-uvicorn app.main:app --reload --host 0.0.0.0 --port 4030
-# Visit http://localhost:4030/docs for API docs
+uvicorn app.main:app --reload --host 0.0.0.0 --port 4040
+# Visit http://localhost:4040/docs for API docs
 ```
 
 ### Build
@@ -153,7 +153,7 @@ pnpm run format
 - **Database**: PostgreSQL (Render)
 - **ORM**: SQLAlchemy 2.0 (async)
 - **Authentication**: JWT (python-jose)
-- **Port**: 4030
+- **Port**: 4040
 - **Deployment**: Render
 - **Domain**: bargainhuntrs.com
 
@@ -177,7 +177,7 @@ Core tables (PostgreSQL):
 
 ### Frontend (.env.local)
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:4030
+NEXT_PUBLIC_API_URL=http://localhost:4040
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
@@ -205,7 +205,7 @@ pytest
 ## 📦 Deployment
 
 ### Current Deployment Architecture
-- **Backend**: Render (api.bargainhuntrs.com:4030)
+- **Backend**: Render (api.bargainhuntrs.com:4040)
 - **Frontend**: Render (bargain-web.onrender.com:3030)
 - **Package Manager**: pnpm 9.15.5 (PERMANENT - never use npm)
 
@@ -214,13 +214,13 @@ The backend is deployed on Render at api.bargainhuntrs.com.
 
 **Configuration:**
 - Root Directory: `bargain-api`
-- Port: 4030
+- Port: 4040
 - Domain: bargainhuntrs.com
 - Dockerfile: Root Dockerfile with Python 3.11
 
 **Environment Variables:**
 - `DATABASE_URL` (PostgreSQL connection string)
-- `PORT=4030`
+- `PORT=4040`
 
 ### Frontend Deployment (Render)
 The frontend is deployed on Render using the render.yaml configuration.

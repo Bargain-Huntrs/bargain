@@ -62,4 +62,4 @@ jobs:
         working-directory: bargain-web
         run: pnpm run build
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:4030
+          NEXT_PUBLIC_API_URL: http://localhost:4040

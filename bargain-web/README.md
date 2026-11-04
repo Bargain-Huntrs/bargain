@@ -10,7 +10,7 @@ Copy `.env.example` to `.env.local` and fill in the values:
 cp .env.example .env.local
 ```
 
-- `NEXT_PUBLIC_API_URL` — URL of the BargainHuntrs API (e.g., `http://localhost:4030` for local development).
+- `NEXT_PUBLIC_API_URL` — URL of the BargainHuntrs API (e.g., `http://localhost:4040` for local development).
 
 Optional:
 

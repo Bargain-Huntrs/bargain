@@ -33,12 +33,14 @@
 
 ### Backend: Render
 
-- Backend: Render (Docker-based, Python 3.11, port 4030)
+- Backend: Render (Docker-based, Python 3.11, port 4040)
 - Database: Render PostgreSQL
 - Backend URL: `https://api.bargainhuntrs.com`
 - Frontend URL: `https://bargainhuntrs.com`
 - Configured via `Dockerfile` (backend) and `render.yaml` (backend only)
 - Render auto-deploys from `main` branch
+- **Port is 4040** — renumbered off 4030 (si-gateway) / 4035 (reid-api) which are taken on the oracle box
+- **AI endpoints need env on Render:** set `AI_BASE_URL=https://si.primetransit.com/v1`, `AI_API_KEY=<SI gateway gate key — get from ops>`, `AI_MODEL=si` (`AI_TIMEOUT_SECONDS=30` optional) — without `AI_API_KEY` every `/api/v1/ai/*` endpoint returns 503
 
 ## SQL Logging
 

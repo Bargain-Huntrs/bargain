@@ -13,7 +13,7 @@ Frontend: Cloudflare Workers (OpenNext)
   - NOTE: the old Render bargain-web service is SUSPENDED — do not redeploy
 
 Backend: Render
-  - FastAPI on port 4030
+  - FastAPI on port 4040
   - api.bargainhuntrs.com → CNAME → bargain-api-1o0n.onrender.com
   - IMPORTANT: the real Render origin is bargain-api-1o0n.onrender.com
     (Render appends a random suffix to service subdomains).
@@ -32,15 +32,16 @@ The backend is deployed and operational at api.bargainhuntrs.com.
 
 ### Configuration
 - **Root Directory**: `bargain-api`
-- **Port**: 4030
+- **Port**: 4040
 - **Domain**: api.bargainhuntrs.com
 - **Dockerfile**: Root Dockerfile with Python 3.11
 - **Healthcheck**: `/health` endpoint
 
 ### Environment Variables
-- `PORT=4030`
+- `PORT=4040`
 - `DATABASE_URL` (Render PostgreSQL connection string)
 - `SQL_ECHO=false` (keep SQL logging off in production)
+- `AI_BASE_URL=https://si.primetransit.com/v1`, `AI_API_KEY=<SI gateway gate key — get from ops>`, `AI_MODEL=si` — required or all `/api/v1/ai/*` endpoints return 503
 
 ### To Update Backend
 ```bash
@@ -93,7 +94,7 @@ git push origin main
 
 ### 2. Port Configuration
 - **Frontend**: Port 3030 (permanent)
-- **Backend**: Port 4030 (permanent)
+- **Backend**: Port 4040 (permanent)
 - Never change these ports
 
 ### 3. Corepack for pnpm
@@ -133,7 +134,7 @@ git push origin main
 ### Backend Deployment Issues
 
 **Healthcheck Failing:**
-- Check port is set to 4030 in Render dashboard
+- Check port is set to 4040 in Render dashboard
 - Verify `/health` endpoint exists in FastAPI app
 - Check Render logs for startup errors
 
@@ -169,10 +170,10 @@ cd bargain-web
 pnpm run dev
 # Visit http://localhost:3030
 
-# Backend (port 4030)
+# Backend (port 4040)
 cd bargain-api
-uvicorn app.main:app --reload --host 0.0.0.0 --port 4030
-# Visit http://localhost:4030
+uvicorn app.main:app --reload --host 0.0.0.0 --port 4040
+# Visit http://localhost:4040
 ```
 
 ### Production URLs
@@ -186,7 +187,7 @@ For deployment issues:
 1. Check Render dashboard logs
 2. Verify environment variables are correctly set
 3. Ensure pnpm is being used (not npm)
-4. Check port configurations (3030/4030)
+4. Check port configurations (3030/4040)
 5. Review this documentation for common issues
 
 ---

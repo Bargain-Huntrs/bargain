@@ -16,8 +16,8 @@
                                  │
                                  ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    FastAPI Backend (Railway)                     │
-│                    bargainhuntrs.com:4030                         │
+│                    FastAPI Backend (Render)                     │
+│                    bargainhuntrs.com:4040                         │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │  │
 │  │  │   Auth   │  │  Alerts  │  │ Pricing  │  │ Payments │  │  │
@@ -32,7 +32,7 @@
 │                      External Services                            │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
 │  │PostgreSQL│  │ Supabase │  │  Stripe  │  │ Resend   │        │
-│  │(Railway) │  │ Storage  │  │ Payments │  │  Email   │        │
+│  │(Render) │  │ Storage  │  │ Payments │  │  Email   │        │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐                      │
 │  │ Firebase │  │ Retailer │  │  Price   │                      │
@@ -54,12 +54,12 @@
 
 ### Backend (bargain-api)
 - **Framework**: FastAPI
-- **Database**: PostgreSQL (Railway)
+- **Database**: PostgreSQL (Render)
 - **ORM**: SQLAlchemy 2.0 (async)
 - **Authentication**: JWT tokens
 - **Task Queue**: Celery + Redis (future)
-- **Port**: 4030
-- **Deployment**: Railway
+- **Port**: 4040
+- **Deployment**: Render
 - **Domain**: bargainhuntrs.com
 
 ### Database Schema
@@ -224,4 +224,4 @@ CREATE TABLE watchlist_items (
 - Error tracking: Sentry (future)
 - Performance monitoring: New Relic (future)
 - Uptime monitoring: UptimeRobot (future)
-- Database monitoring: Railway built-in metrics
+- Database monitoring: Render built-in metrics

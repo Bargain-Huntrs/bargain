@@ -271,8 +271,9 @@ class Settings(BaseSettings):
         "video_games",
     ]
 
-    # Render sets PORT automatically; Railway vars kept for backward compat
-    PORT: int = 4030
+    # Render sets PORT automatically; Railway vars kept for backward compat.
+    # Default 4040 — 4030 is si-gateway and 4035 is reid-api on the oracle box.
+    PORT: int = 4040
     RAILWAY_ENVIRONMENT: Optional[str] = None  # legacy, no longer used on Render
     RAILWAY_PROJECT_NAME: Optional[str] = None  # legacy, no longer used on Render
     RAILWAY_SERVICE_NAME: Optional[str] = None  # legacy, no longer used on Render

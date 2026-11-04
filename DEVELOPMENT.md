@@ -41,8 +41,8 @@ DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/bargainhuntrs
 SECRET_KEY=dev-secret-key-change-in-production
 ```
 
-### 5. Database Setup (Railway)
-1. Create Railway account
+### 5. Database Setup (Render)
+1. Create Render account
 2. Create new PostgreSQL project
 3. Copy connection string to `.env`
 
@@ -70,12 +70,12 @@ pnpm run dev
 # Visit http://localhost:3030
 ```
 
-**Backend (Port 4030):**
+**Backend (Port 4040):**
 ```bash
 cd bargain-api
 source venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 4030
-# Visit http://localhost:4030/docs for API docs
+uvicorn app.main:app --reload --host 0.0.0.0 --port 4040
+# Visit http://localhost:4040/docs for API docs
 ```
 
 ## Common Tasks
@@ -139,8 +139,8 @@ const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/endpoint
 # Kill process on port 3030 (frontend)
 lsof -ti:3030 | xargs kill -9
 
-# Kill process on port 4030 (backend)
-lsof -ti:4030 | xargs kill -9
+# Kill process on port 4040 (backend)
+lsof -ti:4040 | xargs kill -9
 ```
 
 ### Python Virtual Environment Issues
@@ -163,23 +163,23 @@ pnpm install
 ## Production Deployment
 
 ### Current Deployment Architecture
-- **Backend**: Railway (bargainhuntrs.com:4030)
+- **Backend**: Render (bargainhuntrs.com:4040)
 - **Frontend**: Render (bargain-web.onrender.com:3030)
 - **Package Manager**: pnpm 9.15.5 (PERMANENT)
 
-### Backend Deployment (Railway)
-The backend is already deployed on Railway.
+### Backend Deployment (Render)
+The backend is already deployed on Render.
 
 **Configuration:**
 - Root Directory: `bargain-api`
-- Port: 4030
+- Port: 4040
 - Domain: bargainhuntrs.com
 - Dockerfile: Root Dockerfile with Python 3.11
 
 **To update:**
 ```bash
 git push origin main
-# Railway auto-deploys from main branch
+# Render auto-deploys from main branch
 ```
 
 ### Frontend Deployment (Render)

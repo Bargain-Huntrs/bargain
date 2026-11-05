@@ -297,7 +297,7 @@ class NotificationLog(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     deal_id = Column(UUID(as_uuid=True), ForeignKey("arbitrage_deals.id"), nullable=True)
-    asin = Column(String(20), index=True)
+    asin = Column(String(100), index=True)  # non-Amazon pseudo-ids (impact_*, awin_*) run 24-36 chars
     channel = Column(String(50), nullable=False)  # discord, telegram, twitter, facebook, sms, email, dashboard
     recipient = Column(String(255))  # phone number, chat id, handle, email
     message = Column(String)
@@ -317,7 +317,7 @@ class AffiliateClick(Base):
     retailer = Column(String(50))  # amazon, ebay, walmart, etc.
     original_url = Column(Text)
     affiliate_url = Column(Text)
-    asin = Column(String(20), nullable=True, index=True)
+    asin = Column(String(100), nullable=True, index=True)  # impact_*/affiliate pseudo-ids exceed 20 chars — varchar(20) silently killed click rows on commit
     clicked_at = Column(DateTime, default=datetime.utcnow, index=True)
     converted = Column(Boolean, default=False)  # Updated later via affiliate API
     commission_earned = Column(Float, default=0.0)

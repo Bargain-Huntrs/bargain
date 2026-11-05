@@ -459,6 +459,27 @@ class ScanScheduler:
                 except Exception as e:
                     logger.error(f"Impact scrape failed: {e}")
 
+            # Affiliate networks (Rakuten, Awin, CJ, Skimlinks) — previously only
+            # reachable via the manual /deals/scrape-all/public endpoint, so
+            # configured-network deals never flowed on a schedule. Only networks
+            # with credentials in env are fetched.
+            try:
+                from app.services.affiliate_networks import (
+                    fetch_all_affiliate_deals,
+                    get_configured_networks,
+                    save_affiliate_deals_to_database,
+                )
+
+                if get_configured_networks():
+                    affiliate_deals = await fetch_all_affiliate_deals()
+                    affiliate_saved = save_affiliate_deals_to_database(affiliate_deals, db)
+                    logger.info(
+                        f"Affiliate networks ({','.join(get_configured_networks())}): "
+                        f"{len(affiliate_deals)} found, {affiliate_saved} saved"
+                    )
+            except Exception as e:
+                logger.error(f"Affiliate network scrape failed: {e}")
+
             # Expire deals older than 48 hours that haven't been posted
             cutoff = datetime.utcnow() - timedelta(hours=48)
             expired = db.query(ArbitrageDeal).filter(

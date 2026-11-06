@@ -199,7 +199,7 @@ class ArbitrageDeal(Base):
     asin = Column(String(100), nullable=False, index=True)
     title = Column(String(500), nullable=False)
     image_url = Column(String(1000))
-    buy_url = Column(String(1000))
+    buy_url = Column(Text)
     buy_platform = Column(String(50), default="amazon")
     retailer = Column(String(100), default="amazon", index=True)  # amazon, home_depot, ace_hardware, corsair, etc.
     deal_source = Column(String(20), default="online")  # online, in_store
@@ -548,7 +548,7 @@ class DealClaim(Base):
     deal_id = Column(UUID(as_uuid=True), ForeignKey("arbitrage_deals.id"), index=True)  # null = manual entry
     title = Column(String(500), nullable=False)
     image_url = Column(String(1000))
-    buy_url = Column(String(1000))
+    buy_url = Column(Text)
     buy_platform = Column(String(50))
     sell_platform = Column(String(50))
     quantity = Column(Integer, default=1, nullable=False)

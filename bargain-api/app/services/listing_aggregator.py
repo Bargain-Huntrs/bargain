@@ -244,21 +244,31 @@ async def aggregate_gsa_listings(db: Session) -> dict:
                     break
                 await asyncio.sleep(1.0)  # politeness between pages
 
-    # Deactivate GSA rows that vanished from both feeds
-    stale = (
-        db.query(Listing)
-        .filter(
-            Listing.source == GSA_SOURCE,
-            Listing.is_active == True,  # noqa: E712
+    # Deactivate GSA rows that vanished from both feeds — but only when the
+    # run actually fetched lots. If every page errored (403/timeout outage),
+    # seen_ids is empty and the pass below would mark EVERY active gsa_auctions
+    # row inactive, emptying the listings feed until the next good run.
+    if stats["fetched"] == 0:
+        logger.warning(
+            "GSA aggregation fetched 0 lots (errors=%s) — skipping "
+            "deactivation pass to avoid wiping the listings feed",
+            stats["errors"],
         )
-        .all()
-    )
-    for listing in stale:
-        if listing.source_id not in seen_ids:
-            listing.is_active = False
-            listing.updated_at = now
-            stats["deactivated"] += 1
-    db.commit()
+    else:
+        stale = (
+            db.query(Listing)
+            .filter(
+                Listing.source == GSA_SOURCE,
+                Listing.is_active == True,  # noqa: E712
+            )
+            .all()
+        )
+        for listing in stale:
+            if listing.source_id not in seen_ids:
+                listing.is_active = False
+                listing.updated_at = now
+                stats["deactivated"] += 1
+        db.commit()
 
     logger.info(f"GSA aggregation complete: {stats}")
     return stats

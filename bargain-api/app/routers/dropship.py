@@ -198,7 +198,7 @@ def _seed(db: Session) -> None:
         if not prod:
             continue
         notes = (
-            "AI deal sheet — bulk rate negotiated below single-unit wholesale. "
+            "SI deal sheet — bulk rate negotiated below single-unit wholesale. "
             "Hunters buy and own their units; each resells on their own store."
         )
         if origin == "china":

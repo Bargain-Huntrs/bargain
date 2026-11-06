@@ -143,7 +143,7 @@ export default function AmazonArbitrageGuide() {
           <h3>Step 4: List and Sell</h3>
           <p>
             List the product on Amazon, eBay, Facebook Marketplace, or wherever you plan to sell.
-            Use the <Link href="/tools/listing-generator" className="text-blue-600 hover:text-blue-700">AI
+            Use the <Link href="/tools/listing-generator" className="text-blue-600 hover:text-blue-700">SI
             listing generator</Link> to create optimized listings with SEO-friendly titles and
             descriptions.
           </p>
@@ -186,7 +186,7 @@ export default function AmazonArbitrageGuide() {
           <ul>
             <li><Link href="/" className="text-blue-600 hover:text-blue-700">BargainHuntrs</Link> — Deal scanner and alert system</li>
             <li><Link href="/tools/profit-calculator" className="text-blue-600 hover:text-blue-700">Profit Calculator</Link> — Calculate ROI and fees</li>
-            <li><Link href="/tools/listing-generator" className="text-blue-600 hover:text-blue-700">AI Listing Generator</Link> — Create resale listings</li>
+            <li><Link href="/tools/listing-generator" className="text-blue-600 hover:text-blue-700">SI Listing Generator</Link> — Create resale listings</li>
             <li>Amazon Seller App — Scan barcodes and check BSR</li>
             <li>Keepa or CamelCamelCamel — Track Amazon price history</li>
           </ul>
@@ -212,7 +212,7 @@ export default function AmazonArbitrageGuide() {
             <li><Link href="/guides/retail-arbitrage-for-beginners" className="text-blue-600 hover:text-blue-700">Retail Arbitrage for Beginners</Link></li>
             <li><Link href="/guides/best-times-to-find-deals" className="text-blue-600 hover:text-blue-700">Best Times to Find Deals Online</Link></li>
             <li><Link href="/tools/profit-calculator" className="text-blue-600 hover:text-blue-700">Profit Calculator</Link></li>
-            <li><Link href="/tools/listing-generator" className="text-blue-600 hover:text-blue-700">AI Listing Generator</Link></li>
+            <li><Link href="/tools/listing-generator" className="text-blue-600 hover:text-blue-700">SI Listing Generator</Link></li>
           </ul>
         </div>
       </main>

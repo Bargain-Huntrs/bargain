@@ -149,7 +149,7 @@ export default function BestTimesGuide() {
             <li>Price glitch detection (75%+ discounts)</li>
             <li>Email and push notification alerts</li>
             <li>Profit calculator for arbitrage sellers</li>
-            <li>AI-powered resale listing generator</li>
+            <li>SI-powered resale listing generator</li>
           </ul>
           <div className="mt-8 rounded-xl bg-blue-50 p-6 dark:bg-blue-950">
             <p className="text-center">

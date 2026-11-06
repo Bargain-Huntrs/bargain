@@ -125,6 +125,9 @@ export default function Footer() {
               &copy; {year} BargainHuntrs, Inc. All rights reserved.
             </p>
             <p className="text-xs text-zinc-400 dark:text-zinc-600">
+              Powered by SI — Super Intelligence
+            </p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-600">
               Not affiliated with Amazon, eBay, Walmart, or any tracked retailer.
             </p>
           </div>

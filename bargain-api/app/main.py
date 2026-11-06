@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # export .env into os.environ for os.getenv callers (cron secret, scrape gates)
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

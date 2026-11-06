@@ -195,7 +195,7 @@ export default function PriceGlitchGuide() {
             you buy.
           </p>
           <p>
-            You can also use the <Link href="/tools/listing-generator" className="text-blue-600 hover:text-blue-700">AI
+            You can also use the <Link href="/tools/listing-generator" className="text-blue-600 hover:text-blue-700">SI
             listing generator</Link> to create optimized resale listings for eBay, Facebook
             Marketplace, and other platforms.
           </p>

@@ -59,7 +59,7 @@ export default function AiVerdict({ dealId }: { dealId: string }) {
       setVerdict(await getAiDealVerdict(idToken, dealId));
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "AI verdict unavailable right now"
+        err instanceof Error ? err.message : "SI verdict unavailable right now"
       );
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ export default function AiVerdict({ dealId }: { dealId: string }) {
           disabled={loading || authLoading}
           className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950"
         >
-          {loading ? "Analyzing…" : "✨ Get AI Verdict"}
+          {loading ? "Analyzing…" : "✨ Get SI Verdict"}
         </button>
       ) : (
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/60">

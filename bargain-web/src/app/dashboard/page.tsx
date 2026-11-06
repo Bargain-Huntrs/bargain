@@ -1178,7 +1178,7 @@ export default function DashboardPage() {
                         Open the Dropship board →
                       </p>
                       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                        Live pools, AI deal sheets, US-warehouse catalog — all in one place.
+                        Live pools, SI deal sheets, US-warehouse catalog — all in one place.
                       </p>
                     </div>
                     <span className="text-2xl">📦</span>

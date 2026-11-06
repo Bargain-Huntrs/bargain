@@ -37,7 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
     href: "/dropship",
     children: [
       { href: "/dropship", label: "Pool Board", desc: "Group-buy deals — commit units, hit bulk rates" },
-      { href: "/dropship", label: "US-Warehouse Catalog", desc: "AI-curated products, 2–7 day shipping" },
+      { href: "/dropship", label: "US-Warehouse Catalog", desc: "SI-curated products, 2–7 day shipping" },
       { href: "/dashboard", label: "My Pool Units", desc: "Your committed units — Hunter HQ" },
     ],
   },

@@ -109,7 +109,7 @@ export default function DealAssistant() {
               🤖 Deal Assistant
             </p>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-              Ask for deals in plain English — powered by live deal data.
+              Ask for deals in plain English — SI-powered answers from live deal data.
             </p>
           </div>
 

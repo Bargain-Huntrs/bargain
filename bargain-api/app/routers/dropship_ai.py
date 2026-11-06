@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/dropship", tags=["dropship-ai"])
 
-PAID_DETAIL = "Pools are a Hunter-tier feature. Upgrade to see AI reads."
+PAID_DETAIL = "Pools are a Hunter-tier feature. Upgrade to see SI reads."
 
 
 def _paid(user: User) -> bool:

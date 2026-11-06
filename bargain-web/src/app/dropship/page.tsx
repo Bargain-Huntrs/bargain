@@ -246,7 +246,7 @@ function PoolCard({
               }}
               className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
-              {aiLoading ? "Reading pool…" : aiError ? "AI read failed — retry" : "✦ AI read"}
+              {aiLoading ? "Reading pool…" : aiError ? "SI read failed — retry" : "✦ SI read"}
             </button>
           ) : (
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/50">
@@ -263,7 +263,7 @@ function PoolCard({
                   {aiRead.verdict} · {aiRead.score}/100
                 </span>
                 <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-400">
-                  {aiRead.ai ? "AI" : "rule-based"}
+                  {aiRead.ai ? "SI" : "rule-based"}
                 </span>
               </div>
               <p className="mt-2 text-xs leading-snug text-zinc-700 dark:text-zinc-300">
@@ -517,7 +517,7 @@ export default function DropshipPage() {
             Group buying power, solo dropship economics.
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-            AI curates US-warehouse products and posts a deal sheet — bulk cost, target sell price,
+            SI curates US-warehouse products and posts a deal sheet — bulk cost, target sell price,
             estimated margin. Commit units with other hunters to hit the wholesale rate; your units
             are yours, you resell them on your own store.
           </p>
@@ -641,7 +641,7 @@ export default function DropshipPage() {
                 Picked for your niche{curated.niches ? "s" : ""}
               </h2>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {curated.ai ? "✦ AI-curated" : "ranked by margin + trend"}
+                {curated.ai ? "✦ SI-curated" : "ranked by margin + trend"}
               </p>
             </div>
             <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

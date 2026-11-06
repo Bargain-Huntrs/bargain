@@ -244,6 +244,8 @@ async def fetch_awin_promotions(max_results: int = 200) -> list[AffiliateDeal]:
     Uses POST /publisher/{publisherId}/promotions (Awin's correct endpoint).
     Fetches promotions from joined advertisers, filtering client-side
     since the API's advertiserIds filter doesn't reliably work.
+    Region-filtered to AWIN_REGIONS (default US) — the feed is EU/IT-heavy
+    but bargainhuntrs.com is a US site.
     """
     if not _awin_configured():
         logger.info("Awin not configured — skipping")
@@ -252,19 +254,34 @@ async def fetch_awin_promotions(max_results: int = 200) -> list[AffiliateDeal]:
     token = get_affiliate_config("AWIN_API_TOKEN")
     publisher_id = get_affiliate_config("AWIN_PUBLISHER_ID")
     deals: list[AffiliateDeal] = []
+    joined_passed = 0
+    region_filtered = 0
+
+    # Allowed advertiser regions — comma-separated ISO Alpha-2 codes,
+    # DB-overridable like every other affiliate setting.
+    allowed_regions = {
+        r.strip().upper()
+        for r in (get_affiliate_config("AWIN_REGIONS") or "US").split(",")
+        if r.strip()
+    }
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # First, get joined advertiser IDs
+            # First, get joined advertiser IDs + their primary regions
             prog_url = f"{AWIN_API_BASE}/publishers/{publisher_id}/programmes"
             prog_params = {"accessToken": token, "relationship": "joined"}
             joined_ids: set[int] = set()
+            advertiser_regions: dict[int, str] = {}
             try:
                 prog_resp = await client.get(prog_url, params=prog_params)
                 if prog_resp.status_code == 200:
                     programmes = prog_resp.json()
                     if isinstance(programmes, list):
                         joined_ids = {p.get("id") for p in programmes if p.get("id")}
+                        for p in programmes:
+                            region = (p.get("primaryRegion") or {}).get("countryCode")
+                            if p.get("id") and region:
+                                advertiser_regions[p["id"]] = region.upper()
                         logger.info(f"Awin: {len(joined_ids)} joined advertisers")
             except Exception as e:
                 logger.warning(f"Awin programmes fetch failed: {e}")
@@ -318,6 +335,34 @@ async def fetch_awin_promotions(max_results: int = 200) -> list[AffiliateDeal]:
                     # joining more programmes, not widening the net.
                     if not advertiser_info.get("joined"):
                         continue
+                    joined_passed += 1
+
+                    # REGION FILTER — keep only promos whose advertiser's
+                    # primaryRegion (from the joined-programmes call) is in
+                    # AWIN_REGIONS. Unknown region (programmes fetch failed
+                    # or advertiser missing) fails open so a lookup outage
+                    # doesn't zero the feed.
+                    adv_region = advertiser_regions.get(advertiser_id)
+                    if adv_region and adv_region not in allowed_regions:
+                        region_filtered += 1
+                        continue
+
+                    # Promo-level region targeting — when Awin scopes a
+                    # promotion to specific regions (regions.all=false +
+                    # regions.list), require overlap with AWIN_REGIONS.
+                    promo_regions = promo.get("regions") or {}
+                    if promo_regions.get("all") is False:
+                        promo_region_codes = {
+                            (r.get("countryCode") or "").upper()
+                            for r in promo_regions.get("list") or []
+                        }
+                        if (
+                            allowed_regions
+                            and promo_region_codes
+                            and promo_region_codes.isdisjoint(allowed_regions)
+                        ):
+                            region_filtered += 1
+                            continue
 
                     retailer = _normalize_retailer(advertiser_name)
 
@@ -361,7 +406,11 @@ async def fetch_awin_promotions(max_results: int = 200) -> list[AffiliateDeal]:
             seen_urls.add(deal.deal_url)
             unique_deals.append(deal)
 
-    logger.info(f"Awin: {len(unique_deals)} promotions fetched (from {len(deals)} raw, deduped)")
+    logger.info(
+        f"Awin: {len(unique_deals)} promotions fetched (from {len(deals)} raw, deduped; "
+        f"{joined_passed} joined, {region_filtered} dropped by region filter "
+        f"{sorted(allowed_regions)})"
+    )
     return unique_deals
 
 

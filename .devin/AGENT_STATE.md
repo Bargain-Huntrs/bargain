@@ -22,6 +22,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
+| devin-awin-region | 2026-11-21 — **IN PROGRESS** — Awin feed region filter: `fetch_awin_promotions` pulls all-region promos (EU/IT-heavy) but bargainhuntrs.com is US. Adding `AWIN_REGIONS` settings var (default `US`) + advertiser `primaryRegion` filter + promo-level `regions` check in `fetch_awin_promotions`. Deploy: scp to oracle, pm2 restart. | `bargain-api/app/services/affiliate_networks.py`, `bargain-api/app/core/config.py`, `bargain-api/.env.example`, `.devin/AGENT_STATE.md` |
+
 | devin-affiliate-join | 2026-11-06 — **IN PROGRESS** — activate every pending affiliate network. Reconstruct + land DB-backed `affiliate_settings` path (was uncommitted on now-unmounted /Volumes checkout — recovered by hand), deploy to oracle prod (uvicorn :4035 behind cloudflared — Render is stale), verify seeded CJ + Rakuten-OAuth creds, headless Awin Zlike Hair invite accept (merchant 102013), check ShareASale/FlexOffers/Pepperjam application status, e2e click-out verification. | `bargain-api/app/services/{affiliate_config,affiliate_networks,affiliate_service}.py`, `app/{core/config,routers/arbitrage,services/scheduler}.py`, `alembic/versions/036*`, prod DB (Supabase), oracle `~/apps/Bargain`, `.devin/*` |
 
 | devin-seo-sweep | 2026-11-21 — full SEO audit + cheap fixes (metadata/sitemap/robots/JSON-LD/canonicals) + `docs/SEO_MARKETING_STRATEGY.md` — touching `bargain-web/src/app/**` (metadata only), `src/app/{sitemap.ts,robots.ts,layout.tsx}`, `docs/SEO_MARKETING_STRATEGY.md`, `.devin/AGENT_STATE.md`. |

@@ -242,6 +242,10 @@ class Settings(BaseSettings):
     # Awin (https://ui.awin.com/publisher-signup/en)
     AWIN_API_TOKEN: str = ""
     AWIN_PUBLISHER_ID: str = ""
+    # Comma-separated ISO Alpha-2 country codes — fetch_awin_promotions keeps
+    # only promos whose advertiser primaryRegion is in this list (the feed is
+    # EU/IT-heavy but bargainhuntrs.com is a US site).
+    AWIN_REGIONS: str = "US"
 
     # CJ Affiliate (https://signup.cj.com)
     CJ_ACCESS_TOKEN: str = ""

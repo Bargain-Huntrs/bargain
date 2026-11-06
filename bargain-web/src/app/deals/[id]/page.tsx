@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import DealPageClient from "../detail/DealPageClient";
 import { getPublicDeal } from "@/lib/api";
 import { retailerName } from "@/lib/seo-helpers";
+import { stringifyJsonLd } from "@/lib/jsonld";
 
 // Dynamic deal detail route: /deals/:id
 // Static sibling routes (today, best, calendar, etc.) take precedence over this
@@ -69,6 +70,62 @@ export async function generateMetadata({
   }
 }
 
-export default function DealByIdPage() {
-  return <DealPageClient />;
+// Server-rendered Product JSON-LD — the same fetch as generateMetadata is
+// deduped by Next within the request, so this costs no extra API call and
+// puts the schema in the initial HTML (the client component only renders
+// deal data after hydration).
+export default async function DealByIdPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  let productJsonLd: Record<string, unknown> | null = null;
+  try {
+    const deal = await getPublicDeal(id);
+    const retailer = retailerName(deal.retailer);
+    const savings =
+      deal.historical_avg && deal.historical_avg > deal.buy_price
+        ? deal.historical_avg - deal.buy_price
+        : null;
+    productJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: deal.title,
+      image: deal.image_url ? [deal.image_url] : undefined,
+      description: savings
+        ? `$${deal.buy_price.toFixed(2)} (was $${deal.historical_avg!.toFixed(
+            2,
+          )}) at ${retailer}. Save $${savings.toFixed(2)}.`
+        : `$${deal.buy_price.toFixed(2)} at ${retailer}.`,
+      brand: { "@type": "Brand", name: retailer },
+      offers: {
+        "@type": "Offer",
+        price: deal.buy_price.toFixed(2),
+        priceCurrency: "USD",
+        url: deal.buy_url || `https://www.bargainhuntrs.com/deals/${deal.id}`,
+        availability:
+          deal.status === "active"
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+        priceValidUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+      },
+    };
+  } catch {
+    productJsonLd = null;
+  }
+
+  return (
+    <>
+      {productJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: stringifyJsonLd(productJsonLd) }}
+        />
+      )}
+      <DealPageClient />
+    </>
+  );
 }

@@ -9,7 +9,6 @@ import PriceHistoryChart from "@/components/PriceHistoryChart";
 import AiVerdict from "@/components/AiVerdict";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 import { getPublicDeal, reportDeadDeal, type ArbitrageDeal } from "@/lib/api";
-import { stringifyJsonLd } from "@/lib/jsonld";
 
 function retailerName(retailer?: string): string {
   if (!retailer) return "Amazon";
@@ -134,33 +133,8 @@ export default function DealPageClient() {
   // was stored untagged by the scraper.
   const clickUrl = `/d/${deal.id}?utm_source=bargainhuntrs&utm_medium=deal_page&utm_campaign=deal_detail`;
 
-  const dealDescription = savings
-    ? `$${deal.buy_price.toFixed(2)} (was $${deal.historical_avg!.toFixed(2)}) at ${retailer}. Save $${savings.toFixed(2)}.`
-    : `$${deal.buy_price.toFixed(2)} at ${retailer}.`;
-
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: deal.title,
-    image: deal.image_url ? [deal.image_url] : undefined,
-    description: dealDescription,
-    brand: { "@type": "Brand", name: retailer },
-    offers: {
-      "@type": "Offer",
-      price: deal.buy_price.toFixed(2),
-      priceCurrency: "USD",
-      url: deal.buy_url || `https://www.bargainhuntrs.com/deals/${deal.id}`,
-      availability: deal.status === "active" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      priceValidUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    },
-  };
-
   return (
     <div className="flex flex-col min-h-full bg-white dark:bg-zinc-950">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(productJsonLd) }}
-      />
       <Header />
 
       <main className="flex-1 px-6 py-10">

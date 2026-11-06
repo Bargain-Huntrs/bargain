@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HomePageContent from "@/app/HomePageContent";
+import { stringifyJsonLd } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
   title: "BargainHuntrs — Find It, Flip It, Profit | Deal Discovery & Arbitrage",
@@ -27,6 +28,23 @@ const jsonLd = {
   ],
 };
 
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "BargainHuntrs",
+  url: "https://www.bargainhuntrs.com",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      // /deals reads the ?q= param into its search box — a real search page.
+      urlTemplate:
+        "https://www.bargainhuntrs.com/deals?q={search_term_string}",
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
+
 const dealsJsonLd = {
   "@context": "https://schema.org",
   "@type": "ItemList",
@@ -41,11 +59,15 @@ export default function HomePage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(jsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(dealsJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(websiteJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(dealsJsonLd) }}
       />
       <HomePageContent />
     </>

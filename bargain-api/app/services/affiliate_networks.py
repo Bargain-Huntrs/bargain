@@ -237,13 +237,12 @@ async def fetch_awin_promotions(max_results: int = 200) -> list[AffiliateDeal]:
                     if not title or not deal_url:
                         continue
 
-                    # If the advertiser is joined, always include.
-                    # If not joined, still include — Awin tracking links work
-                    # for any advertiser, and the promotions API already
-                    # returns offers visible to this publisher account.
-                    # (Previously filtered to joined only, but the 7 joined
-                    # advertisers rarely have active promotions, yielding 0
-                    # deals. Allowing all promotions gives access to 33K+.)
+                    # JOINED ONLY — owner directive 2026-11-06: non-joined
+                    # advertisers can't pay commission, so their promos are
+                    # filler, not deals. Skip them; the fix for low volume is
+                    # joining more programmes, not widening the net.
+                    if not advertiser_info.get("joined"):
+                        continue
 
                     retailer = _normalize_retailer(advertiser_name)
 

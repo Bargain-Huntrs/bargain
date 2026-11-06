@@ -20,6 +20,12 @@ depends_on = None
 
 
 def upgrade():
+    # Idempotent: the lazy-create path may have already made this table
+    # (e.g. seeded directly against prod). Skip instead of failing the boot.
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "affiliate_settings" in inspector.get_table_names():
+        return
     op.create_table(
         "affiliate_settings",
         sa.Column("key", sa.Text(), primary_key=True),

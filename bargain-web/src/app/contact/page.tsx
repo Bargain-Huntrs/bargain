@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Contact Us – BargainHuntrs",
   description:
     "Questions, partnerships, press, or support — get in touch with the BargainHuntrs team. We respond within 24 hours on business days.",
+  alternates: { canonical: "/contact" },
 };
 
 const channels = [

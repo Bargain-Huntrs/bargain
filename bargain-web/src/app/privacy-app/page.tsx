@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "Mobile App Privacy Policy – BargainHuntrs",
   description:
     "Privacy policy for the BargainHuntrs installable app and mobile experience — what we collect, push notifications, affiliate click tracking, and how to delete your data.",
+  alternates: { canonical: "/privacy-app" },
 };
 
 const LAST_UPDATED = "October 24, 2026";

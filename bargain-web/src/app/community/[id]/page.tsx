@@ -11,14 +11,23 @@ export function generateStaticParams() {
   return [];
 }
 
-export const metadata: Metadata = {
-  title: "Community Thread",
-  description: "Discuss this community deal on BargainHuntrs.",
-  openGraph: {
-    title: "Community Thread | BargainHuntrs",
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  return {
+    title: "Community Thread",
     description: "Discuss this community deal on BargainHuntrs.",
-  },
-};
+    alternates: { canonical: `/community/${id}` },
+    openGraph: {
+      title: "Community Thread | BargainHuntrs",
+      description: "Discuss this community deal on BargainHuntrs.",
+      url: `/community/${id}`,
+    },
+  };
+}
 
 export default function CommunityThreadPage() {
   return <CommunityThread />;

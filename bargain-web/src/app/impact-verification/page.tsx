@@ -1,6 +1,7 @@
 export const metadata = {
   title: "Impact Site Verification",
   description: "Impact site verification page",
+  alternates: { canonical: "/impact-verification" },
 };
 
 export default function ImpactVerificationPage() {

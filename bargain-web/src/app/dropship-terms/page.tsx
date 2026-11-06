@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Dropship Pools – Group Purchase Terms – BargainHuntrs",
   description:
     "Terms for BargainHuntrs Dropship Pools — how group buys work, card authorization holds, all-or-nothing fills, inventory ownership, and resale risk.",
+  alternates: { canonical: "/dropship-terms" },
 };
 
 const LAST_UPDATED = "October 24, 2026";

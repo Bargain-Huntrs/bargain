@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Terms of Service – BargainHuntrs",
   description: "The terms that govern your use of the BargainHuntrs platform.",
+  alternates: { canonical: "/terms" },
 };
 
 const LAST_UPDATED = "July 16, 2026";

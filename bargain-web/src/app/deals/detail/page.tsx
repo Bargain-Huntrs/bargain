@@ -6,6 +6,9 @@ export const dynamic = "force-static";
 export const metadata: Metadata = {
   title: "Deal Details | BargainHuntrs",
   description: "View this deal on BargainHuntrs — find it, flip it, profit.",
+  // Legacy alias of /deals/[id] — this route always renders the client's
+  // error state (pathname id resolves to "detail"), so keep it unindexed.
+  robots: { index: false },
   openGraph: {
     type: "website",
     title: "Deal Details | BargainHuntrs",

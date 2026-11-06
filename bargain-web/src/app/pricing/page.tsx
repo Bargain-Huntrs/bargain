@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Pricing – BargainHuntrs",
   description:
     "Start free, upgrade when you're ready. Simple pricing for deal hunters.",
+  alternates: { canonical: "/pricing" },
 };
 
 // ─── Data ──────────────────────────────────────────────────────────────────

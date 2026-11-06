@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Community Deals",
   description:
     "Deals and finds shared by the BargainHuntrs community — vote up the best, discuss, and post your own. No account needed.",
+  alternates: { canonical: "/community" },
   openGraph: {
     title: "Community Deals | BargainHuntrs",
     description:

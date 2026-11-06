@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Privacy Policy – BargainHuntrs",
   description: "How BargainHuntrs collects, uses, and protects your personal information.",
+  alternates: { canonical: "/privacy" },
 };
 
 const LAST_UPDATED = "October 24, 2026";

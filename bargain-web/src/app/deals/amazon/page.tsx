@@ -9,7 +9,9 @@ export const metadata: Metadata = {
   title: "Amazon Deals — Today's Best Amazon Bargains | BargainHuntrs",
   description:
     "Find today's best Amazon deals, discounts, and clearance items. Updated automatically throughout the day.",
-  alternates: { canonical: "/deals/amazon" },
+  // /deals/amazon-deals is the canonical Amazon landing page (richer content:
+  // FAQ + related links) — consolidate to avoid competing duplicates.
+  alternates: { canonical: "/deals/amazon-deals" },
   openGraph: {
     title: "Amazon Deals — Today's Best Amazon Bargains | BargainHuntrs",
     description:

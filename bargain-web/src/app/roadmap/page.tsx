@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Feature Roadmap",
   description:
     "See what BargainHuntrs is building next — vote on feature requests and submit your own ideas.",
+  alternates: { canonical: "/roadmap" },
   openGraph: {
     title: "Feature Roadmap | BargainHuntrs",
     description:

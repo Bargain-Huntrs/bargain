@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Join the Waitlist – BargainHuntrs",
   description:
     "Early access to BargainHuntrs is rolling out in batches. Drop your email and we'll let you know the moment your spot opens.",
+  alternates: { canonical: "/waitlist" },
 };
 
 const signals = [

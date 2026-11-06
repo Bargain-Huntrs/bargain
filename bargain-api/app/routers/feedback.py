@@ -200,7 +200,7 @@ def create_feature_request(
         title=body.title.strip(),
         body=(body.body or "").strip() or None,
         category=body.category.strip() or "general",
-        author_name=(user.full_name if user else None) or (body.author_name or "Anonymous"),
+        author_name=(user.display_name if user else None) or (body.author_name or "Anonymous"),
         author_email=(user.email if user else None) or (str(body.author_email) if body.author_email else None),
         user_id=user.id if user else None,
     )

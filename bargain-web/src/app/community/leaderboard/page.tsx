@@ -29,7 +29,6 @@ interface LeaderboardEntry {
   rank: number;
   user_id: string;
   name: string;
-  email?: string;
   aura_points: number;
   aura_tier: string;
   deals_submitted: number;

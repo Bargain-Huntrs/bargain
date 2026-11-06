@@ -56,7 +56,7 @@ async def community_stats(
     )
     if top_user:
         top_hunter = {
-            "name": top_user.full_name if hasattr(top_user, "full_name") else top_user.email,
+            "name": top_user.display_name,
             "aura_points": top_user.aura_points or 0,
         }
 
@@ -71,7 +71,7 @@ async def community_stats(
         winner_user = db.query(User).filter(User.id == recent_winner.user_id).first()
         last_voucher_winner = {
             "month": recent_winner.month,
-            "user_name": winner_user.full_name if hasattr(winner_user, "full_name") else (winner_user.email if winner_user else None),
+            "user_name": winner_user.display_name if winner_user else None,
             "aura_points_at_draw": recent_winner.aura_points_at_draw,
             "drawn_at": recent_winner.drawn_at.isoformat() if recent_winner.drawn_at else None,
             "status": recent_winner.status,
@@ -94,7 +94,7 @@ def _winner_to_response(winner: VoucherWinner, user: Optional[User] = None) -> d
     if user is None:
         user_name = None
     else:
-        user_name = user.full_name if hasattr(user, "full_name") else user.email
+        user_name = user.display_name
     return {
         "id": str(winner.id),
         "month": winner.month,

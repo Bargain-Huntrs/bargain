@@ -63,6 +63,12 @@ class User(Base):
     referred_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
     referral_count = Column(Integer, default=0)
 
+    # Public handle shown anywhere a user is identified to OTHER users
+    # (leaderboard, community threads, feature board). Nullable — the
+    # display_name property falls back to the email local-part so existing
+    # rows are safe before the backfill lands.
+    nickname = Column(String(60))
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -83,6 +89,25 @@ class User(Base):
     def full_name(self) -> str:
         parts = [self.first_name, self.last_name]
         return " ".join(p for p in parts if p) or self.email
+
+    @property
+    def display_name(self) -> str:
+        """Public-safe handle — NEVER returns the full email address.
+
+        Fallback chain: nickname -> email local-part -> "Hunter".
+        Use this anywhere user identity is shown to other users or
+        anonymous visitors (leaderboards, threads, comments, feature
+        board, winner announcements). `full_name` must only be used in
+        first-party contexts (the user's own emails, admin CRM, auth).
+        """
+        nickname = (self.nickname or "").strip()
+        if nickname:
+            return nickname
+        if self.email and "@" in self.email:
+            local = self.email.split("@", 1)[0].strip()
+            if local:
+                return local[:60]
+        return "Hunter"
 
 
 class Subscription(Base):

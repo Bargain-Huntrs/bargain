@@ -405,6 +405,7 @@ async def profile(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "firstName": current_user.first_name,
         "lastName": current_user.last_name,
+        "nickname": current_user.nickname,
         "role": current_user.role,
         "subscriptionTier": current_user.subscription_tier,
         "subscribedNiches": current_user.subscribed_niches or [],
@@ -423,6 +424,7 @@ async def me(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "firstName": current_user.first_name,
         "lastName": current_user.last_name,
+        "nickname": current_user.nickname,
         "role": current_user.role,
         "subscriptionTier": current_user.subscription_tier,
         "subscribedNiches": current_user.subscribed_niches or [],
@@ -435,6 +437,7 @@ async def me(current_user: User = Depends(get_current_user)):
 class UpdateMeRequest(BaseModel):
     firstName: str | None = None
     lastName: str | None = None
+    nickname: str | None = None
 
     @field_validator("firstName", "lastName")
     @classmethod
@@ -446,6 +449,20 @@ class UpdateMeRequest(BaseModel):
             raise ValueError("Names must be 1-100 characters")
         return v
 
+    @field_validator("nickname")
+    @classmethod
+    def validate_nickname(cls, v):
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            return None  # clearing falls back to email local-part
+        if len(v) > 60:
+            raise ValueError("Nickname must be at most 60 characters")
+        if "@" in v:
+            raise ValueError("Nickname cannot contain @")
+        return v
+
 
 @router.put("/me")
 async def update_me(
@@ -453,13 +470,20 @@ async def update_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update profile fields (first/last name)."""
+    """Update profile fields (first/last name, public nickname)."""
     if body.firstName is not None:
         current_user.first_name = body.firstName
     if body.lastName is not None:
         current_user.last_name = body.lastName
+    if body.nickname is not None:
+        current_user.nickname = body.nickname or None
     db.commit()
-    return {"success": True, "firstName": current_user.first_name, "lastName": current_user.last_name}
+    return {
+        "success": True,
+        "firstName": current_user.first_name,
+        "lastName": current_user.last_name,
+        "nickname": current_user.nickname,
+    }
 
 
 @router.get("/me/niches")

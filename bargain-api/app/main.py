@@ -151,6 +151,17 @@ async def startup_event():
                 "python -c \"import secrets; print(secrets.token_urlsafe(64))\""
             )
 
+    # Privacy schema patch: users.nickname column + backfill, plus scrub of
+    # any email addresses already stored in public author_name fields.
+    # Must run before serving requests — User model maps the column.
+    try:
+        from app.db.session import SessionLocal, ensure_privacy_schema
+        with SessionLocal() as _db:
+            ensure_privacy_schema(_db)
+        print("[Startup] privacy schema patch applied (users.nickname + author_name scrub)")
+    except Exception as e:
+        print(f"[Startup] privacy schema patch failed (non-fatal): {e}")
+
     if settings.AUTO_SCAN:
         scheduler.start()
         print(f"[Startup] Auto-scan enabled — scheduler started (interval: {settings.SCAN_INTERVAL_MINUTES}min)")

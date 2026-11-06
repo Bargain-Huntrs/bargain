@@ -22,6 +22,7 @@ export interface AuthUser {
   email: string;
   firstName?: string;
   lastName?: string;
+  nickname?: string | null;
   role?: string;
   subscriptionTier?: string;
   phoneNumber?: string;
@@ -262,7 +263,7 @@ class AuthService {
     }
   }
 
-  async updateProfile(data: { firstName?: string; lastName?: string }): Promise<AuthResponse> {
+  async updateProfile(data: { firstName?: string; lastName?: string; nickname?: string }): Promise<AuthResponse> {
     try {
       const response = await fetchWithTimeout(`${API_URL}/api/v1/auth/me`, {
         method: "PUT",

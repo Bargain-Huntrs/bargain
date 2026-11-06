@@ -480,7 +480,7 @@ async def leaderboard(
         {
             "rank": idx + 1,
             "user_id": str(u.id),
-            "name": u.full_name if hasattr(u, "full_name") else f"User{str(u.id)[:8]}",
+            "name": u.display_name,
             "aura_points": u.aura_points or 0,
             "aura_tier": u.aura_tier or "hunter",
             "deals_submitted": deal_count_map.get(u.id, 0),
@@ -516,7 +516,7 @@ async def public_leaderboard(
         {
             "rank": idx + 1,
             "user_id": str(u.id),
-            "name": u.full_name if hasattr(u, "full_name") else f"User{str(u.id)[:8]}",
+            "name": u.display_name,
             "aura_points": u.aura_points or 0,
             "aura_tier": u.aura_tier or "hunter",
             "deals_submitted": deal_count_map.get(u.id, 0),
@@ -914,7 +914,7 @@ async def create_deal_thread(
 
     thread = DealThread(
         author_user_id=user.id if user else None,
-        author_name=(user.full_name if user else body.author_name.strip())[:120],
+        author_name=(user.display_name if user else body.author_name.strip())[:120],
         author_email=(user.email if user else (body.author_email or "").strip()) or None,
         title=body.title.strip(),
         body=(body.body or "").strip() or None,
@@ -973,7 +973,7 @@ async def create_thread_comment(
     comment = DealThreadComment(
         thread_id=thread_id,
         user_id=user.id if user else None,
-        author_name=(user.full_name if user else body.author_name.strip())[:120],
+        author_name=(user.display_name if user else body.author_name.strip())[:120],
         body=body.body.strip(),
     )
     db.add(comment)

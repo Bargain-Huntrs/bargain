@@ -12,7 +12,9 @@ import {
   submitSellerPriceDrop,
   bulkSubmitSellerDeals,
   getSellerSubmissions,
+  getSellerShowcase,
   type SellerProfile,
+  type SellerShowcaseItem,
 } from "@/lib/api";
 
 type Tab = "apply" | "coupons" | "price-drops" | "bulk" | "submissions";
@@ -25,6 +27,7 @@ export default function SellerPortalPage() {
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("apply");
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [showcase, setShowcase] = useState<SellerShowcaseItem[]>([]);
 
   // Apply form
   const [applyForm, setApplyForm] = useState({ store_name: "", website: "" });
@@ -67,6 +70,14 @@ export default function SellerPortalPage() {
   useEffect(() => {
     if (!loading) loadProfile();
   }, [loading, loadProfile]);
+
+  // Public showcase — fills the portal for visitors/non-sellers so it never
+  // renders empty. Demo rows are labeled in the UI.
+  useEffect(() => {
+    getSellerShowcase()
+      .then((res) => setShowcase(res.items || []))
+      .catch(() => {});
+  }, []);
 
   async function handleApply(e: React.FormEvent) {
     e.preventDefault();
@@ -361,7 +372,14 @@ export default function SellerPortalPage() {
                 {submissions.map((s) => (
                   <div key={s.id} className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
                     <div>
-                      <p className="font-medium text-zinc-900 dark:text-zinc-50">{s.title}</p>
+                      <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                        {s.title}
+                        {s.is_demo && (
+                          <span className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-400">
+                            Demo
+                          </span>
+                        )}
+                      </p>
                       <p className="text-sm text-zinc-500">
                         {s.submission_type} · {s.retailer} · {s.status}
                       </p>
@@ -372,6 +390,87 @@ export default function SellerPortalPage() {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Seller showcase — public, demo-gated sample of published seller content */}
+        {showcase.length > 0 && (
+          <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                Seller showcase
+              </h2>
+              <span className="text-xs text-zinc-400">
+                What published seller listings look like
+              </span>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {showcase.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                        item.submission_type === "coupon_code"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400"
+                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                      }`}
+                    >
+                      {item.submission_type === "coupon_code" ? "Coupon" : "Price drop"}
+                    </span>
+                    <span className="text-xs text-zinc-500">{item.retailer}</span>
+                    {item.is_demo && (
+                      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-400">
+                        Demo
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                    {item.url ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        {item.title}
+                      </a>
+                    ) : (
+                      item.title
+                    )}
+                  </p>
+                  <div className="mt-1.5 text-xs text-zinc-500">
+                    {item.submission_type === "coupon_code" ? (
+                      <>
+                        Code <span className="font-mono font-semibold">{item.coupon_code}</span>
+                        {item.discount_value != null && item.discount_type === "percentage" &&
+                          ` · ${item.discount_value}% off`}
+                        {item.discount_type === "free_shipping" && " · free shipping"}
+                      </>
+                    ) : (
+                      <>
+                        {item.original_price != null && (
+                          <span className="line-through">${item.original_price}</span>
+                        )}{" "}
+                        {item.sale_price != null && (
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            ${item.sale_price}
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {item.category && ` · ${item.category}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {!isSeller && (
+              <p className="mt-4 text-xs text-zinc-400">
+                Verified sellers publish instantly — apply above to list your own deals.
+              </p>
             )}
           </div>
         )}

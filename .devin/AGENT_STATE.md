@@ -22,6 +22,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
+| devin-seller-showcase | 2026-11-22 — **IN PROGRESS** — Seller showcase + CRM seller metric. (a) `/seller` portal renders empty for non-sellers → `is_demo` on seller_submissions (migration 038 + lazy-DDL `_ensure_showcase_schema` per crm.py pattern), public `GET /api/v1/seller/showcase`, showcase section on /seller page w/ Demo badges. (b) `/admin/crm` page already existed (members/moderation/tasks/analytics) — added `verifiedSellers` count to stats + KPI card. Deploy: scp bargain-api files→oracle + pm2 restart; web `pnpm run build:cf && pnpm run deploy`. | `bargain-api/app/{db/models.py,routers/{seller,crm}.py}`, `bargain-api/alembic/versions/038*`, `bargain-web/src/{app/seller/page.tsx,app/admin/crm/page.tsx,lib/api.ts}` |
+
 | devin-awin-region | **DONE 2026-11-21 — landed `7e40c72`, pushed + deployed to oracle.** See Recently landed. | (moved to Recently landed) |
 
 | devin-affiliate-join | 2026-11-06 — **IN PROGRESS** — activate every pending affiliate network. Reconstruct + land DB-backed `affiliate_settings` path (was uncommitted on now-unmounted /Volumes checkout — recovered by hand), deploy to oracle prod (uvicorn :4035 behind cloudflared — Render is stale), verify seeded CJ + Rakuten-OAuth creds, headless Awin Zlike Hair invite accept (merchant 102013), check ShareASale/FlexOffers/Pepperjam application status, e2e click-out verification. | `bargain-api/app/services/{affiliate_config,affiliate_networks,affiliate_service}.py`, `app/{core/config,routers/arbitrage,services/scheduler}.py`, `alembic/versions/036*`, prod DB (Supabase), oracle `~/apps/Bargain`, `.devin/*` |

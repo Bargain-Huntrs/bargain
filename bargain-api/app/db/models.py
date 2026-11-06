@@ -437,6 +437,9 @@ class SellerSubmission(Base):
     sale_price = Column(Numeric(10, 2))
     # Moderation
     status = Column(String(20), default="pending", index=True)  # pending, approved, rejected
+    # Showcase rows — seeded demo inventory so the seller portal never renders
+    # empty. Surfaced by GET /seller/showcase and labeled "Demo" in the UI.
+    is_demo = Column(Boolean, default=False, index=True)
     reviewed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     reviewed_at = Column(DateTime)
     # When approved, link to created deal/coupon

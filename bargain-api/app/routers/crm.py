@@ -92,6 +92,9 @@ def dashboard_stats(db: Session = Depends(get_db), admin: User = Depends(require
 
     total_users = db.query(func.count(User.id)).scalar() or 0
     paid_users = db.query(func.count(User.id)).filter(User.subscription_tier != "free").scalar() or 0
+    verified_sellers = (
+        db.query(func.count(User.id)).filter(User.is_verified_seller == True).scalar() or 0  # noqa: E712
+    )
     subscribers = (
         db.query(func.count(NewsletterSubscriber.id))
         .filter(NewsletterSubscriber.is_active == True)  # noqa: E712
@@ -152,6 +155,7 @@ def dashboard_stats(db: Session = Depends(get_db), admin: User = Depends(require
     return {
         "totalUsers": total_users,
         "paidUsers": paid_users,
+        "verifiedSellers": verified_sellers,
         "newsletterSubscribers": subscribers,
         "liveDeals": live_deals,
         "activeAlerts": active_alerts,

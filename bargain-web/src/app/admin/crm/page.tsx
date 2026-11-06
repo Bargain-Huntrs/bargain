@@ -285,6 +285,7 @@ export default function AdminCrmPage() {
               {[
                 ["Members", stats.totalUsers],
                 ["Paid members", stats.paidUsers],
+                ["Verified sellers", stats.verifiedSellers ?? 0],
                 ["Signups this month", stats.signupsThisMonth],
                 ["MoM growth", `${stats.monthlyGrowth}%`],
                 ["Newsletter subs", stats.newsletterSubscribers],

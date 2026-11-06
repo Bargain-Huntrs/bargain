@@ -934,6 +934,29 @@ export async function bulkSubmitSellerDeals(
 export async function getSellerSubmissions(token: string) {
   return fetchWithAuth("/api/v1/seller/submissions", token) as Promise<any[]>;
 }
+
+export interface SellerShowcaseItem {
+  id: string;
+  submission_type: string;
+  title: string;
+  url: string;
+  retailer: string;
+  image_url: string | null;
+  category: string | null;
+  coupon_code: string | null;
+  discount_type: string | null;
+  discount_value: number | null;
+  original_price: number | null;
+  sale_price: number | null;
+  is_demo: boolean;
+}
+
+/** Public — approved seller submissions incl. demo-gated showcase rows. */
+export async function getSellerShowcase() {
+  return fetchWithAuth("/api/v1/seller/showcase", null) as Promise<{
+    items: SellerShowcaseItem[];
+  }>;
+}
 // ─── Real-estate properties (aggregated public listings) ────────────────────
 
 export interface Property {
@@ -1363,6 +1386,7 @@ export async function postAiDescribe(
 export interface CrmStats {
   totalUsers: number;
   paidUsers: number;
+  verifiedSellers: number;
   newsletterSubscribers: number;
   liveDeals: number;
   activeAlerts: number;

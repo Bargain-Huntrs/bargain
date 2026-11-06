@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_validator
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, text
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -120,9 +120,146 @@ def _submission_to_response(sub: SellerSubmission) -> dict:
         "original_price": float(sub.original_price) if sub.original_price is not None else None,
         "sale_price": float(sub.sale_price) if sub.sale_price is not None else None,
         "status": sub.status,
+        # getattr — column may not exist until the showcase DDL/migration runs.
+        "is_demo": bool(getattr(sub, "is_demo", False)),
         "promoted_deal_id": str(sub.promoted_deal_id) if sub.promoted_deal_id else None,
         "promoted_coupon_id": str(sub.promoted_coupon_id) if sub.promoted_coupon_id else None,
         "created_at": sub.created_at.isoformat() if sub.created_at else None,
+    }
+
+
+# ─── Seller showcase (public, demo-gated) ──────────────────────────────────────
+
+_showcase_ensured = False
+_DEMO_SELLER_EMAIL = "showcase@bargainhuntrs.com"
+
+
+def _ensure_showcase_schema(db: Session) -> None:
+    """Self-healing showcase DDL + seed — mirrors crm.py's _ensure_table.
+
+    Alembic 038 covers this properly, but prod runs no migrations at boot,
+    so the column + demo rows are created lazily on first showcase read.
+    """
+    global _showcase_ensured
+    if _showcase_ensured:
+        return
+    try:
+        db.execute(
+            text(
+                "ALTER TABLE seller_submissions "
+                "ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false"
+            )
+        )
+        db.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_seller_submissions_is_demo "
+                "ON seller_submissions (is_demo)"
+            )
+        )
+        db.execute(
+            text(
+                """INSERT INTO users (id, email, hashed_password, role, is_active,
+                                    email_verified, is_verified_seller,
+                                    seller_store_name, seller_website,
+                                    created_at, updated_at)
+                   SELECT gen_random_uuid(), :email,
+                          '$2b$12$showcasedemohash00000000000000000000000000000000000000',
+                          'customer', true, true, true,
+                          'BargainHuntrs Showcase', 'https://bargainhuntrs.com',
+                          now(), now()
+                   WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = :email)"""
+            ),
+            {"email": _DEMO_SELLER_EMAIL},
+        )
+        db.execute(
+            text(
+                """INSERT INTO seller_submissions
+                     (id, seller_id, submission_type, title, url, retailer,
+                      category, description, coupon_code, discount_type,
+                      discount_value, original_price, sale_price, status,
+                      is_demo, created_at)
+                   SELECT gen_random_uuid(), u.id, v.*, 'approved', true, now()
+                   FROM (
+                       VALUES
+                         ('coupon_code', 'Extra 20% off Kitchen & Dining (demo)',
+                          'https://bargainhuntrs.com/deals', 'Target', 'kitchen',
+                          'Demo showcase listing — illustrates how verified-seller coupons appear in the feed.',
+                          'DEMO20', 'percentage', 20.0, NULL, NULL),
+                         ('coupon_code', 'Free shipping sitewide over $35 (demo)',
+                          'https://bargainhuntrs.com/deals', 'Walmart', 'general',
+                          'Demo showcase listing — sample free-shipping seller submission.',
+                          'DEMOSHIP', 'free_shipping', 0.0, NULL, NULL),
+                         ('price_drop', 'Robot vacuum 40% price drop (demo)',
+                          'https://bargainhuntrs.com/deals', 'Amazon', 'electronics',
+                          'Demo showcase listing — sample seller-reported price drop with markdown math.',
+                          NULL, NULL, NULL, 299.99, 179.99),
+                         ('price_drop', 'Winter jacket clearance markdown (demo)',
+                          'https://bargainhuntrs.com/deals', 'Target', 'apparel',
+                          'Demo showcase listing — clearance price-drop card.',
+                          NULL, NULL, NULL, 89.99, 44.99),
+                         ('coupon_code', '15% off first-order welcome code (demo)',
+                          'https://bargainhuntrs.com/deals', 'Best Buy', 'electronics',
+                          'Demo showcase listing — welcome-code style submission.',
+                          'WELCOME15', 'percentage', 15.0, NULL, NULL)
+                   ) AS v(submission_type, title, url, retailer, category,
+                          description, coupon_code, discount_type, discount_value,
+                          original_price, sale_price),
+                   (SELECT id FROM users WHERE email = :email LIMIT 1) AS u
+                   WHERE NOT EXISTS
+                     (SELECT 1 FROM seller_submissions WHERE is_demo = true)"""
+            ),
+            {"email": _DEMO_SELLER_EMAIL},
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    _showcase_ensured = True
+
+
+@router.get("/showcase")
+async def seller_showcase(
+    limit: int = 12,
+    db: Session = Depends(get_db),
+):
+    """Public seller showcase — approved submissions surfaced to visitors so
+    the seller portal shows what published seller content looks like.
+
+    Demo rows (is_demo) seed automatically until real approved submissions
+    exist; each row carries the flag so the UI can label it. Safe public
+    fields only — no seller identity, no review internals.
+    """
+    _ensure_showcase_schema(db)
+    rows = (
+        db.query(SellerSubmission)
+        .filter(SellerSubmission.status == "approved")
+        .order_by(
+            # Demo filler sinks below real approved seller content.
+            SellerSubmission.is_demo.asc(),
+            desc(SellerSubmission.created_at),
+        )
+        .limit(min(limit, 24))
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "id": str(s.id),
+                "submission_type": s.submission_type,
+                "title": s.title,
+                "url": s.url,
+                "retailer": s.retailer,
+                "image_url": s.image_url,
+                "category": s.category,
+                "coupon_code": s.coupon_code,
+                "discount_type": s.discount_type,
+                "discount_value": float(s.discount_value) if s.discount_value is not None else None,
+                "original_price": float(s.original_price) if s.original_price is not None else None,
+                "sale_price": float(s.sale_price) if s.sale_price is not None else None,
+                "is_demo": bool(getattr(s, "is_demo", False)),
+            }
+            for s in rows
+        ]
     }
 
 

@@ -11,6 +11,7 @@ from typing import Optional
 import httpx
 
 from app.core.config import settings
+from app.services.affiliate_config import get_affiliate_config
 from app.services.utm_service import add_utm_parameters
 
 # Default UTM parameters applied to every affiliate link so clicks can be
@@ -100,8 +101,8 @@ def _load_awin_programmes() -> list[dict]:
     """Fetch and cache the Awin joined programmes list."""
     global _awin_programmes_cache, _awin_cache_timestamp
 
-    token = getattr(settings, "AWIN_API_TOKEN", "")
-    publisher_id = getattr(settings, "AWIN_PUBLISHER_ID", "")
+    token = get_affiliate_config("AWIN_API_TOKEN")
+    publisher_id = get_affiliate_config("AWIN_PUBLISHER_ID")
     if not token or not publisher_id:
         return []
 
@@ -160,7 +161,7 @@ def _find_awin_advertiser_id(url: str) -> Optional[int]:
 
 def add_awin_affiliate(url: str) -> str:
     """Convert a URL into an Awin deeplink if the merchant is in a joined programme."""
-    publisher_id = getattr(settings, "AWIN_PUBLISHER_ID", "")
+    publisher_id = get_affiliate_config("AWIN_PUBLISHER_ID")
     if not publisher_id:
         return url
 

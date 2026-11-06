@@ -39,8 +39,13 @@ import httpx
 from bs4 import BeautifulSoup
 
 from app.core.config import settings
+from app.services.affiliate_config import get_affiliate_config
 
 logger = logging.getLogger(__name__)
+
+# NOTE: all network credentials are read through get_affiliate_config() —
+# DB row in affiliate_settings wins, env var is the fallback. This lets
+# tokens be seeded/rotated in Postgres without Render dashboard access.
 
 
 @dataclass
@@ -70,61 +75,131 @@ class AffiliateDeal:
 
 RAKUTEN_API_BASE = "https://api.linksynergy.com"
 
+# OAuth access-token cache (client_credentials grant — tokens live 3600s).
+_rakuten_token_cache: dict = {"token": None, "expires_at": 0.0}
+
 
 def _rakuten_configured() -> bool:
-    return bool(getattr(settings, "RAKUTEN_WEBSERVICES_TOKEN", ""))
+    """Rakuten needs a Developer Portal OAuth app — the legacy webservices
+    token no longer authenticates api.linksynergy.com (returns 401
+    'access token is missing' as a param and 'invalid_token' as a bearer)."""
+    return (
+        bool(get_affiliate_config("RAKUTEN_CLIENT_ID"))
+        and bool(get_affiliate_config("RAKUTEN_CLIENT_SECRET"))
+        and bool(get_affiliate_config("RAKUTEN_SITE_ID"))
+    )
+
+
+async def _rakuten_access_token(client: httpx.AsyncClient) -> Optional[str]:
+    """Mint (or reuse) an OAuth bearer via client_credentials.
+
+    POST /token with Basic auth (client_id:client_secret) and scope=<Site ID>.
+    Returns the short-lived access_token; cached for its lifetime minus a
+    safety buffer so the scheduler doesn't re-auth every call.
+    """
+    import base64
+    import time
+
+    cached = _rakuten_token_cache.get("token")
+    if cached and time.time() < _rakuten_token_cache.get("expires_at", 0):
+        return cached
+
+    client_id = get_affiliate_config("RAKUTEN_CLIENT_ID")
+    client_secret = get_affiliate_config("RAKUTEN_CLIENT_SECRET")
+    site_id = get_affiliate_config("RAKUTEN_SITE_ID")
+
+    basic = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+    resp = await client.post(
+        f"{RAKUTEN_API_BASE}/token",
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": f"Basic {basic}",
+        },
+        data={"grant_type": "client_credentials", "scope": site_id},
+    )
+    if resp.status_code != 200:
+        logger.warning(f"Rakuten OAuth token error: {resp.status_code} {resp.text[:200]}")
+        return None
+
+    data = resp.json()
+    token = data.get("access_token")
+    if not token:
+        logger.warning(f"Rakuten OAuth response missing access_token: {resp.text[:200]}")
+        return None
+
+    _rakuten_token_cache["token"] = token
+    _rakuten_token_cache["expires_at"] = time.time() + int(data.get("expires_in", 3600)) - 120
+    return token
 
 
 async def fetch_rakuten_coupons(max_results: int = 100) -> list[AffiliateDeal]:
     """Fetch coupons/deals from Rakuten Advertising Coupon Feed API.
 
-    Requires RAKUTEN_WEBSERVICES_TOKEN env var.
+    Requires RAKUTEN_CLIENT_ID + RAKUTEN_CLIENT_SECRET + RAKUTEN_SITE_ID
+    (Developer Portal OAuth app, scope = publisher Site ID).
     """
     if not _rakuten_configured():
         logger.info("Rakuten not configured — skipping")
         return []
 
-    token = settings.RAKUTEN_WEBSERVICES_TOKEN
     deals: list[AffiliateDeal] = []
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # Coupon Feed API
+            token = await _rakuten_access_token(client)
+            if not token:
+                return []
+
+            # Coupon Feed API — Bearer auth (the legacy ?token= param is dead).
             url = f"{RAKUTEN_API_BASE}/coupon/1.0"
             params = {
-                "token": token,
                 "network": "1",  # US network
                 "resultsperpage": str(max_results),
                 "pagenumber": "1",
             }
-            resp = await client.get(url, params=params)
+            resp = await client.get(
+                url,
+                params=params,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/xml",
+                },
+            )
 
             if resp.status_code != 200:
                 logger.warning(f"Rakuten API error: {resp.status_code}")
                 return []
 
-            # Rakuten returns XML
+            # Rakuten returns XML — actual schema: <couponfeed><link>
+            # with offerdescription/clickurl/couponcode/offerenddate/
+            # advertisername children (no offername/url fields).
             soup = BeautifulSoup(resp.text, "xml")
             for link in soup.find_all("link"):
                 try:
-                    title = link.findtext("offername", "")
+                    title = link.findtext("offername", "") or link.findtext("offerdescription", "")
                     deal_url = link.findtext("clickurl", "")
                     original_url = link.findtext("url", "") or deal_url
                     promo_code = link.findtext("couponcode", "")
                     image = link.findtext("imageurl", "")
-                    expires = link.findtext("offerend", "")
+                    expires = link.findtext("offerend", "") or link.findtext("offerenddate", "")
                     advertiser = link.findtext("advertisername", "")
 
-                    if not title:
+                    if not title or not deal_url:
                         continue
 
                     retailer = _normalize_retailer(advertiser)
                     expires_at = None
                     if expires:
+                        # Formats seen: 2026-11-20T23:00Z and 2026-11-20
                         try:
-                            expires_at = datetime.strptime(expires[:10], "%Y-%m-%d")
+                            expires_at = datetime.fromisoformat(
+                                expires.replace("Z", "+00:00")
+                            ).replace(tzinfo=None)
                         except (ValueError, TypeError):
-                            pass
+                            try:
+                                expires_at = datetime.strptime(expires[:10], "%Y-%m-%d")
+                            except (ValueError, TypeError):
+                                pass
 
                     deals.append(AffiliateDeal(
                         title=title[:500],
@@ -159,7 +234,7 @@ AWIN_API_BASE = "https://api.awin.com"
 
 
 def _awin_configured() -> bool:
-    return bool(getattr(settings, "AWIN_API_TOKEN", "")) and bool(getattr(settings, "AWIN_PUBLISHER_ID", ""))
+    return bool(get_affiliate_config("AWIN_API_TOKEN")) and bool(get_affiliate_config("AWIN_PUBLISHER_ID"))
 
 
 async def fetch_awin_promotions(max_results: int = 200) -> list[AffiliateDeal]:
@@ -174,8 +249,8 @@ async def fetch_awin_promotions(max_results: int = 200) -> list[AffiliateDeal]:
         logger.info("Awin not configured — skipping")
         return []
 
-    token = settings.AWIN_API_TOKEN
-    publisher_id = settings.AWIN_PUBLISHER_ID
+    token = get_affiliate_config("AWIN_API_TOKEN")
+    publisher_id = get_affiliate_config("AWIN_PUBLISHER_ID")
     deals: list[AffiliateDeal] = []
 
     try:
@@ -337,8 +412,8 @@ async def fetch_awin_programmes(
         logger.info("Awin not configured — skipping programme lookup")
         return []
 
-    token = settings.AWIN_API_TOKEN
-    publisher_id = settings.AWIN_PUBLISHER_ID
+    token = get_affiliate_config("AWIN_API_TOKEN")
+    publisher_id = get_affiliate_config("AWIN_PUBLISHER_ID")
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -370,7 +445,7 @@ CJ_API_BASE = "https://linksearch.api.cj.com/v2"
 
 
 def _cj_configured() -> bool:
-    return bool(getattr(settings, "CJ_ACCESS_TOKEN", "")) and bool(getattr(settings, "CJ_WEBSITE_ID", ""))
+    return bool(get_affiliate_config("CJ_ACCESS_TOKEN")) and bool(get_affiliate_config("CJ_WEBSITE_ID"))
 
 
 async def fetch_cj_links(max_results: int = 100) -> list[AffiliateDeal]:
@@ -382,8 +457,8 @@ async def fetch_cj_links(max_results: int = 100) -> list[AffiliateDeal]:
         logger.info("CJ Affiliate not configured — skipping")
         return []
 
-    token = settings.CJ_ACCESS_TOKEN
-    website_id = settings.CJ_WEBSITE_ID
+    token = get_affiliate_config("CJ_ACCESS_TOKEN")
+    website_id = get_affiliate_config("CJ_WEBSITE_ID")
     deals: list[AffiliateDeal] = []
 
     try:
@@ -469,7 +544,7 @@ SKIMLINKS_PRODUCT_API = "http://api-products.skimlinks.com"
 
 
 def _skimlinks_configured() -> bool:
-    return bool(getattr(settings, "SKIMLINKS_PRODUCT_KEY", ""))
+    return bool(get_affiliate_config("SKIMLINKS_PRODUCT_KEY"))
 
 
 async def fetch_skimlinks_offers(max_results: int = 100) -> list[AffiliateDeal]:
@@ -499,7 +574,7 @@ async def convert_skimlinks_url(url: str) -> str:
 
     # Skimlinks uses a simple URL wrapping mechanism
     # https://go.skimresources.com?id=PRODUCT_KEY&url=ENCODED_URL
-    product_key = settings.SKIMLINKS_PRODUCT_KEY
+    product_key = get_affiliate_config("SKIMLINKS_PRODUCT_KEY")
     return f"https://go.skimresources.com?id={product_key}&url={quote(url, safe='')}"
 
 

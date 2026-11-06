@@ -22,6 +22,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
+| devin-affiliate-join | 2026-11-06 — **IN PROGRESS** — activate every pending affiliate network. Reconstruct + land DB-backed `affiliate_settings` path (was uncommitted on now-unmounted /Volumes checkout — recovered by hand), deploy to oracle prod (uvicorn :4035 behind cloudflared — Render is stale), verify seeded CJ + Rakuten-OAuth creds, headless Awin Zlike Hair invite accept (merchant 102013), check ShareASale/FlexOffers/Pepperjam application status, e2e click-out verification. | `bargain-api/app/services/{affiliate_config,affiliate_networks,affiliate_service}.py`, `app/{core/config,routers/arbitrage,services/scheduler}.py`, `alembic/versions/036*`, prod DB (Supabase), oracle `~/apps/Bargain`, `.devin/*` |
+
 | devin-seo-sweep | 2026-11-21 — full SEO audit + cheap fixes (metadata/sitemap/robots/JSON-LD/canonicals) + `docs/SEO_MARKETING_STRATEGY.md` — touching `bargain-web/src/app/**` (metadata only), `src/app/{sitemap.ts,robots.ts,layout.tsx}`, `docs/SEO_MARKETING_STRATEGY.md`, `.devin/AGENT_STATE.md`. |
 
 | devin-si-sweep | 2026-11-06 — SI rebrand sweep (user-facing AI→SI relabel per 2026-11-03 owner directive) — touching `bargain-web/src/{app/dropship,app/dashboard,app/guides/*,components/Header,AiVerdict,DealAssistant,tools/ListingGenerator,Footer}.tsx`, `bargain-api/app/routers/{dropship,dropship_ai}.py`, `.devin/AGENT_STATE.md`. ack flag 4b1a777a9c7e — read. |

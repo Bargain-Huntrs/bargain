@@ -232,6 +232,12 @@ class Settings(BaseSettings):
     # Rakuten Advertising (https://pubhelp.rakutenadvertising.com)
     RAKUTEN_WEBSERVICES_TOKEN: str = ""
     RAKUTEN_SECURITY_TOKEN: str = ""
+    # Rakuten Developer Portal OAuth app — required for api.linksynergy.com
+    # (the legacy webservices token no longer authenticates the coupon feed).
+    # scope = the publisher Site ID (SID), e.g. 4758601.
+    RAKUTEN_CLIENT_ID: str = ""
+    RAKUTEN_CLIENT_SECRET: str = ""
+    RAKUTEN_SITE_ID: str = ""
 
     # Awin (https://ui.awin.com/publisher-signup/en)
     AWIN_API_TOKEN: str = ""

@@ -1062,19 +1062,10 @@ def _has_affiliate_link(url: str) -> bool:
     """Check if a URL has an affiliate/tracking link."""
     if not url:
         return False
+    from app.services.affiliate_config import AFFILIATE_TRACKING_MARKERS
+
     url_lower = url.lower()
-    # Impact.com tracking domains
-    impact_domains = ["sjv.io", "7eer.net", "pxf.io", "evyy.net", "vneoga.net",
-                      "elfm.net", "eyjo.net", "gqco.net", "hmxg.net", "ijrn.net",
-                      "jewn.net", "jyeh.net", "mtko.net", "tcux.net", "zlvv.net"]
-    # Direct affiliate tags
-    affiliate_tags = ["tag=bargain0ae", "campid=", "affid=", "goto.walmart.com",
-                      "affiliates.abebooks.com"]
-    if any(d in url_lower for d in impact_domains):
-        return True
-    if any(t in url_lower for t in affiliate_tags):
-        return True
-    return False
+    return any(marker in url_lower for marker in AFFILIATE_TRACKING_MARKERS)
 
 
 @router.post("/deals/scrape-impact/public", response_model=dict)
@@ -1565,8 +1556,12 @@ async def affiliate_networks_status():
     for those that aren't configured yet.
     """
     from app.services.affiliate_networks import get_configured_networks
+    from app.services.affiliate_config import affiliate_config_source
 
     configured = get_configured_networks()
+
+    def _sources(keys):
+        return {k: affiliate_config_source(k) for k in keys}
 
     networks = {
         "rakuten": {
@@ -1574,7 +1569,8 @@ async def affiliate_networks_status():
             "signup_url": "https://pubhelp.rakutenadvertising.com/hc/en-us/articles/20898125890573-Publisher-Sign-Up-Process",
             "difficulty": "Easy — open network, no traffic requirements",
             "retailers": "Macy's, Sephora, Nordstrom, Adidas, Nike, Puma",
-            "env_vars": ["RAKUTEN_WEBSERVICES_TOKEN", "RAKUTEN_SECURITY_TOKEN"],
+            "env_vars": ["RAKUTEN_CLIENT_ID", "RAKUTEN_CLIENT_SECRET", "RAKUTEN_SITE_ID"],
+            "config_source": _sources(["RAKUTEN_CLIENT_ID", "RAKUTEN_CLIENT_SECRET", "RAKUTEN_SITE_ID"]),
         },
         "awin": {
             "configured": "awin" in configured,
@@ -1582,6 +1578,7 @@ async def affiliate_networks_status():
             "difficulty": "Medium — requires $1 deposit (refunded)",
             "retailers": "Walmart, Target, 30K+ merchants (includes former ShareASale)",
             "env_vars": ["AWIN_API_TOKEN", "AWIN_PUBLISHER_ID"],
+            "config_source": _sources(["AWIN_API_TOKEN", "AWIN_PUBLISHER_ID"]),
         },
         "cj": {
             "configured": "cj" in configured,
@@ -1589,6 +1586,7 @@ async def affiliate_networks_status():
             "difficulty": "Medium-Hard — two-level approval (network + merchants)",
             "retailers": "Lowe's, Wayfair, GoDaddy, Office Depot, Verizon",
             "env_vars": ["CJ_ACCESS_TOKEN", "CJ_WEBSITE_ID"],
+            "config_source": _sources(["CJ_ACCESS_TOKEN", "CJ_WEBSITE_ID"]),
         },
         "skimlinks": {
             "configured": "skimlinks" in configured,
@@ -1596,6 +1594,7 @@ async def affiliate_networks_status():
             "difficulty": "Medium — manual review (2 business days)",
             "retailers": "Walmart, Best Buy, Home Depot, Wayfair, Kohl's",
             "env_vars": ["SKIMLINKS_PRODUCT_KEY", "SKIMLINKS_CLIENT_ID", "SKIMLINKS_CLIENT_SECRET"],
+            "config_source": _sources(["SKIMLINKS_PRODUCT_KEY"]),
         },
     }
 

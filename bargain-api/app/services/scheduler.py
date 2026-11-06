@@ -649,11 +649,8 @@ class ScanScheduler:
                         logger.info(f"Skipped {skipped} recently-posted deals (title+URL dedup, 7-day lookback)")
 
                 # Only post deals that have affiliate links
-                affiliate_domains = ["sjv.io", "7eer.net", "pxf.io", "evyy.net",
-                    "vneoga.net", "elfm.net", "eyjo.net", "gqco.net", "hmxg.net",
-                    "ijrn.net", "jewn.net", "jyeh.net", "mtko.net", "tcux.net",
-                    "zlvv.net", "goto.walmart.com", "affiliates.abebooks.com",
-                    "tag=bargain0ae", "campid=", "affid="]
+                from app.services.affiliate_config import AFFILIATE_TRACKING_MARKERS
+                affiliate_domains = AFFILIATE_TRACKING_MARKERS
                 max_posts = min(
                     getattr(settings, "MAX_DEALS_PER_CYCLE", 5),
                     getattr(settings, "BUFFER_POSTS_PER_WINDOW", 1),

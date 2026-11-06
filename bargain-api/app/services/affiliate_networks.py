@@ -173,16 +173,23 @@ async def fetch_rakuten_coupons(max_results: int = 100) -> list[AffiliateDeal]:
             # Rakuten returns XML — actual schema: <couponfeed><link>
             # with offerdescription/clickurl/couponcode/offerenddate/
             # advertisername children (no offername/url fields).
+            # NOTE: bs4 Tags have no .findtext() (ElementTree API) — use
+            # .find(name).get_text() via _txt or every link silently skips.
             soup = BeautifulSoup(resp.text, "xml")
+
+            def _txt(tag, name: str) -> str:
+                el = tag.find(name)
+                return el.get_text() if el else ""
+
             for link in soup.find_all("link"):
                 try:
-                    title = link.findtext("offername", "") or link.findtext("offerdescription", "")
-                    deal_url = link.findtext("clickurl", "")
-                    original_url = link.findtext("url", "") or deal_url
-                    promo_code = link.findtext("couponcode", "")
-                    image = link.findtext("imageurl", "")
-                    expires = link.findtext("offerend", "") or link.findtext("offerenddate", "")
-                    advertiser = link.findtext("advertisername", "")
+                    title = _txt(link, "offername") or _txt(link, "offerdescription")
+                    deal_url = _txt(link, "clickurl")
+                    original_url = _txt(link, "url") or deal_url
+                    promo_code = _txt(link, "couponcode")
+                    image = _txt(link, "imageurl")
+                    expires = _txt(link, "offerend") or _txt(link, "offerenddate")
+                    advertiser = _txt(link, "advertisername")
 
                     if not title or not deal_url:
                         continue
@@ -209,7 +216,7 @@ async def fetch_rakuten_coupons(max_results: int = 100) -> list[AffiliateDeal]:
                         network="rakuten",
                         image_url=image if image else None,
                         promo_code=promo_code if promo_code else None,
-                        description=f"{advertiser} — {link.findtext('offerdescription', '')}"[:1000],
+                        description=f"{advertiser} — {_txt(link, 'offerdescription')}"[:1000],
                         expires_at=expires_at,
                     ))
                 except Exception as e:

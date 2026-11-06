@@ -22,6 +22,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
+| devin-seo-sweep | 2026-11-21 — full SEO audit + cheap fixes (metadata/sitemap/robots/JSON-LD/canonicals) + `docs/SEO_MARKETING_STRATEGY.md` — touching `bargain-web/src/app/**` (metadata only), `src/app/{sitemap.ts,robots.ts,layout.tsx}`, `docs/SEO_MARKETING_STRATEGY.md`, `.devin/AGENT_STATE.md`. |
+
 | devin-si-sweep | 2026-11-06 — SI rebrand sweep (user-facing AI→SI relabel per 2026-11-03 owner directive) — touching `bargain-web/src/{app/dropship,app/dashboard,app/guides/*,components/Header,AiVerdict,DealAssistant,tools/ListingGenerator,Footer}.tsx`, `bargain-api/app/routers/{dropship,dropship_ai}.py`, `.devin/AGENT_STATE.md`. ack flag 4b1a777a9c7e — read. |
 
 | devin-affil-audit | **DONE 2026-11-05 — landed `2199332`, pushed.** Full audit + fixes in Recently landed below. Live-verified: scheduler alive (~15min scans + scrape bursts), Impact click-out works end-to-end (goto.walmart.com → irgwc=1, wmlspartner=imp_1208408), Amazon tag live. FIXED: asin varchar(20) silently killed all Impact-deal click rows (DB ALTERed to 100 live + models synced); affiliate-network feeds were dead code — now wired into scheduler. BLOCKED: CJ env vars + new Awin token + Rakuten token refresh need Bargain Render dashboard — see NEEDS_HUMAN. | `bargain-api/app/{db/models,services/scheduler}.py`, prod DB, `.devin/*` |

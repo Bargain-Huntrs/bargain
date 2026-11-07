@@ -9,3 +9,4 @@
 - 2026-11-20 | /Volumes/Os_Sites drive ejected mid-session (disk3s1, kernel-initiated unmount ~09:32 PT) — ALL repo worktrees live there incl. uncommitted WIP from devin-affil-live + stranded duplicate of mask-emails fix | needs: re-seat/remount drive, then reconcile worktree (git pull may conflict on .devin/AGENT_STATE.md; landed notes explain) | ref: AGENT_STATE Recently landed devin-mask-emails
 - 2026-11-06 | RESEND_API_KEY invalid/missing | needs: re-mint a Resend API key → set RESEND_API_KEY in bargain-api env | ref: audit 2026-11-06
 - 2026-11-06 | Stale Render bargain-api service still running against prod DB (oracle is prod) | needs: suspend the Render service at dashboard.render.com | ref: audit 2026-11-06
+- 2026-11-07 | Google Search Console sitemap submit | needs: submit https://www.bargainhuntrs.com/sitemap.xml in GSC (vault has no GSC creds) | ref: docs/marketing/DIRECTORY_PUNCHLIST.md

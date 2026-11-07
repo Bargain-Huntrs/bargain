@@ -4,6 +4,10 @@ _Updated 2026-11-07. Guides live under `/guides`; tools under `/tools` (profit c
 
 Deal-hunting guides for two audiences: **savings hunters** (find deals/clearance) and **flippers/resellers** (arbitrage, ROI). Flipper content has the strongest monetization intent (tools + seller surfaces).
 
+## Published
+
+- [x] `/guides/how-resellers-find-deep-discounts` — How resellers find 50%+ discounts before sellout (alerts/feeds mechanics; links `/deals/over-50-off` + profit calculator) — **shipped 2026-11-06**
+
 ## Queue (ranked)
 
 1. **"Retail Arbitrage for Beginners: Finding Flippable Clearance in 2026"** — targets "retail arbitrage/how to start" — profit calculator CTA.

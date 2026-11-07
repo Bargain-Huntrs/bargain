@@ -45,6 +45,12 @@ const guides = [
     description: "When do the best online deals happen? Learn the best days, times, and seasons.",
     readTime: "7 min read",
   },
+  {
+    href: "/guides/how-resellers-find-deep-discounts",
+    title: "How Resellers Find 50%+ Discounts Before They Sell Out",
+    description: "The real mechanics behind finding deep discounts early — alerts, markdown cycles, and deal feeds.",
+    readTime: "8 min read",
+  },
 ];
 
 export default function GuidesIndex() {

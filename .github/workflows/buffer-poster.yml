@@ -21,6 +21,14 @@ jobs:
   scrape-and-post:
     name: Scrape Impact deals & post to X
     runs-on: ubuntu-latest
+    env:
+      # Prod API = oracle via cloudflared tunnel. api.bargainhuntrs.com still
+      # CNAMEs to the stale Render service (its env lacks SCRAPE_CRON_SECRET →
+      # every call 403s). The bargainhuntrs.com zone lives in a different
+      # Cloudflare account than the tunnel, so the tunnel can't serve it —
+      # bargain-api.settleinpeace.com is a same-account alias to the same
+      # tunnel + localhost:4035 backend. See .devin/NEEDS_HUMAN.md.
+      API_BASE: https://bargain-api.settleinpeace.com
     steps:
       - name: Scrape Impact.com deals
         run: |
@@ -29,13 +37,13 @@ jobs:
           # Fetch discounted products and promo codes from joined Impact
           # campaigns and save them to the database with affiliate links.
           # Cron-secret gated — requires the SCRAPE_CRON_SECRET repo secret
-          # (same value as the Render env var of the same name).
+          # (same value as the oracle bargain-api env var of the same name).
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             --max-time 120 \
             --retry 2 \
             --retry-delay 10 \
             -H "X-Cron-Secret: ${{ secrets.SCRAPE_CRON_SECRET }}" \
-            "https://api.bargainhuntrs.com/api/v1/arbitrage/deals/scrape-impact/public")
+            "$API_BASE/api/v1/arbitrage/deals/scrape-impact/public")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -n -1)
@@ -59,7 +67,7 @@ jobs:
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             --max-time 540 \
             -H "X-Cron-Secret: ${{ secrets.SCRAPE_CRON_SECRET }}" \
-            "https://api.bargainhuntrs.com/api/v1/arbitrage/deals/post-new-to-x/public?max_posts=5" \
+            "$API_BASE/api/v1/arbitrage/deals/post-new-to-x/public?max_posts=5" \
             || echo -e "\n000")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)

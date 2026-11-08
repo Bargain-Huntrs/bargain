@@ -148,6 +148,29 @@ export default function Header() {
           ))}
         </nav>
 
+        {/* Theme toggle — Prime pattern: flips .light/.dark on <html>,
+            persists to localStorage('theme'); icons swap via globals.css. */}
+        <button
+          type="button"
+          className="theme-toggle flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-colors"
+          aria-label="Toggle theme"
+          onClick={() => {
+            const h = document.documentElement;
+            const n = h.classList.contains('dark') ? 'light' : 'dark';
+            h.classList.remove('dark', 'light');
+            h.classList.add(n);
+            h.style.colorScheme = n;
+            try {
+              localStorage.setItem('theme', n);
+            } catch {
+              /* storage unavailable — visual toggle still works */
+            }
+          }}
+        >
+          <span className="ti-sun" aria-hidden="true">☀</span>
+          <span className="ti-moon" aria-hidden="true">☾</span>
+        </button>
+
         {/* Desktop auth buttons */}
         <div className="hidden sm:flex items-center gap-3">
           {loading ? (

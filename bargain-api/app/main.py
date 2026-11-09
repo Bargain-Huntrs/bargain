@@ -162,7 +162,14 @@ async def startup_event():
     except Exception as e:
         print(f"[Startup] privacy schema patch failed (non-fatal): {e}")
 
-    if settings.AUTO_SCAN:
+    # The scheduler is single-instance by design: the oracle box is the prod
+    # worker (scrapes, Buffer posts, digests). The Render service serves the
+    # same DB but must never double-fire — two schedulers would duplicate
+    # scraper traffic AND double-post to Buffer. On Render the scheduler
+    # stays off unless explicitly opted back in via SCHEDULER_ON_RENDER=true.
+    if settings.AUTO_SCAN and (
+        not os.getenv("RENDER") or os.getenv("SCHEDULER_ON_RENDER") == "true"
+    ):
         scheduler.start()
         print(f"[Startup] Auto-scan enabled — scheduler started (interval: {settings.SCAN_INTERVAL_MINUTES}min)")
     else:

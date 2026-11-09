@@ -36,10 +36,10 @@ export default function BlogArticleLayout({
         <article className="px-6 py-10">
           <div className="mx-auto max-w-3xl">
             <Link
-              href="/blog"
+              href="/guides"
               className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             >
-              &larr; Back to blog
+              &larr; Back to guides
             </Link>
 
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50 leading-tight">

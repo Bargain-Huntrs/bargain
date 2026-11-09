@@ -2,6 +2,18 @@ import { authService } from "@/lib/authService";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.bargainhuntrs.com";
 
+// The API can cold-start (Render free tier idles). Without a timeout a
+// sleeping backend leaves every "Loading…" skeleton spinning forever —
+// same hang class that hit authService before fetchWithTimeout landed.
+const API_FETCH_TIMEOUT_MS = 30_000;
+
+function apiFetch(url: string, options: RequestInit = {}) {
+  return fetch(url, {
+    ...options,
+    signal: AbortSignal.timeout(API_FETCH_TIMEOUT_MS),
+  });
+}
+
 /** Clears the stale session and sends the user back to login.
  *
  * A 401 here always means the access token itself is invalid/expired or
@@ -29,7 +41,7 @@ async function fetchWithAuth(endpoint: string, token: string | null, options: Re
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await apiFetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
   });
@@ -54,7 +66,7 @@ async function fetchPublic(endpoint: string, options: RequestInit = {}) {
     ...(options.headers as Record<string, string>),
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await apiFetch(`${API_URL}${endpoint}`, {
     ...options,
     headers,
   });
@@ -152,13 +164,13 @@ export async function getPublicCoupons(
   qs.set("offset", String(offset));
   if (params?.retailer) qs.set("retailer", params.retailer);
   if (params?.verified_only) qs.set("verified_only", "true");
-  const res = await fetch(`${API_URL}/api/v1/coupons/public?${qs.toString()}`);
+  const res = await apiFetch(`${API_URL}/api/v1/coupons/public?${qs.toString()}`);
   if (!res.ok) throw new Error(`Failed to fetch coupons: ${res.status}`);
   return res.json() as Promise<Coupon[]>;
 }
 
 export async function submitCouponFeedback(couponId: string, worked: boolean) {
-  const res = await fetch(`${API_URL}/api/v1/coupons/public/${couponId}/feedback`, {
+  const res = await apiFetch(`${API_URL}/api/v1/coupons/public/${couponId}/feedback`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ worked }),
@@ -168,7 +180,7 @@ export async function submitCouponFeedback(couponId: string, worked: boolean) {
 }
 
 export async function reportDeadDeal(dealId: string) {
-  const res = await fetch(`${API_URL}/api/v1/arbitrage/deals/public/${dealId}/report-dead`, {
+  const res = await apiFetch(`${API_URL}/api/v1/arbitrage/deals/public/${dealId}/report-dead`, {
     method: "POST",
   });
   if (!res.ok) throw new Error(`Failed to report deal: ${res.status}`);
@@ -176,7 +188,7 @@ export async function reportDeadDeal(dealId: string) {
 }
 
 export async function getPublicCouponRetailers() {
-  const res = await fetch(`${API_URL}/api/v1/coupons/public/retailers`);
+  const res = await apiFetch(`${API_URL}/api/v1/coupons/public/retailers`);
   if (!res.ok) return [];
   return res.json() as Promise<string[]>;
 }
@@ -228,7 +240,7 @@ export async function getBestCouponsForDeal(token: string, dealId: string) {
 }
 
 export async function getBestCouponsForDealPublic(dealId: string) {
-  const res = await fetch(`${API_URL}/api/v1/coupons/deal/${dealId}/best/public`);
+  const res = await apiFetch(`${API_URL}/api/v1/coupons/deal/${dealId}/best/public`);
   if (!res.ok) return [];
   return res.json() as Promise<Coupon[]>;
 }
@@ -512,13 +524,13 @@ export interface PublicRetailer {
 }
 
 export async function getPublicDealRetailers() {
-  const res = await fetch(`${API_URL}/api/v1/arbitrage/deals/public-retailers`);
+  const res = await apiFetch(`${API_URL}/api/v1/arbitrage/deals/public-retailers`);
   if (!res.ok) throw new Error(`Failed to fetch retailers: ${res.status}`);
   return res.json() as Promise<PublicRetailer[]>;
 }
 
 export async function getPublicDeal(dealId: string) {
-  const res = await fetch(`${API_URL}/api/v1/arbitrage/deals/public/${dealId}`);
+  const res = await apiFetch(`${API_URL}/api/v1/arbitrage/deals/public/${dealId}`);
   if (!res.ok) throw new Error(`Failed to fetch deal: ${res.status}`);
   return res.json() as Promise<ArbitrageDeal>;
 }
@@ -539,7 +551,7 @@ export interface DealPriceHistory {
 }
 
 export async function getPublicDealPriceHistory(dealId: string) {
-  const res = await fetch(`${API_URL}/api/v1/arbitrage/deals/public/${dealId}/price-history`);
+  const res = await apiFetch(`${API_URL}/api/v1/arbitrage/deals/public/${dealId}/price-history`);
   if (!res.ok) throw new Error(`Failed to fetch price history: ${res.status}`);
   return res.json() as Promise<DealPriceHistory>;
 }
@@ -1017,7 +1029,7 @@ export async function getProperties(filters: PropertyFilters = {}): Promise<Prop
   for (const [k, v] of Object.entries(filters)) {
     if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
   }
-  const res = await fetch(`${API_URL}/api/v1/properties?${params.toString()}`);
+  const res = await apiFetch(`${API_URL}/api/v1/properties?${params.toString()}`);
   if (!res.ok) throw new Error(`Failed to fetch properties: ${res.status}`);
   return res.json();
 }
@@ -1026,7 +1038,7 @@ export async function getPropertyStates(): Promise<{
   states: { state: string; count: number }[];
   supported: string[];
 }> {
-  const res = await fetch(`${API_URL}/api/v1/properties/states`);
+  const res = await apiFetch(`${API_URL}/api/v1/properties/states`);
   if (!res.ok) throw new Error(`Failed to fetch property states: ${res.status}`);
   return res.json();
 }
@@ -1083,7 +1095,7 @@ export async function getListings(filters: ListingFilters = {}): Promise<Listing
   for (const [k, v] of Object.entries(filters)) {
     if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
   }
-  const res = await fetch(`${API_URL}/api/v1/listings?${params.toString()}`);
+  const res = await apiFetch(`${API_URL}/api/v1/listings?${params.toString()}`);
   if (!res.ok) throw new Error(`Failed to fetch listings: ${res.status}`);
   return res.json();
 }
@@ -1091,7 +1103,7 @@ export async function getListings(filters: ListingFilters = {}): Promise<Listing
 export async function getListingCategories(): Promise<{
   categories: { category: string; count: number }[];
 }> {
-  const res = await fetch(`${API_URL}/api/v1/listings/categories`);
+  const res = await apiFetch(`${API_URL}/api/v1/listings/categories`);
   if (!res.ok) throw new Error(`Failed to fetch listing categories: ${res.status}`);
   return res.json();
 }
@@ -1099,7 +1111,7 @@ export async function getListingCategories(): Promise<{
 export async function getListingStates(): Promise<{
   states: { state: string; count: number }[];
 }> {
-  const res = await fetch(`${API_URL}/api/v1/listings/states`);
+  const res = await apiFetch(`${API_URL}/api/v1/listings/states`);
   if (!res.ok) throw new Error(`Failed to fetch listing states: ${res.status}`);
   return res.json();
 }
@@ -1262,7 +1274,7 @@ export interface AiStatus {
 }
 
 export async function getAiStatus(): Promise<AiStatus> {
-  const res = await fetch(`${API_URL}/api/v1/ai/status`);
+  const res = await apiFetch(`${API_URL}/api/v1/ai/status`);
   if (!res.ok) return { configured: false, model: null };
   return res.json();
 }

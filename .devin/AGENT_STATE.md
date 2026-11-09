@@ -22,6 +22,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
+| devin-audit-bargain | 2026-11-09 — **IN PROGRESS** — deep audit: feature gaps (dead nav/promised surfaces), blockers (NEEDS_HUMAN/env), bottlenecks (listing query perf, images, cold starts), broken routes/dead API calls. Fixes: safe small stuff only. Report: `.devin/audits/2026-11-09.md`. | repo-wide read-only + `bargain-web/src/**` small fixes + `.devin/` |
+
 | devin-review-pass | 2026-11-09 — **DONE — 2026-11-09 baseline: ~15 commits reviewed (theme toggle, GSA deact guard, privacy migration, dotenv fix — clean). No findings. Report: SenturyX .devin/reviews/2026-11-09.md.** | .devin/AGENT_STATE.md |
 
 | devin-secret-remediate | 2026-11-09 — **VERIFIED, NO WORK.** SenturyX repo-secret triage: 8 open LOW findings = 'SecretPass123!' test fixtures in bargain-api/tests/test_critical_paths.py — placeholders, no real secrets. | audit only — no files touched |

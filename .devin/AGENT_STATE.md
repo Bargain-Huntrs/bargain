@@ -22,6 +22,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
+| devin-review-pass | 2026-11-09 — **DONE — 2026-11-09 baseline: ~15 commits reviewed (theme toggle, GSA deact guard, privacy migration, dotenv fix — clean). No findings. Report: SenturyX .devin/reviews/2026-11-09.md.** | .devin/AGENT_STATE.md |
+
 | devin-secret-remediate | 2026-11-09 — **VERIFIED, NO WORK.** SenturyX repo-secret triage: 8 open LOW findings = 'SecretPass123!' test fixtures in bargain-api/tests/test_critical_paths.py — placeholders, no real secrets. | audit only — no files touched |
 
 | devin-theme-toggle | 2026-11-08 — **DONE — landed `14915a1`, pushed.** Prime-pattern theme toggle, adapted to Bargain's light-first + already-`dark:`-variant codebase: `@custom-variant dark` in globals.css makes all existing `dark:` utilities respond to the `.dark` class instead of the OS media query (components were already dark-styled — zero markup churn); `@media prefers-color-scheme` var block replaced with `.dark {}` so user toggle wins; inline init script in `layout.tsx` (localStorage `theme` → prefers-color-scheme → light default); ☀/☾ toggle button in shared `components/Header.tsx` (53/64 pages). `pnpm build` clean (67 pages), `:where(.dark)` selectors verified in emitted CSS. | `bargain-web/{src/app/globals.css,src/app/layout.tsx,src/components/Header.tsx}` |

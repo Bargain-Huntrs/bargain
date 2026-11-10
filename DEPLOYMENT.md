@@ -12,20 +12,38 @@ Frontend: Cloudflare Workers (OpenNext)
   - Deploy: cd bargain-web && pnpm run deploy
   - NOTE: the old Render bargain-web service is SUSPENDED — do not redeploy
 
-Backend: Render
-  - FastAPI on port 4040
-  - api.bargainhuntrs.com → CNAME → bargain-api-1o0n.onrender.com
-  - IMPORTANT: the real Render origin is bargain-api-1o0n.onrender.com
-    (Render appends a random suffix to service subdomains).
-    bargain-api.onrender.com is NOT this service — it returns a
-    Render-edge 404 (x-render-routing: no-server).
-  - Free plan: idles out after ~15 min; an in-app self-ping
-    (SELF_PING_URL) hits /health every 10 min to keep it warm
-  - Configured via root Dockerfile + render.yaml
-  - Render PostgreSQL
+Backend: Oracle Cloud VM (production, since 2026-11)
+  - pm2 `bargain-api` (uvicorn, port 4035) on the oracle box
+  - Database: Supabase PostgreSQL (shared prod DB)
+  - api.bargainhuntrs.com is served by the `bargain-api-guard`
+    Cloudflare Worker (route api.bargainhuntrs.com/*), which proxies every
+    request to https://bargain-api.settleinpeace.com — a same-account
+    public hostname on cloudflared tunnel e0a01d10 → oracle :4035.
+  - The api.* DNS CNAME still points at bargain-api-1o0n.onrender.com
+    (proxied) as an unreachable fallback — the Worker intercepts all
+    traffic before the origin is contacted. A cfargotunnel CNAME can't
+    be used because the tunnel lives in a different CF account (1033).
+  - Render `bargain-api` service still auto-deploys from main but is
+    LEGACY (stale env — missing AI/INTERNAL_API_KEY/etc.) — suspend it
+    at dashboard.render.com. render.yaml kept as fallback reference.
+  - Source: cloudflare-worker/api-guard.js + api-guard-wrangler.toml
 ```
 
-## Backend Deployment (Render)
+## Backend Deployment (Oracle — current production)
+
+### Status: Live
+The backend runs on the oracle box (`ssh oracle`): pm2 `bargain-api`,
+uvicorn on `localhost:4035`, working dir `~/apps/Bargain/bargain-api`,
+env in `~/apps/Bargain/bargain-api/.env`, Supabase prod DB.
+`api.bargainhuntrs.com` reaches it via the `bargain-api-guard` Worker →
+`bargain-api.settleinpeace.com` → cloudflared tunnel `e0a01d10` → :4035.
+Deploy: rsync `bargain-api/app/` to the box + `pm2 restart bargain-api`.
+
+The section below documents the LEGACY Render service — kept for
+reference only; it auto-deploys from main but serves nothing real
+(stale env). Suspend it at dashboard.render.com.
+
+## Backend Deployment (Render — LEGACY)
 
 ### Status: Deployed
 The backend is deployed and operational at api.bargainhuntrs.com.

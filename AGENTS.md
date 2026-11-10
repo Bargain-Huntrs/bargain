@@ -31,16 +31,15 @@
 - Token lives in `bargain-web/.env.cloudflare` (gitignored via `.env*`)
 - The old Render `bargain-web` service is suspended — do not redeploy it
 
-### Backend: Render
+### Backend: Oracle Cloud VM (production since 2026-11)
 
-- Backend: Render (Docker-based, Python 3.11, port 4040)
-- Database: Render PostgreSQL
-- Backend URL: `https://api.bargainhuntrs.com`
-- Frontend URL: `https://bargainhuntrs.com`
-- Configured via `Dockerfile` (backend) and `render.yaml` (backend only)
-- Render auto-deploys from `main` branch
-- **Port is 4040** — renumbered off 4030 (si-gateway) / 4035 (reid-api) which are taken on the oracle box
-- **AI endpoints need env on Render:** set `AI_BASE_URL=https://si.primetransit.com/v1`, `AI_API_KEY=<SI gateway gate key — get from ops>`, `AI_MODEL=si` (`AI_TIMEOUT_SECONDS=30` optional) — without `AI_API_KEY` every `/api/v1/ai/*` endpoint returns 503
+- Production API = pm2 `bargain-api` (uvicorn, **port 4035**) on the oracle box (`ssh oracle`, `~/apps/Bargain/bargain-api`, env in `.env` there)
+- Database: **Supabase** PostgreSQL (shared prod DB)
+- `api.bargainhuntrs.com` is served by the **`bargain-api-guard` Cloudflare Worker** (route `api.bargainhuntrs.com/*`), which proxies every request to `https://bargain-api.settleinpeace.com` — a public hostname on cloudflared tunnel `e0a01d10` → oracle `:4035`. The tunnel lives in settle's CF account, so api.* can't CNAME to it directly (error 1033) — the Worker hop is the fix. Source: `cloudflare-worker/api-guard.js`; deploy via `wrangler deploy -c cloudflare-worker/api-guard-wrangler.toml` with the token in `bargain-web/.env.cloudflare`
+- The api.* DNS CNAME still points at `bargain-api-1o0n.onrender.com` (proxied) as an unreachable fallback
+- **Render `bargain-api` is LEGACY** — it auto-deploys from `main` but has a stale env and serves nothing real; suspend at dashboard.render.com. `render.yaml`/`Dockerfile` kept as reference
+- Backend URL: `https://api.bargainhuntrs.com` · Frontend URL: `https://bargainhuntrs.com`
+- **AI/SI endpoints need env on the box:** `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL=si` in `~/apps/Bargain/bargain-api/.env` — without `AI_API_KEY` every `/api/v1/ai/*` returns 503 (check via `/api/v1/ai/status` → `configured:true` = oracle, `false` = stale Render)
 
 ## SQL Logging
 

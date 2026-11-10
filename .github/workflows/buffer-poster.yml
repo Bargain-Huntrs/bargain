@@ -22,13 +22,13 @@ jobs:
     name: Scrape Impact deals & post to X
     runs-on: ubuntu-latest
     env:
-      # Prod API = oracle via cloudflared tunnel. api.bargainhuntrs.com still
-      # CNAMEs to the stale Render service (its env lacks SCRAPE_CRON_SECRET →
-      # every call 403s). The bargainhuntrs.com zone lives in a different
-      # Cloudflare account than the tunnel, so the tunnel can't serve it —
-      # bargain-api.settleinpeace.com is a same-account alias to the same
-      # tunnel + localhost:4035 backend. See .devin/NEEDS_HUMAN.md.
-      API_BASE: https://bargain-api.settleinpeace.com
+      # Prod API = oracle via cloudflared tunnel. api.bargainhuntrs.com is
+      # served by the bargain-api-guard CF worker, which proxies every
+      # request to bargain-api.settleinpeace.com (same-account alias for the
+      # settle tunnel → oracle localhost:4035) — the DNS CNAME still points
+      # at the stale Render origin only as an unreachable proxied fallback.
+      # See cloudflare-worker/api-guard.js.
+      API_BASE: https://api.bargainhuntrs.com
     steps:
       - name: Scrape Impact.com deals
         run: |

@@ -1,5 +1,6 @@
 packages:
   - 'bargain-web'
+  - 'bargain-mobile'
   - 'packages/*'
 allowBuilds:
   sharp: true

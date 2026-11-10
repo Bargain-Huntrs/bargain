@@ -22,6 +22,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
+| devin-bargain-mobile | 2026-11-22 — **IN PROGRESS.** Build `bargain-mobile/` Expo app from scratch (SDK 56 + expo-router, clipstakes-mobile fleet standard): splash→boot→onboarding→login on bargain-api JWT auth (login/register/refresh/me), tabs = Deals feed (/api/v1/arbitrage/deals/public + retailers filter), Saved watchlist (/api/v1/watchlist), Profile (/api/v1/auth/me + niches). Dark-only, emerald #10b981 brand (logo-dark convention). No EAS cloud — tsc + expo export only. | `bargain-mobile/**`, `pnpm-workspace.yaml`, `.devin/AGENT_STATE.md`, `.devin/NEEDS_HUMAN.md` |
+
 | devin-audit-bargain | 2026-11-09 — **DONE — landed `93d9047`, pushed.** Full report `.devin/audits/2026-11-09.md`. FIXES: footer href="#"×3 → real X/IG/FB profiles; BlogArticleLayout /blog 404 → /guides; apiFetch 30s timeout across lib/api.ts; Render scheduler double-fire guard (SCHEDULER_ON_RENDER opt-in). TOP FINDINGS: api.bargainhuntrs.com = fresh code but STALE ENV — AI endpoints configured:false (features self-hide), reset-email fallback dead (INTERNAL_API_KEY never on Render), viable interim fix = repoint NEXT_PUBLIC_API_URL to oracle alias (owner call, CORS already open); missing composite index on arbitrage_deals public-feed filter. Left devin-header-hardening's proxy.ts/sw.js WIP untouched. | `bargain-web/{components/{Footer,BlogArticleLayout}.tsx,lib/api.ts}`, `bargain-api/app/main.py`, `.devin/audits/` |
 
 | devin-review-pass | 2026-11-09 — **DONE — 2026-11-09 baseline: ~15 commits reviewed (theme toggle, GSA deact guard, privacy migration, dotenv fix — clean). No findings. Report: SenturyX .devin/reviews/2026-11-09.md.** | .devin/AGENT_STATE.md |

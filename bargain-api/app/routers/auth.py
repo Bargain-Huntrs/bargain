@@ -12,7 +12,30 @@ from uuid import UUID
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.db.models import User, ReferralClaim
+from app.db.models import (
+    User,
+    ReferralClaim,
+    Alert,
+    DealClaim,
+    DealThread,
+    DealThreadComment,
+    DealThreadVote,
+    DealVote,
+    DropshipChannelVote,
+    DropshipSaved,
+    DropshipWatch,
+    FeatureRequest,
+    FeatureRequestVote,
+    NewsletterSubscriber,
+    NotificationLog,
+    ResaleListing,
+    SavedDeal,
+    Subscription,
+    UserListItem,
+    WatchlistItem,
+    WebAuthnChallenge,
+    WebAuthnCredential,
+)
 from app.services.niche_service import get_all_niches, get_niche
 from app.services.email_service import send_welcome_email, send_password_reset_email, send_verification_email
 
@@ -671,3 +694,127 @@ async def refresh(body: TokenRequest, db: Session = Depends(get_db)):
 
     access_token = create_access_token(str(user.id))
     return {"accessToken": access_token, "expiresIn": ACCESS_TOKEN_EXPIRE_SECONDS}
+
+
+@router.delete("/me")
+async def delete_me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Self-service account deletion (Apple App Store 5.1.1(v) / GDPR erasure).
+
+    Anonymizes the user row instead of hard-deleting it — ~20 tables carry
+    users.id FKs without cascade (community threads, referral claims, pool
+    commits, voucher wins, CRM notes), so a raw DELETE would either throw on
+    a constraint or orphan shared/financial records. Matches the portfolio
+    convention (dexana-api users.deleteById, prime-api users.remove):
+
+      - PII scrubbed: email tombstoned to deleted-<id>@…invalid — which also
+        frees the address for re-registration — name/phone/passkeys cleared
+      - Sessions revoked: is_active=False kills get_current_user + login;
+        refresh_token=None kills /refresh; passkey creds deleted
+      - Alert/marketing flags off + FCM cleared so schedulers stop sending
+        to the dead address
+      - Personal data rows hard-deleted (watchlist, saved deals, alerts,
+        lists, resale, claims ledger, votes, dropship saves/watches)
+      - Community content kept (threads/comments/submissions persist, like
+        every forum) with public attribution scrubbed to 'Deleted user'
+      - Financial records kept under the anonymized id: subscriptions,
+        referral claims, voucher wins, pool commits (Stripe is the source
+        of truth; open auth-holds expire on their own ~7d)
+      - Stripe subscription cancelled at period end (best-effort) so a paid
+        user isn't billed after deleting
+    """
+    uid = current_user.id
+    old_email = current_user.email
+    old_phone = current_user.phone_number
+
+    # Best-effort Stripe cancel-at-period-end — never block deletion on a
+    # billing call; an unconfigured/failing Stripe must not trap the account.
+    if current_user.stripe_subscription_id:
+        try:
+            from app.services import stripe_service
+            stripe_service.cancel_subscription(current_user.stripe_subscription_id)
+            for sub in db.query(Subscription).filter(Subscription.user_id == uid):
+                sub.cancel_at_period_end = True
+        except Exception:
+            db.rollback()
+
+    voter_key = f"user:{uid}"
+
+    # Personal rows — safe to hard-delete (no inbound FKs, no shared value).
+    for model in (
+        WatchlistItem,
+        SavedDeal,
+        Alert,
+        UserListItem,
+        ResaleListing,
+        DealClaim,
+        DealVote,
+        DropshipSaved,
+        DropshipWatch,
+        DropshipChannelVote,
+        WebAuthnCredential,
+    ):
+        db.query(model).filter(model.user_id == uid).delete(synchronize_session=False)
+
+    db.query(DealThreadVote).filter(DealThreadVote.voter_id == voter_key).delete(synchronize_session=False)
+    db.query(FeatureRequestVote).filter(FeatureRequestVote.voter_id == voter_key).delete(synchronize_session=False)
+    db.query(WebAuthnChallenge).filter(
+        WebAuthnChallenge.key.in_([f"reg:{uid}", f"auth:{old_email}"])
+    ).delete(synchronize_session=False)
+
+    # Raw-identifier PII stored outside the users table.
+    db.query(NewsletterSubscriber).filter(NewsletterSubscriber.email == old_email).delete(synchronize_session=False)
+    recipients = [r for r in (old_email, old_phone) if r]
+    if recipients:
+        db.query(NotificationLog).filter(NotificationLog.recipient.in_(recipients)).update(
+            {NotificationLog.recipient: None}, synchronize_session=False
+        )
+
+    # Community content survives; public attribution scrubbed.
+    db.query(DealThread).filter(DealThread.author_user_id == uid).update(
+        {DealThread.author_name: "Deleted user", DealThread.author_email: None},
+        synchronize_session=False,
+    )
+    db.query(DealThreadComment).filter(DealThreadComment.user_id == uid).update(
+        {DealThreadComment.author_name: "Deleted user"}, synchronize_session=False
+    )
+    db.query(FeatureRequest).filter(FeatureRequest.user_id == uid).update(
+        {FeatureRequest.author_name: "Deleted user", FeatureRequest.author_email: None},
+        synchronize_session=False,
+    )
+
+    # Tombstone the user row.
+    current_user.email = f"deleted-{uid}@deleted.bargainhuntrs.invalid"
+    # Not a bcrypt hash — verify_password() returns False, so login is dead.
+    current_user.hashed_password = f"!deleted-{uid}"
+    current_user.first_name = "Deleted"
+    current_user.last_name = "User"
+    current_user.nickname = "Deleted user"
+    current_user.phone_number = None
+    current_user.phone_verified = False
+    current_user.email_verified = False
+    current_user.is_active = False
+    current_user.refresh_token = None
+    current_user.fcm_token = None
+    current_user.email_deal_alerts = False
+    current_user.sms_deal_alerts = False
+    current_user.discord_alerts = False
+    current_user.telegram_alerts = False
+    current_user.push_notifications = False
+    current_user.weekly_digest = False
+    current_user.glitch_alerts = False
+    current_user.subscribed_niches = []
+    current_user.credential_id = None
+    current_user.public_key = None
+    current_user.sign_count = 0
+    current_user.aaguid = None
+    current_user.referral_code = None
+    current_user.is_verified_seller = False
+    current_user.seller_store_name = None
+    current_user.seller_website = None
+    current_user.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+
+    return {"success": True, "message": "Account deleted"}

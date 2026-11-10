@@ -144,6 +144,60 @@ class TestAuthFlow:
         resp = client.get("/api/v1/auth/profile")
         assert resp.status_code == 401
 
+    def test_delete_account_anonymizes_user(self, client, db_mock):
+        """DELETE /auth/me tombstones the account: PII scrubbed, sessions dead,
+        email freed for re-registration (Apple 5.1.1(v))."""
+        db_mock.first_return = None
+        with patch("app.routers.auth.send_welcome_email"):
+            resp = client.post(
+                "/api/v1/auth/register",
+                json={"email": "gone@test.com", "password": "SecretPass123!",
+                      "firstName": "Gone", "lastName": "Soon",
+                      "phoneNumber": "+15559998888"},
+            )
+        assert resp.status_code == 200, resp.text
+        access_token = resp.json()["accessToken"]
+        user = db_mock.added[0]
+        uid = user.id
+
+        db_mock.reset()
+        db_mock.first_return = user  # get_current_user looks the user up
+
+        resp = client.delete(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["success"] is True
+
+        # Anonymized in place — row kept for FK integrity, identity gone.
+        assert user.email == f"deleted-{uid}@deleted.bargainhuntrs.invalid"
+        assert user.email != "gone@test.com"
+        assert not user.hashed_password.startswith("$2")  # dead password
+        assert user.is_active is False
+        assert user.refresh_token is None
+        assert user.fcm_token is None
+        assert user.phone_number is None
+        assert user.nickname == "Deleted user"
+        assert user.email_deal_alerts is False
+        assert user.weekly_digest is False
+        assert user.referral_code is None
+        assert user.deleted_at is not None
+
+        # The tombstoned account can no longer authenticate.
+        db_mock.reset()
+        db_mock.first_return = user
+        resp = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        assert resp.status_code == 401
+
+    def test_delete_account_requires_token(self, client, db_mock):
+        """DELETE /auth/me without a JWT returns 401."""
+        resp = client.delete("/api/v1/auth/me")
+        assert resp.status_code == 401
+
     def test_jwt_token_is_valid(self, client, db_mock):
         """The JWT token returned by register can be decoded and contains sub."""
         from jose import jwt

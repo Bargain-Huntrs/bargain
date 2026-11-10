@@ -69,6 +69,11 @@ class User(Base):
     # rows are safe before the backfill lands.
     nickname = Column(String(60))
 
+    # Self-service account deletion (DELETE /api/v1/auth/me) — anonymize, not
+    # hard-delete: ~20 tables carry users.id FKs without cascade, so the row
+    # stays tombstoned. Column added lazily via ensure_privacy_schema + 039.
+    deleted_at = Column(DateTime)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

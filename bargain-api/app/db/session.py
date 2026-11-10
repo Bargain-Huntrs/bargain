@@ -34,6 +34,7 @@ def ensure_privacy_schema(db) -> None:
     migration lands):
 
       1. users.nickname column (public handle; backfilled from email local-part)
+      1b. users.deleted_at column (self-service account deletion tombstone)
       2. scrub stored author_name values that contain an email address in the
          public-facing tables (deal_threads, deal_thread_comments,
          feature_requests). Linked rows are recomputed from the author's
@@ -73,6 +74,16 @@ def ensure_privacy_schema(db) -> None:
                    WHERE (nickname IS NULL OR TRIM(nickname) = '')
                      AND email LIKE '%@%'"""
             ))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    # ── 1b. users.deleted_at column ───────────────────────────────────────
+    try:
+        if is_pg:
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP"))
+        else:
+            db.execute(text("ALTER TABLE users ADD COLUMN deleted_at TIMESTAMP"))
         db.commit()
     except Exception:
         db.rollback()

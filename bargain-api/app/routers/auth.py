@@ -742,6 +742,18 @@ async def delete_me(
 
     voter_key = f"user:{uid}"
 
+    # Best-effort purge/scrub. Prod tables for some features are lazily
+    # created and may not exist on every environment (e.g. webauthn_* on
+    # prod today) — a missing table must NOT block the account tombstone,
+    # so each statement commits independently and failures roll back and
+    # continue. Same idiom as ensure_privacy_schema().
+    def _sweep(fn) -> None:
+        try:
+            fn()
+            db.commit()
+        except Exception:
+            db.rollback()
+
     # Personal rows — safe to hard-delete (no inbound FKs, no shared value).
     for model in (
         WatchlistItem,
@@ -756,34 +768,36 @@ async def delete_me(
         DropshipChannelVote,
         WebAuthnCredential,
     ):
-        db.query(model).filter(model.user_id == uid).delete(synchronize_session=False)
-
-    db.query(DealThreadVote).filter(DealThreadVote.voter_id == voter_key).delete(synchronize_session=False)
-    db.query(FeatureRequestVote).filter(FeatureRequestVote.voter_id == voter_key).delete(synchronize_session=False)
-    db.query(WebAuthnChallenge).filter(
-        WebAuthnChallenge.key.in_([f"reg:{uid}", f"auth:{old_email}"])
-    ).delete(synchronize_session=False)
-
-    # Raw-identifier PII stored outside the users table.
-    db.query(NewsletterSubscriber).filter(NewsletterSubscriber.email == old_email).delete(synchronize_session=False)
-    recipients = [r for r in (old_email, old_phone) if r]
-    if recipients:
-        db.query(NotificationLog).filter(NotificationLog.recipient.in_(recipients)).update(
-            {NotificationLog.recipient: None}, synchronize_session=False
+        _sweep(
+            lambda m=model: db.query(m).filter(m.user_id == uid).delete(synchronize_session=False)
         )
 
+    _sweep(lambda: db.query(DealThreadVote).filter(DealThreadVote.voter_id == voter_key).delete(synchronize_session=False))
+    _sweep(lambda: db.query(FeatureRequestVote).filter(FeatureRequestVote.voter_id == voter_key).delete(synchronize_session=False))
+    _sweep(lambda: db.query(WebAuthnChallenge).filter(
+        WebAuthnChallenge.key.in_([f"reg:{uid}", f"auth:{old_email}"])
+    ).delete(synchronize_session=False))
+
+    # Raw-identifier PII stored outside the users table.
+    _sweep(lambda: db.query(NewsletterSubscriber).filter(NewsletterSubscriber.email == old_email).delete(synchronize_session=False))
+    recipients = [r for r in (old_email, old_phone) if r]
+    if recipients:
+        _sweep(lambda: db.query(NotificationLog).filter(NotificationLog.recipient.in_(recipients)).update(
+            {NotificationLog.recipient: None}, synchronize_session=False
+        ))
+
     # Community content survives; public attribution scrubbed.
-    db.query(DealThread).filter(DealThread.author_user_id == uid).update(
+    _sweep(lambda: db.query(DealThread).filter(DealThread.author_user_id == uid).update(
         {DealThread.author_name: "Deleted user", DealThread.author_email: None},
         synchronize_session=False,
-    )
-    db.query(DealThreadComment).filter(DealThreadComment.user_id == uid).update(
+    ))
+    _sweep(lambda: db.query(DealThreadComment).filter(DealThreadComment.user_id == uid).update(
         {DealThreadComment.author_name: "Deleted user"}, synchronize_session=False
-    )
-    db.query(FeatureRequest).filter(FeatureRequest.user_id == uid).update(
+    ))
+    _sweep(lambda: db.query(FeatureRequest).filter(FeatureRequest.user_id == uid).update(
         {FeatureRequest.author_name: "Deleted user", FeatureRequest.author_email: None},
         synchronize_session=False,
-    )
+    ))
 
     # Tombstone the user row.
     current_user.email = f"deleted-{uid}@deleted.bargainhuntrs.invalid"

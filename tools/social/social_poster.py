@@ -663,16 +663,23 @@ def buffer_fit_text(text: str, link: str | None, service: str) -> str:
     return f"{cut}{suffix}"
 
 
-def post_buffer(text: str, link: str | None, *_args) -> tuple[bool, str]:
+def post_buffer(text: str, link: str | None, media: Path | None = None,
+                video: Path | None = None) -> tuple[bool, str]:
     """Publish via Buffer's GraphQL API to every connected channel (X, FB,
-    IG, LinkedIn — whatever the Buffer org has linked). mode=shareNow: the
-    daily cron already handles scheduling, so Buffer is just the publisher.
+    IG, LinkedIn, TikTok — whatever the Buffer org has linked).
+    mode=shareNow: the daily cron already handles scheduling, so Buffer is
+    just the publisher.
 
     Env:
       BUFFER_ACCESS_TOKEN  — public API token (buffer.com → Settings → API)
       BUFFER_ORG_ID        — optional; defaults to first organization
       BUFFER_CHANNEL_IDS   — optional CSV; default posts to ALL connected
                              channels (isDisconnected channels are skipped)
+      BUFFER_MEDIA_BASE    — optional public base URL where committed
+                             cards/videos are served (e.g.
+                             https://<site>/social-cards). Buffer has no
+                             upload endpoint — assets are fetched by URL at
+                             publish time. Without it, posts stay text-only.
     """
     token = os.environ.get("BUFFER_ACCESS_TOKEN")
     if not token:
@@ -696,6 +703,8 @@ def post_buffer(text: str, link: str | None, *_args) -> tuple[bool, str]:
     if not targets:
         return False, "no Buffer channels connected (link X/FB/etc in Buffer dashboard)"
 
+    media_base = os.environ.get("BUFFER_MEDIA_BASE", "").rstrip("/")
+
     mutation = (
         "mutation($input: CreatePostInput!) { createPost(input: $input) { __typename "
         "... on PostActionSuccess { post { id } } "
@@ -707,15 +716,27 @@ def post_buffer(text: str, link: str | None, *_args) -> tuple[bool, str]:
         # FB is covered by the direct post_facebook_page path — Buffer's
         # createPost rejects facebook channels without a channel-specific
         # post type the public schema doesn't expose cleanly.
-        if ch.get("service") == "facebook":
+        svc = ch.get("service") or ""
+        if svc == "facebook":
             continue
+        # Per-service media pick (Buffer assets are URL refs — it fetches
+        # them at publish time; see developers.buffer.com/guides/hosting-media):
+        #   tiktok channel → the 9:16 .mp4 card video ({video: {url}}),
+        #                    falling back to the PNG image asset
+        #   everything else → the PNG card ({image: {url}})
+        assets: list[dict] = []
+        if media_base:
+            if svc == "tiktok" and video:
+                assets = [{"video": {"url": f"{media_base}/{video.name}"}}]
+            elif media:
+                assets = [{"image": {"url": f"{media_base}/{media.name}"}}]
         res = _buffer_gql(token, mutation, {"input": {
             "channelId": ch["id"],
-            "text": buffer_fit_text(text, link, ch.get("service") or ""),
+            "text": buffer_fit_text(text, link, svc),
             "mode": "shareNow",
             "schedulingType": "automatic",
             "needsApproval": False,
-            "assets": [],
+            "assets": assets,
         }})
         r = (res.get("data") or {}).get("createPost") or {}
         if r.get("__typename") == "PostActionSuccess":
@@ -798,6 +819,16 @@ def main() -> None:
         else:
             cand = HERE / "cards" / f"{item['date']}.png"
             media = cand if cand.exists() else None
+        # Optional vertical video card (card_maker.py --video →
+        # cards/<date>.mp4). Only Buffer's tiktok channel uses it; every
+        # other platform keeps the PNG. Explicit "video" field wins.
+        video: Path | None = None
+        if item.get("video"):
+            cand = HERE / item["video"]
+            video = cand if cand.exists() else None
+        else:
+            cand = HERE / "cards" / f"{item['date']}.mp4"
+            video = cand if cand.exists() else None
 
         for name, fn in platforms.items():
             if item_state.get(name):
@@ -814,6 +845,7 @@ def main() -> None:
             if args.dry_run:
                 tag = " [poll]" if poll else ""
                 tag += " [img]" if use_media else ""
+                tag += " [vid]" if name == "buffer" and video else ""
                 print(f"  [dry-run] {item['date']} {name}{tag}: {ptext[:70]}…")
                 sent += 1
                 continue
@@ -824,6 +856,8 @@ def main() -> None:
                 ok, detail = fn(ptext, plink, use_media, override.get("as"))
             elif name in ("bluesky", "facebook"):
                 ok, detail = fn(ptext, plink, use_media)
+            elif name == "buffer":
+                ok, detail = fn(ptext, plink, media, video)
             else:
                 ok, detail = fn(ptext, plink)
             if ok:

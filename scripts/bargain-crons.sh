@@ -62,11 +62,28 @@ commit_state() {
   git diff --cached --quiet || git commit -qm "chore(cron): $JOB state [skip ci]" && git push -q origin main >>"$LOG" 2>&1
 }
 
+# Publish rendered cards into the web public dir so Buffer can fetch them
+# by URL at publish time (Buffer has no upload endpoint; assets are
+# public-URL only — BUFFER_MEDIA_BASE=https://bargainhuntrs.com/social-cards).
+# Cards are COMMITTED assets (Dexana convention): this push lands them in
+# main and they go live on the next bargain-web deploy — bargain-web has
+# no deploy-on-push workflow, so the commit carries [skip ci] to save CI.
+publish_cards() {
+  mkdir -p bargain-web/public/social-cards
+  find tools/social/cards -maxdepth 1 -type f \( -name '*.png' -o -name '*.mp4' \) \
+    -exec cp {} bargain-web/public/social-cards/ \;
+  git config user.name "bargain-social-bot"
+  git config user.email "bot@bargainhuntrs.com"
+  git add bargain-web/public/social-cards/ 2>/dev/null
+  git diff --cached --quiet || git commit -qm "chore(social): publish card assets [skip ci]" && git push -q origin main >>"$LOG" 2>&1
+}
+
 case "$JOB" in
   social-daily)
     PY_BIN="$PY"; [ -x "$PY_BIN" ] || PY_BIN="$(command -v python3 || true)"
     [ "$PY_BIN" = "$PY" ] || log "WARN: venv python missing — using $PY_BIN"
     "$PY_BIN" tools/social/card_maker.py >>"$LOG" 2>&1
+    publish_cards >>"$LOG" 2>&1 || log "WARN: publish_cards failed"
     POST_OUT="$("$PY_BIN" tools/social/social_poster.py 2>&1)"; echo "$POST_OUT" >>"$LOG"
     POSTED="$(echo "$POST_OUT" | grep -oE 'Done: [0-9]+ posted' | grep -oE '[0-9]+' | head -1)"
     if [ "${POSTED:-0}" -eq 0 ]; then

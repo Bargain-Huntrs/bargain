@@ -663,6 +663,19 @@ def buffer_fit_text(text: str, link: str | None, service: str) -> str:
     return f"{cut}{suffix}"
 
 
+def _url_live(url: str) -> bool:
+    """HEAD-check that a card asset URL actually serves. Buffer fetches
+    assets at publish time, but committed cards only go live on the next
+    web deploy — attaching a not-yet-deployed URL risks Buffer rejecting
+    the post, so unverified assets fall back to text-only."""
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
 def post_buffer(text: str, link: str | None, media: Path | None = None,
                 video: Path | None = None) -> tuple[bool, str]:
     """Publish via Buffer's GraphQL API to every connected channel (X, FB,
@@ -680,6 +693,9 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
                              https://<site>/social-cards). Buffer has no
                              upload endpoint — assets are fetched by URL at
                              publish time. Without it, posts stay text-only.
+                             Asset URLs are HEAD-checked first — a
+                             committed-but-undeployed card posts text-only
+                             rather than risking an unfetchable asset.
     """
     token = os.environ.get("BUFFER_ACCESS_TOKEN")
     if not token:
@@ -704,6 +720,21 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
         return False, "no Buffer channels connected (link X/FB/etc in Buffer dashboard)"
 
     media_base = os.environ.get("BUFFER_MEDIA_BASE", "").rstrip("/")
+    # Card asset URLs — resolved + liveness-checked ONCE per post (Buffer
+    # fetches them at publish time). None = post that channel text-only.
+    img_url = vid_url = None
+    if media_base and media:
+        cand = f"{media_base}/{media.name}"
+        if _url_live(cand):
+            img_url = cand
+        else:
+            print(f"  NOTE: card image not live yet ({cand}) — Buffer posts text-only")
+    if media_base and video:
+        cand = f"{media_base}/{video.name}"
+        if _url_live(cand):
+            vid_url = cand
+        else:
+            print(f"  NOTE: card video not live yet ({cand}) — Buffer posts text-only")
 
     mutation = (
         "mutation($input: CreatePostInput!) { createPost(input: $input) { __typename "
@@ -725,11 +756,10 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
         #                    falling back to the PNG image asset
         #   everything else → the PNG card ({image: {url}})
         assets: list[dict] = []
-        if media_base:
-            if svc == "tiktok" and video:
-                assets = [{"video": {"url": f"{media_base}/{video.name}"}}]
-            elif media:
-                assets = [{"image": {"url": f"{media_base}/{media.name}"}}]
+        if svc == "tiktok" and vid_url:
+            assets = [{"video": {"url": vid_url}}]
+        elif img_url:
+            assets = [{"image": {"url": img_url}}]
         res = _buffer_gql(token, mutation, {"input": {
             "channelId": ch["id"],
             "text": buffer_fit_text(text, link, svc),

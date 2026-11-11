@@ -7,6 +7,7 @@ import { authService } from "@/lib/authService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PasskeyButton from "@/components/PasskeyButton";
+import { trackLogin } from "@/lib/ads";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function LoginPage() {
     setLoading(true);
     const result = await authService.login({ email, password });
     if (result.success) {
+      trackLogin("password");
       router.push("/dashboard");
     } else {
       setError(result.error || "Login failed");

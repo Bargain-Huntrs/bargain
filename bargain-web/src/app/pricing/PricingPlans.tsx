@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { plans, type Plan } from "./plans";
 import { authService } from "@/lib/authService";
+import { trackBeginCheckout } from "@/lib/ads";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.bargainhuntrs.com";
 
@@ -51,6 +52,7 @@ export function PricingPlans() {
       if (result.free) {
         router.push("/dashboard");
       } else if (result.url) {
+        trackBeginCheckout({ method: "stripe", plan: plan.planId });
         // Redirect to Stripe Checkout.
         window.location.href = result.url;
       } else {

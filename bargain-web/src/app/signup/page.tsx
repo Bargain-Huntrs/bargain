@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PasskeyButton from "@/components/PasskeyButton";
 import PhoneVerify from "@/components/PhoneVerify";
+import { trackSignUp } from "@/lib/ads";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function SignupPage() {
       phoneIdToken: phoneToken ?? undefined,
     });
     if (result.success) {
+      trackSignUp("password");
       setRegistered(true);
     } else {
       setError(result.error || "Signup failed");

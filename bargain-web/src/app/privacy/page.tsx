@@ -100,6 +100,12 @@ export default function PrivacyPage() {
                   patterns. Google processes this data under its own privacy policy.
                 </li>
                 <li>
+                  <strong className="text-zinc-700 dark:text-zinc-300">Ad measurement:</strong>{" "}
+                  We may use cookie-based advertising measurement (such as Google Ads or
+                  Microsoft Advertising UET) to measure the effectiveness of our ad campaigns
+                  when those tags are enabled.
+                </li>
+                <li>
                   <strong className="text-zinc-700 dark:text-zinc-300">Affiliate attribution:</strong>{" "}
                   Deal and retailer links on this site are tracked so partner networks (including
                   Impact, Awin, Amazon Associates, and similar programs) can attribute clicks and

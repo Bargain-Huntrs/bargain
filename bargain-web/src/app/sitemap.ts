@@ -66,7 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (let offset = 0; offset < 2000; offset += MAX_LIMIT) {
       const res = await fetch(
         `${API_URL}/api/v1/arbitrage/deals/public?limit=${MAX_LIMIT}&offset=${offset}`,
-        { headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" } }
+        { headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" }, signal: AbortSignal.timeout(8000) }
       );
       if (!res.ok) break;
       const deals = await res.json();
@@ -89,7 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const res = await fetch(
       `${API_URL}/api/v1/arbitrage/deals/public-retailers`,
-      { headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" } }
+      { headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" }, signal: AbortSignal.timeout(8000) }
     );
     if (res.ok) {
       const retailers = await res.json();
@@ -110,6 +110,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const res = await fetch(`${API_URL}/api/v1/coupons/public/retailers`, {
       headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" },
+      signal: AbortSignal.timeout(8000),
     });
     if (res.ok) {
       const retailers = await res.json();

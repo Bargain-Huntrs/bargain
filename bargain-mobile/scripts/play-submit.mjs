@@ -16,6 +16,7 @@
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import https from 'node:https';
 import path from 'node:path';
 
 const PKG = process.env.PACKAGE || 'com.bargainhuntrs.mobile';
@@ -57,7 +58,7 @@ const tok = await (await fetch('https://oauth2.googleapis.com/token', {
 if (!tok.access_token) { console.error('auth failed', tok); process.exit(1); }
 const H = { authorization: `Bearer ${tok.access_token}` };
 const API = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PKG}`;
-const UPL = `https://upload.googleapis.com/upload/androidpublisher/v3/applications/${PKG}`;
+const UPL = `https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${PKG}`;
 const j = async (r) => { const t = await r.text(); try { return JSON.parse(t); } catch { return t; } };
 
 // ---- edit ----
@@ -66,10 +67,14 @@ if (!edit.id) { console.error('edit failed', edit); process.exit(1); }
 console.log('edit', edit.id);
 
 // ---- bundle upload ----
-const up = await j(await fetch(`${UPL}/edits/${edit.id}/bundles?uploadType=media`, {
-  method: 'POST', headers: { ...H, 'content-type': 'application/octet-stream' },
-  body: fs.readFileSync(AAB),
-}));
+const up = await new Promise((resolve, reject) => {
+  const u = new URL(`${UPL}/edits/${edit.id}/bundles?uploadType=media`);
+  const body = fs.readFileSync(AAB);
+  const req = https.request({ method: 'POST', hostname: u.hostname, path: u.pathname + u.search,
+    headers: { ...H, 'content-type': 'application/octet-stream', 'content-length': body.length } },
+    (res) => { let d = ''; res.on('data', (c) => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(d); } }); });
+  req.on('error', reject); req.end(body);
+});
 if (!up.versionCode) { console.error('bundle upload failed', up); process.exit(1); }
 console.log('uploaded versionCode', up.versionCode);
 

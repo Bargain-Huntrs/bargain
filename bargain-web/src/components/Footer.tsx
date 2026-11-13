@@ -113,6 +113,7 @@ export default function Footer() {
               <li><Link href="/dashboard" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Dashboard</Link></li>
               <li><Link href="/settings/notifications" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Notifications</Link></li>
               <li><Link href="/referrals" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Referrals</Link></li>
+              <li><Link href="/delete-account" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Delete Account</Link></li>
             </ul>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-50 mb-4">Legal</h4>
             <ul className="space-y-2.5 text-sm text-zinc-500 dark:text-zinc-400">

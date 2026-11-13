@@ -145,10 +145,17 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 mb-3">6. Data retention</h2>
               <p>
-                We retain your account data for as long as your account is active. If you delete your
-                account, we remove your personal data within 30 days, except where retention is
-                required by law (e.g. billing records, which are kept for 7 years per standard
-                accounting requirements).
+                We retain your account data for as long as your account is active. You can delete
+                your account anytime at{" "}
+                <Link
+                  href="/delete-account"
+                  className="font-medium text-zinc-900 dark:text-zinc-50 underline underline-offset-4"
+                >
+                  bargainhuntrs.com/delete-account
+                </Link>
+                . If you delete your account, we remove your personal data within 30 days, except
+                where retention is required by law (e.g. billing records, which are kept for 7
+                years per standard accounting requirements).
               </p>
             </section>
 

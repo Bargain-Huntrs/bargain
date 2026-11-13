@@ -59,6 +59,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/disclosure`, lastModified: now, changeFrequency: "yearly", priority: 0.4 },
     { url: `${BASE_URL}/dropship-terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/privacy-app`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${BASE_URL}/delete-account`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   let dealUrls: MetadataRoute.Sitemap = [];

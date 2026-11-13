@@ -118,7 +118,15 @@ export default function AppPrivacyPage() {
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 mb-3">6. Retention &amp; deletion</h2>
               <p>
                 We keep your information while your account is active and as needed for legal and
-                record-keeping purposes. To delete your account and personal data, email{" "}
+                record-keeping purposes. To delete your account and personal data, use the
+                self-service option at{" "}
+                <Link
+                  href="/delete-account"
+                  className="font-medium text-zinc-900 dark:text-zinc-50 underline underline-offset-4"
+                >
+                  bargainhuntrs.com/delete-account
+                </Link>{" "}
+                or email{" "}
                 <a
                   href="mailto:privacy@bargainhuntrs.com"
                   className="font-medium text-zinc-900 dark:text-zinc-50 underline underline-offset-4"

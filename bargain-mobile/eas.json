@@ -30,5 +30,14 @@
         "buildType": "apk"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft",
+        "serviceAccountKeyPath": "./credentials/android/play-store-service-account.json"
+      }
+    }
   }
 }

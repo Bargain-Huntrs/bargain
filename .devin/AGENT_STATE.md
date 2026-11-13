@@ -195,3 +195,4 @@ ack flag 4b1a777a9c7e (devin-mercury-ref — read; this task is a scoped placeme
 ack flag 4b1a777a9c7e — read by droid-store-prep (Play store-prep pass)
 
 - 2026-12-14 | droid-android-audit | **VERIFIED — Android-ready.** `expo export --platform android` clean (3.3MB → /tmp/export-bargain). `com.bargainhuntrs.mobile` v1.0.0 vc1, adaptive-icon assets present, target/compile SDK 36, no dangerous perms, no FCM (by design), tsc --noEmit clean, api.bargainhuntrs.com/health 200.
+- 2026-12-19 | droid-store-shots | **Authenticated Play screenshots captured + pushed `b94cb58`.** Emulator → release-signed universal APK → login play.review.bargain@bargainhuntrs.com → 5 shots in `store-assets/screenshots/auth/`: deal feed (live deals), deal detail (price/ROI/coupon), saved/watchlist, profile, profile-danger-zone (delete account). Reviewer path verified E2E, zero gates.

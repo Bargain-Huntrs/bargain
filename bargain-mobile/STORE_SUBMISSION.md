@@ -20,19 +20,23 @@ api.bargainhuntrs.com.
 rejects headless sign-in).
 
 ## Build (local only — EAS cloud is billing-gated)
+Signed release AAB recipe (used for `dist/bargain.aab`, vc1):
 ```bash
 cd bargain-mobile
-# Preferred (EAS-managed remote keystore):
-ANDROID_HOME=~/Library/Android/sdk GRADLE_USER_HOME=/Volumes/Os_Sites/tools/gradle \
-  EXPO_USE_PNPM=1 eas build -p android --profile production --local \
-  --output dist/bargain.aab --non-interactive
-# Bare-gradle alternative (debug-signed — internal testing only):
-#   npx expo prebuild -p android --clean && cd android && ./gradlew bundleRelease
-#   → android/app/build/outputs/bundle/release/app-release.aab
-#   Wire a release jks into signingConfigs.release before shipping it.
+pnpm expo prebuild -p android            # regenerates gitignored android/
+node scripts/android-release-signing.mjs # wires signingConfigs.release → credentials/android/keystore.properties
+cd android && GRADLE_USER_HOME=/Volumes/Os_Sites/tools/gradle ./gradlew bundleRelease
+cp app/build/outputs/bundle/release/app-release.aab ../dist/bargain.aab
 ```
-No release keystore exists locally yet — first EAS local build creates the
-keystore on remote credentials (`eas credentials`).
+Upload key: `credentials/android/bargain-release.jks` (alias `bargain-upload`,
+gitignored; passwords in `credentials/android/keystore.properties`, mode 600).
+**Backup:** full keystore + passwords + fingerprint live in `~/.devin-vault`
+entry `bargain-android-upload-key` — restore from there if the local
+`credentials/` dir is wiped.
+Cert SHA-256: `16:6C:5A:76:11:36:C8:09:12:EB:1C:12:C3:36:B7:05:83:41:C6:A2:2E:C5:FE:52:7A:60:E3:36:06:47:53:D9`
+First Play upload registers this as the upload key; Play App Signing holds the
+app-signing key. Do NOT regenerate the JKS after first upload (a new key would
+need a Play Console upload-key reset).
 
 ## Submit (Android Publisher API)
 ```bash

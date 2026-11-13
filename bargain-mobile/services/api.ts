@@ -217,6 +217,16 @@ export async function updateMe(
   return api('/api/v1/auth/me', { method: 'PUT', token, body });
 }
 
+/**
+ * Self-service account deletion (Play/Apple store requirement) — same
+ * anonymize endpoint the site's /delete-account page calls. Tombstones
+ * the user row, purges personal data, revokes every session. 2xx = gone —
+ * the caller must then clear the local session.
+ */
+export async function deleteMe(token: string): Promise<any> {
+  return api('/api/v1/auth/me', { method: 'DELETE', token });
+}
+
 export async function fetchNiches(
   token: string,
 ): Promise<{ subscribed_niches: string[]; available_niches: Niche[] }> {

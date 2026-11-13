@@ -5,8 +5,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +18,7 @@ import {
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import {
+  deleteMe,
   fetchNiches,
   updateMe,
   updateNiches,
@@ -39,6 +43,9 @@ export default function Profile() {
   const [subscribed, setSubscribed] = useState<string[]>([]);
   const [nicheBusy, setNicheBusy] = useState(false);
   const [nicheErr, setNicheErr] = useState('');
+
+  const [delBusy, setDelBusy] = useState(false);
+  const [delErr, setDelErr] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -112,6 +119,47 @@ export default function Profile() {
     router.replace('/login');
   };
 
+  /**
+   * In-app account deletion (Play/Apple requirement — the web twin lives at
+   * bargainhuntrs.com/delete-account). Native confirm first; the call then
+   * tombstones the account server-side and every session dies with it, so
+   * a 2xx always means clear-local + back to login.
+   */
+  const confirmDelete = () => {
+    Alert.alert(
+      'Delete account?',
+      'This permanently deletes your BargainHuntrs account. Your sign-in, profile, watchlist, saved deals, alerts, and preferences are removed, any subscription is cancelled, and all notifications stop. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete permanently',
+          style: 'destructive',
+          onPress: () => void performDelete(),
+        },
+      ],
+    );
+  };
+
+  const performDelete = async () => {
+    if (delBusy) return;
+    setDelErr('');
+    setDelBusy(true);
+    try {
+      const t = await freshToken();
+      if (!t) throw new Error('Session expired — sign in again.');
+      await deleteMe(t);
+      await signOut();
+      Alert.alert('Account deleted', 'Your account and personal data have been removed.');
+      router.replace('/login');
+    } catch (e: any) {
+      setDelErr(
+        `${e?.message || 'Delete failed — try again.'} You can also delete at bargainhuntrs.com/delete-account.`,
+      );
+    } finally {
+      setDelBusy(false);
+    }
+  };
+
   if (status !== 'authed' || !user) {
     return (
       <Screen>
@@ -121,6 +169,12 @@ export default function Profile() {
             sub="Sign in to manage your account, deal-alert niches, and watchlist."
             action={<Btn title="Sign in / Create account" small onPress={() => router.push('/login')} />}
           />
+          <Pressable
+            onPress={() => Linking.openURL('https://bargainhuntrs.com/delete-account').catch(() => {})}
+            hitSlop={6}
+          >
+            <Text style={styles.deleteLink}>Delete an account? bargainhuntrs.com/delete-account</Text>
+          </Pressable>
         </View>
       </Screen>
     );
@@ -199,6 +253,15 @@ export default function Profile() {
 
           <Btn title="Sign out" tone="ghost" onPress={doSignOut} />
 
+          {/* ---- danger zone ---- */}
+          <SectionTitle>Danger zone</SectionTitle>
+          <Text style={styles.dangerSub}>
+            Permanently delete your account and personal data — sign-in, profile, watchlist,
+            saved deals, and alerts. Cannot be undone.
+          </Text>
+          {delErr ? <Text style={styles.errText}>{delErr}</Text> : null}
+          <Btn title="Delete account" tone="danger" onPress={confirmDelete} loading={delBusy} />
+
           <Text style={styles.footer}>
             BargainHuntrs {Constants.expoConfig?.version || ''} · Powered by SI
           </Text>
@@ -227,6 +290,8 @@ const styles = StyleSheet.create({
   nicheSub: { color: colors.muted, fontSize: 12, lineHeight: 17, marginBottom: 12 },
   nicheWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   errText: { color: colors.danger, fontSize: 13, marginTop: 10 },
+  dangerSub: { color: colors.muted, fontSize: 12, lineHeight: 17, marginBottom: 12 },
+  deleteLink: { color: colors.muted, fontSize: 12, marginTop: 18, textDecorationLine: 'underline' },
   savedText: { color: colors.success, fontSize: 13, marginBottom: 12, fontWeight: '600' },
   footer: { color: colors.faint, fontSize: 11, textAlign: 'center', marginTop: 32 },
 });

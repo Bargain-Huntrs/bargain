@@ -28,6 +28,8 @@ import {
   refreshWatchlistItem,
   type WatchlistItem,
 } from '../../services/api';
+import { cacheRead, cacheWrite, staleLabel } from '../../services/cache';
+import { hapticOk, hapticTap, hapticWarn } from '../../services/haptics';
 import { useAuth } from '../../contexts/AuthContext';
 import { Btn, Empty, Field, Screen } from '../../components/ui';
 import { hostOf, usd } from '../../lib/format';
@@ -35,11 +37,12 @@ import { colors } from '../../theme/colors';
 
 export default function Saved() {
   const router = useRouter();
-  const { status, freshToken } = useAuth();
+  const { status, user, freshToken } = useAuth();
   const [rows, setRows] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [staleAt, setStaleAt] = useState<number | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
@@ -59,15 +62,24 @@ export default function Saved() {
       try {
         const t = await freshToken();
         if (!t) throw new Error('Session expired — sign in again.');
-        setRows(await listWatchlist(t));
+        const items = await listWatchlist(t);
+        setRows(items);
+        setStaleAt(null);
+        cacheWrite(`watchlist.${user?.id ?? 'anon'}`, items);
       } catch (e: any) {
-        setError(e?.message || 'Could not load your watchlist.');
+        const cached = await cacheRead<WatchlistItem[]>(`watchlist.${user?.id ?? 'anon'}`);
+        if (cached) {
+          setRows(cached.data);
+          setStaleAt(cached.at);
+        } else {
+          setError(e?.message || 'Could not load your watchlist.');
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [status, freshToken],
+    [status, user, freshToken],
   );
 
   useEffect(() => {
@@ -103,6 +115,7 @@ export default function Saved() {
       setUrl('');
       setTarget('');
       setShowAdd(false);
+      hapticOk();
       await load(true);
     } catch (e: any) {
       setAddErr(e?.message || 'Could not add the item.');
@@ -112,6 +125,7 @@ export default function Saved() {
   };
 
   const refreshOne = async (item: WatchlistItem) => {
+    hapticTap();
     try {
       const t = await freshToken();
       if (!t) return;
@@ -133,7 +147,12 @@ export default function Saved() {
             const t = await freshToken();
             if (!t) return;
             await deleteWatchlistItem(t, item.id);
-            setRows((r) => r.filter((x) => x.id !== item.id));
+            hapticWarn();
+            setRows((r) => {
+              const next = r.filter((x) => x.id !== item.id);
+              cacheWrite(`watchlist.${user?.id ?? 'anon'}`, next); // keep the offline snapshot honest
+              return next;
+            });
           } catch (e: any) {
             Alert.alert('Remove failed', e?.message || 'Try again later.');
           }
@@ -166,6 +185,11 @@ export default function Saved() {
         </Pressable>
       </View>
       <Text style={styles.sub}>Current price vs. your target — compared at a glance.</Text>
+      {staleAt ? (
+        <Text style={styles.staleNote}>
+          Offline — showing your watchlist from {staleLabel(staleAt)}.
+        </Text>
+      ) : null}
 
       {showAdd && (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -324,4 +348,11 @@ const styles = StyleSheet.create({
   rowTargetHit: { color: colors.brandLight },
   rowBtn: { padding: 6 },
   errText: { color: colors.danger, fontSize: 13, marginBottom: 10 },
+  staleNote: {
+    color: colors.faint,
+    fontSize: 11,
+    textAlign: 'center',
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+  },
 });

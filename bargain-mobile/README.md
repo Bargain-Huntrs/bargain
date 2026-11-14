@@ -17,13 +17,32 @@ built to the `clipstakes-mobile` fleet standard.
 
 | Route | What it calls |
 |---|---|
-| `app/index.tsx` | boot router — onboarding flag → login → tabs |
+| `app/index.tsx` | boot router — onboarding flag → login → tabs; biometric lock screen while gated |
 | `app/onboarding.tsx` | 3 slides, once per install |
 | `app/login.tsx` | `POST /api/v1/auth/{login,register,forgot-password}` |
-| `app/(tabs)/index.tsx` | `GET /api/v1/arbitrage/deals/public` + `…/public-retailers` (public — guests can browse) |
-| `app/deal/[id].tsx` | `GET …/deals/public/{id}`, click-out via `POST /api/v1/affiliate/click[/public]` |
-| `app/(tabs)/saved.tsx` | `GET/POST/DELETE /api/v1/watchlist` + `…/{id}/refresh` (authed) |
-| `app/(tabs)/profile.tsx` | `GET/PUT /api/v1/auth/me`, `GET/PUT …/me/niches` (authed) |
+| `app/(tabs)/index.tsx` | `GET /api/v1/arbitrage/deals/public` + `…/public-retailers` (public — guests can browse); AsyncStorage snapshot fallback offline |
+| `app/deal/[id].tsx` | `GET …/deals/public/{id}`, click-out via `POST /api/v1/affiliate/click[/public]`, native share sheet |
+| `app/(tabs)/saved.tsx` | `GET/POST/DELETE /api/v1/watchlist` + `…/{id}/refresh` (authed); snapshot fallback offline |
+| `app/(tabs)/profile.tsx` | `GET/PUT /api/v1/auth/me`, `GET/PUT …/me/niches`, `GET/PUT …/notifications/preferences`, `POST/DELETE …/push/{register,unregister}`, `POST …/push/test` (authed) |
+
+## Native features (Guideline 4.3 depth)
+
+- **Biometric unlock** — opt-in per device; gate fires on cold start after a
+  session restore (`services/biometrics.ts`, expo-local-authentication,
+  toggle in Profile → Security & alerts).
+- **Push deal alerts** — `services/push.ts` mints the native device token
+  (`getDevicePushTokenAsync` — FCM on Android) and posts it to the real
+  `POST /api/v1/notifications/push/register`; Profile toggle mirrors the
+  server-side pref, test-push button fires `POST …/push/test`. Taps deep-link
+  `data.url` → `/deal/<id>` (`wireNotificationHandlers` in `app/_layout.tsx`).
+  Degrades honestly on builds without FCM wired.
+- **Haptics** — `services/haptics.ts`, lazy-required; taps, chip switches,
+  save/remove/success feedback.
+- **Offline snapshots** — `services/cache.ts` AsyncStorage envelopes; feed,
+  retailer list and watchlist render stale-labelled data when the API is
+  unreachable.
+- All native modules are lazy-required — an OTA landing on a binary built
+  before they shipped degrades silently instead of crashing.
 
 ## Commands (pnpm only)
 

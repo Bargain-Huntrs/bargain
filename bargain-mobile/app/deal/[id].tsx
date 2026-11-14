@@ -9,6 +9,7 @@ import {
   Linking,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -16,6 +17,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchDeal, trackClick, type Deal } from '../../services/api';
+import { hapticOk, hapticTap } from '../../services/haptics';
 import { useAuth } from '../../contexts/AuthContext';
 import { Btn, Chip, Screen } from '../../components/ui';
 import { ago, pctOff, retailerLabel, usd } from '../../lib/format';
@@ -47,8 +49,28 @@ export default function DealDetail() {
     load();
   }, [load]);
 
+  const shareDeal = async () => {
+    if (!deal) return;
+    hapticTap();
+    const off = pctOff(deal.historical_avg, deal.buy_price);
+    const lines = [
+      deal.title,
+      `${usd(deal.buy_price)}${off !== null ? ` (${off}% off)` : ''} at ${retailerLabel(deal.retailer)}`,
+      deal.buy_url ?? '',
+      'via BargainHuntrs',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    try {
+      await Share.share({ message: lines });
+    } catch {
+      /* user dismissed or share unsupported — no-op */
+    }
+  };
+
   const openDeal = async () => {
     if (!deal || clickBusy) return;
+    hapticTap();
     setClickBusy(true);
     setClickErr('');
     try {
@@ -57,6 +79,7 @@ export default function DealDetail() {
       const url = await trackClick(deal, t);
       if (!url) throw new Error('No deal link available.');
       await Linking.openURL(url);
+      hapticOk();
     } catch (e: any) {
       // Fall back to the raw retailer link if tracking failed.
       if (deal.buy_url) {
@@ -107,7 +130,12 @@ export default function DealDetail() {
             <Ionicons name="chevron-back" size={22} color={colors.text} />
             <Text style={styles.backText}>Deals</Text>
           </Pressable>
-          {deal.detected_at ? <Text style={styles.spotted}>spotted {ago(deal.detected_at)}</Text> : null}
+          <View style={styles.navRight}>
+            {deal.detected_at ? <Text style={styles.spotted}>spotted {ago(deal.detected_at)}</Text> : null}
+            <Pressable onPress={shareDeal} hitSlop={12} style={styles.shareBtn} accessibilityLabel="Share this deal">
+              <Ionicons name="share-outline" size={21} color={colors.text} />
+            </Pressable>
+          </View>
         </View>
 
         {deal.image_url ? (
@@ -221,6 +249,8 @@ const styles = StyleSheet.create({
   },
   backBtn: { flexDirection: 'row', alignItems: 'center' },
   backText: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  navRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  shareBtn: { padding: 2 },
   spotted: { color: colors.faint, fontSize: 12 },
   hero: { width: '100%', height: 260, backgroundColor: '#fff' },
   heroFallback: { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },

@@ -17,6 +17,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { fetchDeals, fetchRetailers, type Deal } from '../../services/api';
+import { cacheRead, cacheWrite, staleLabel } from '../../services/cache';
+import { hapticTap } from '../../services/haptics';
 import { DealCard } from '../../components/DealCard';
 import { Btn, Empty, Screen } from '../../components/ui';
 import { retailerLabel } from '../../lib/format';
@@ -38,22 +40,33 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [staleAt, setStaleAt] = useState<number | null>(null);
 
   const load = useCallback(
     async (isRefresh = false) => {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError('');
+      const key = `deals.${retailer || 'all'}.${source || 'all'}`;
       try {
-        setRows(
-          await fetchDeals({
-            retailer: retailer || undefined,
-            source: source || undefined,
-            limit: 40,
-          }),
-        );
+        const deals = await fetchDeals({
+          retailer: retailer || undefined,
+          source: source || undefined,
+          limit: 40,
+        });
+        setRows(deals);
+        setStaleAt(null);
+        cacheWrite(key, deals);
       } catch (e: any) {
-        setError(e?.message || 'Could not load deals.');
+        // Offline fallback — serve the last snapshot of this slice and say
+        // how old it is, rather than a dead error screen.
+        const cached = await cacheRead<Deal[]>(key);
+        if (cached) {
+          setRows(cached.data);
+          setStaleAt(cached.at);
+        } else {
+          setError(e?.message || 'Could not load deals.');
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -66,11 +79,18 @@ export default function Feed() {
     load();
   }, [load]);
 
-  // Retailer chips — top stores by live deal count (public endpoint).
+  // Retailer chips — top stores by live deal count (public endpoint). The
+  // last list is cached too so filters still render offline.
   useEffect(() => {
     fetchRetailers()
-      .then((rs) => setRetailers(rs.slice(0, 10)))
-      .catch(() => {});
+      .then((rs) => {
+        setRetailers(rs.slice(0, 10));
+        cacheWrite('retailers', rs.slice(0, 10));
+      })
+      .catch(async () => {
+        const cached = await cacheRead<{ retailer: string; deals: number }[]>('retailers');
+        if (cached) setRetailers(cached.data);
+      });
   }, []);
 
   const header = (
@@ -88,7 +108,14 @@ export default function Feed() {
         {SOURCES.map((s) => {
           const on = source === s.key;
           return (
-            <Pressable key={s.key} onPress={() => setSource(s.key)} style={[styles.chip, on && styles.chipOn]}>
+            <Pressable
+              key={s.key}
+              onPress={() => {
+                hapticTap();
+                setSource(s.key);
+              }}
+              style={[styles.chip, on && styles.chipOn]}
+            >
               <Text style={[styles.chipText, on && styles.chipTextOn]}>{s.label}</Text>
             </Pressable>
           );
@@ -100,7 +127,13 @@ export default function Feed() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[styles.chips, { paddingTop: 0 }]}
       >
-        <Pressable onPress={() => setRetailer('')} style={[styles.chip, retailer === '' && styles.chipOn]}>
+        <Pressable
+          onPress={() => {
+            hapticTap();
+            setRetailer('');
+          }}
+          style={[styles.chip, retailer === '' && styles.chipOn]}
+        >
           <Text style={[styles.chipText, retailer === '' && styles.chipTextOn]}>All stores</Text>
         </Pressable>
         {retailers.map((r) => {
@@ -108,7 +141,10 @@ export default function Feed() {
           return (
             <Pressable
               key={r.retailer}
-              onPress={() => setRetailer(on ? '' : r.retailer)}
+              onPress={() => {
+                hapticTap();
+                setRetailer(on ? '' : r.retailer);
+              }}
               style={[styles.chip, on && styles.chipOn]}
             >
               <Text style={[styles.chipText, on && styles.chipTextOn]}>
@@ -118,6 +154,12 @@ export default function Feed() {
           );
         })}
       </ScrollView>
+
+      {staleAt ? (
+        <Text style={styles.staleNote}>
+          Offline — showing the feed from {staleLabel(staleAt)}. Pull to refresh.
+        </Text>
+      ) : null}
     </View>
   );
 
@@ -198,4 +240,11 @@ const styles = StyleSheet.create({
   chipTextOn: { color: colors.brandLight },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   errText: { color: colors.muted, fontSize: 14, textAlign: 'center', marginBottom: 16 },
+  staleNote: {
+    color: colors.faint,
+    fontSize: 11,
+    textAlign: 'center',
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+  },
 });

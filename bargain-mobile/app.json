@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.bargainhuntrs.mobile",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Unlock BargainHuntrs with Face ID."
       }
     },
     "android": {
@@ -55,7 +56,9 @@
         }
       ],
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-notifications"
     ]
   }
 }

@@ -11,6 +11,7 @@ import {
   getFreshToken,
   type SessionUser,
 } from '../services/auth';
+import { biometricAvailable, getBioEnabled, offerBioOptIn, promptUnlock } from '../services/biometrics';
 
 type Status = 'restoring' | 'guest' | 'authed';
 
@@ -26,6 +27,10 @@ interface AuthCtx {
   status: Status;
   user: SessionUser | null;
   token: string | null;
+  /** Session restored but waiting on the biometric gate (opt-in feature). */
+  bioLocked: boolean;
+  /** Re-prompt biometrics; resolves the lock on success. */
+  unlock: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (f: SignUpFields) => Promise<void>;
   signOut: () => Promise<void>;
@@ -40,22 +45,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<Status>('restoring');
   const [user, setUser] = useState<SessionUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [bioLocked, setBioLocked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    restore().then((s) => {
-      if (cancelled) return;
-      if (s) {
+    restore()
+      .then(async (s) => {
+        if (cancelled) return;
+        if (!s) {
+          setStatus('guest');
+          return;
+        }
         setToken(s.token);
         setUser(s.user);
-        setStatus('authed');
-      } else {
-        setStatus('guest');
-      }
-    });
+        // Biometric gate — opt-in only, and only once the session restore
+        // has succeeded. Guests and flagged-off devices are never prompted.
+        const gated = (await getBioEnabled()) && (await biometricAvailable());
+        if (!cancelled) {
+          setBioLocked(gated);
+          setStatus('authed');
+        }
+        if (gated) {
+          const ok = await promptUnlock();
+          if (!cancelled && ok) setBioLocked(false);
+        }
+      })
+      .catch(() => {
+        // Storage read failure at boot — fall to signed-out rather than
+        // hanging the splash forever.
+        if (!cancelled) setStatus('guest');
+      });
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const unlock = useCallback(async () => {
+    if (await promptUnlock()) setBioLocked(false);
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -63,6 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(u);
     setToken(await getFreshToken());
     setStatus('authed');
+    // Biometric opt-in offer is opportunistic — never blocks or fails sign-in.
+    offerBioOptIn().catch(() => {});
   }, []);
 
   const signUp = useCallback(async (f: SignUpFields) => {
@@ -70,12 +98,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(u);
     setToken(await getFreshToken());
     setStatus('authed');
+    offerBioOptIn().catch(() => {});
   }, []);
 
   const signOut = useCallback(async () => {
     await svcSignOut();
     setUser(null);
     setToken(null);
+    setBioLocked(false);
     setStatus('guest');
   }, []);
 
@@ -97,8 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, user, token, signIn, signUp, signOut, reloadUser, freshToken }),
-    [status, user, token, signIn, signUp, signOut, reloadUser, freshToken],
+    () => ({ status, user, token, bioLocked, unlock, signIn, signUp, signOut, reloadUser, freshToken }),
+    [status, user, token, bioLocked, unlock, signIn, signUp, signOut, reloadUser, freshToken],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -6,6 +6,7 @@ import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Deal } from '../services/api';
+import { hapticTap } from '../services/haptics';
 import { pctOff, retailerLabel, usd } from '../lib/format';
 import { colors } from '../theme/colors';
 
@@ -13,7 +14,10 @@ export function DealCard({ deal, onPress }: { deal: Deal; onPress: () => void })
   const off = pctOff(deal.historical_avg, deal.buy_price);
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        hapticTap();
+        onPress();
+      }}
       style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]}
     >
       <View style={styles.thumbWrap}>

@@ -12,11 +12,13 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 import {
   deleteMe,
   fetchNiches,
@@ -24,6 +26,20 @@ import {
   updateNiches,
   type Niche,
 } from '../../services/api';
+import {
+  biometricAvailable,
+  biometricLabel,
+  getBioEnabled,
+  promptUnlock,
+  setBioEnabled,
+} from '../../services/biometrics';
+import {
+  fetchNotificationPrefs,
+  registerDevicePush,
+  sendTestPush,
+  unregisterDevicePush,
+} from '../../services/push';
+import { hapticOk, hapticWarn } from '../../services/haptics';
 import { useAuth } from '../../contexts/AuthContext';
 import { Btn, Chip, Divider, Empty, Field, Screen, SectionTitle } from '../../components/ui';
 import { colors } from '../../theme/colors';
@@ -43,6 +59,16 @@ export default function Profile() {
   const [subscribed, setSubscribed] = useState<string[]>([]);
   const [nicheBusy, setNicheBusy] = useState(false);
   const [nicheErr, setNicheErr] = useState('');
+
+  // Biometric unlock preference — only offered on devices with enrolled
+  // biometrics (and binaries that actually link the native module).
+  const [bioLabel, setBioLabel] = useState('');
+  const [bioOn, setBioOn] = useState(false);
+
+  // Push deal alerts — state comes from the server-side pref on the user row.
+  const [pushOn, setPushOn] = useState<boolean | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMsg, setPushMsg] = useState('');
 
   const [delBusy, setDelBusy] = useState(false);
   const [delErr, setDelErr] = useState('');
@@ -71,6 +97,80 @@ export default function Profile() {
   useEffect(() => {
     loadNiches();
   }, [loadNiches]);
+
+  // Load biometric capability + server-side push pref once authed.
+  useEffect(() => {
+    if (status !== 'authed') return;
+    (async () => {
+      if (!(await biometricAvailable())) return;
+      const [label, on] = await Promise.all([biometricLabel(), getBioEnabled()]);
+      setBioLabel(label);
+      setBioOn(on);
+    })();
+    (async () => {
+      try {
+        const t = await freshToken();
+        if (!t) return;
+        const prefs = await fetchNotificationPrefs(t);
+        setPushOn(Boolean(prefs.push_notifications));
+      } catch {
+        /* prefs unreadable — hide the push row entirely */
+      }
+    })();
+  }, [status, freshToken]);
+
+  const toggleBio = async (on: boolean) => {
+    if (on) {
+      if (!(await promptUnlock())) return; // verify once before arming the gate
+      await setBioEnabled(true);
+      setBioOn(true);
+      hapticOk();
+    } else {
+      await setBioEnabled(false);
+      setBioOn(false);
+    }
+  };
+
+  const togglePush = async (on: boolean) => {
+    if (pushBusy) return;
+    setPushBusy(true);
+    setPushMsg('');
+    try {
+      const t = await freshToken();
+      if (!t) throw new Error('Session expired — sign in again.');
+      if (on) {
+        await registerDevicePush(t);
+        setPushOn(true);
+        hapticOk();
+        setPushMsg('Deal alerts are on.');
+      } else {
+        await unregisterDevicePush(t);
+        setPushOn(false);
+        hapticWarn();
+        setPushMsg('Deal alerts are off.');
+      }
+    } catch (e: any) {
+      setPushMsg(e?.message || 'Could not update push alerts.');
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const testPush = async () => {
+    if (pushBusy) return;
+    setPushBusy(true);
+    setPushMsg('');
+    try {
+      const t = await freshToken();
+      if (!t) throw new Error('Session expired — sign in again.');
+      await sendTestPush(t);
+      setPushMsg('Test push sent — check your notification shade.');
+    } catch (e: any) {
+      setPushMsg(e?.message || 'Test push failed.');
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   const save = async () => {
     if (saving) return;
@@ -233,6 +333,55 @@ export default function Profile() {
           )}
           {nicheErr ? <Text style={styles.errText}>{nicheErr}</Text> : null}
 
+          {/* ---- security & device alerts ---- */}
+          {bioLabel || pushOn !== null ? <SectionTitle>Security & alerts</SectionTitle> : null}
+          {bioLabel ? (
+            <View style={styles.setRow}>
+              <Ionicons name="finger-print-outline" size={22} color={colors.brandLight} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.setRowTitle}>{bioLabel} unlock</Text>
+                <Text style={styles.setRowSub}>
+                  Require {bioLabel} when you open BargainHuntrs signed in.
+                </Text>
+              </View>
+              <Switch
+                value={bioOn}
+                onValueChange={toggleBio}
+                trackColor={{ false: colors.cardSoft, true: colors.brand }}
+                thumbColor="#fff"
+              />
+            </View>
+          ) : null}
+          {pushOn !== null ? (
+            <>
+              <View style={styles.setRow}>
+                <Ionicons name="notifications-outline" size={22} color={colors.brandLight} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.setRowTitle}>Push deal alerts</Text>
+                  <Text style={styles.setRowSub}>
+                    New deals for your niches, pushed to this device.
+                  </Text>
+                </View>
+                {pushBusy ? (
+                  <ActivityIndicator color={colors.brandLight} size="small" />
+                ) : (
+                  <Switch
+                    value={pushOn}
+                    onValueChange={togglePush}
+                    trackColor={{ false: colors.cardSoft, true: colors.brand }}
+                    thumbColor="#fff"
+                  />
+                )}
+              </View>
+              {pushOn ? (
+                <Pressable onPress={testPush} hitSlop={8} style={styles.testPush}>
+                  <Text style={styles.testPushText}>Send a test push</Text>
+                </Pressable>
+              ) : null}
+              {pushMsg ? <Text style={styles.pushMsg}>{pushMsg}</Text> : null}
+            </>
+          ) : null}
+
           {/* ---- edit profile ---- */}
           <SectionTitle>Profile</SectionTitle>
           <Field label="First name" value={firstName} onChangeText={setFirstName} maxLength={100} />
@@ -289,6 +438,22 @@ const styles = StyleSheet.create({
   heroChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, justifyContent: 'center' },
   nicheSub: { color: colors.muted, fontSize: 12, lineHeight: 17, marginBottom: 12 },
   nicheWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  setRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+  },
+  setRowTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  setRowSub: { color: colors.muted, fontSize: 12, lineHeight: 16, marginTop: 3 },
+  testPush: { alignSelf: 'flex-start', marginBottom: 6, marginLeft: 4 },
+  testPushText: { color: colors.brandLight, fontSize: 13, fontWeight: '700' },
+  pushMsg: { color: colors.muted, fontSize: 12, marginBottom: 10, marginLeft: 4 },
   errText: { color: colors.danger, fontSize: 13, marginTop: 10 },
   dangerSub: { color: colors.muted, fontSize: 12, lineHeight: 17, marginBottom: 12 },
   deleteLink: { color: colors.muted, fontSize: 12, marginTop: 18, textDecorationLine: 'underline' },

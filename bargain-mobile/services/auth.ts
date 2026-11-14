@@ -13,6 +13,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { api, fetchMe, type MeProfile } from './api';
+import { cacheClear } from './cache';
 
 const TOKEN_KEY = 'bargain.token';
 const REFRESH_KEY = 'bargain.refresh';
@@ -183,6 +184,7 @@ export async function signOut(): Promise<void> {
   await secureDel(TOKEN_KEY);
   await secureDel(REFRESH_KEY);
   await AsyncStorage.removeItem(USER_KEY).catch(() => {});
+  await cacheClear('watchlist').catch(() => {}); // user-scoped snapshots
 }
 
 export const getToken = () => getFreshToken();

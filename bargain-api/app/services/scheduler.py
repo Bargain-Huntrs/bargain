@@ -26,7 +26,7 @@ from app.services.arbitrage import scan_amazon_for_arbitrage, find_arbitrage_for
 from app.services.profit_calculator import Platform
 from app.services.alert_service import create_alert_for_opportunity
 from app.services.deal_scorer import calculate_deal_score
-from app.services.notification_service import distribute_deal, DealInfo, get_sms_recipients, user_subscribed_to_niche
+from app.services.notification_service import distribute_deal, DealInfo, get_sms_recipients, get_push_recipients, user_subscribed_to_niche
 
 logger = logging.getLogger(__name__)
 
@@ -902,21 +902,40 @@ class ScanScheduler:
             try:
                 from app.services.notification_service import distribute_deal, DealInfo
 
+                # Deals already push-blasted by the scheduled scan (which
+                # never sets alerted_at) shouldn't be pushed a second time —
+                # deduped via notification_logs (channel="push"), the same
+                # pattern the Discord/Pinterest blocks above use.
+                from app.db.models import NotificationLog
+                push_sent_ids = {
+                    r[0] for r in db.query(NotificationLog.deal_id).filter(
+                        NotificationLog.channel == "push",
+                        NotificationLog.status == "sent",
+                        NotificationLog.deal_id != None,
+                    ).all()
+                }
+
                 # Get the single best new deal for user notifications
-                best_deal = (
-                    db.query(ArbitrageDeal)
-                    .filter(
-                        ArbitrageDeal.status == "active",
-                        ArbitrageDeal.is_profitable == True,
-                        ArbitrageDeal.alerted_at == None,
-                    )
-                    .order_by(ArbitrageDeal.score.desc())
-                    .first()
+                best_deal_query = db.query(ArbitrageDeal).filter(
+                    ArbitrageDeal.status == "active",
+                    ArbitrageDeal.is_profitable == True,
+                    ArbitrageDeal.alerted_at == None,
                 )
+                if push_sent_ids:
+                    best_deal_query = best_deal_query.filter(
+                        ~ArbitrageDeal.id.in_(push_sent_ids)
+                    )
+                best_deal = best_deal_query.order_by(
+                    ArbitrageDeal.score.desc()
+                ).first()
 
                 if best_deal:
                     deal_info = DealInfo.from_deal(best_deal)
-                    results = await distribute_deal(deal_info, db)
+                    results = await distribute_deal(
+                        deal_info,
+                        db,
+                        push_recipients=get_push_recipients(db, niche=best_deal.niche),
+                    )
                     # results is {channel_name: bool} — count the successes.
                     posted_count = sum(1 for ok in results.values() if ok)
                     if posted_count:
@@ -1189,11 +1208,21 @@ class ScanScheduler:
                 # NOTE: X/Twitter posting is NOT done here — it's handled exclusively
                 # by _scrape_and_post_to_x() which has proper dedup logic.
                 deal_info = DealInfo.from_opportunity(opp)
-                # SMS recipients are filtered by niche subscription: a user with
-                # no subscriptions receives all niches; otherwise only their picks.
+                # Tag the persisted row so notification_logs.deal_id is set —
+                # the scrape loop's push dedup relies on it.
+                deal_info.deal_id = deal.id
+                # SMS + push recipients are filtered by niche subscription: a
+                # user with no subscriptions receives all niches; otherwise
+                # only their picks.
                 sms_recipients = get_sms_recipients(db, niche=opp.niche)
+                push_recipients = get_push_recipients(db, niche=opp.niche)
                 try:
-                    await distribute_deal(deal_info, db, sms_recipients=sms_recipients)
+                    await distribute_deal(
+                        deal_info,
+                        db,
+                        push_recipients=push_recipients,
+                        sms_recipients=sms_recipients,
+                    )
                 except Exception as e:
                     logger.error(f"Notification distribution failed for {opp.asin}: {e}")
 

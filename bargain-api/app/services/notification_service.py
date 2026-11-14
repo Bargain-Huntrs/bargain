@@ -16,6 +16,7 @@ All sends are logged to the notification_logs table for auditability.
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Union
+from uuid import UUID
 from dataclasses import dataclass
 import asyncio
 import logging
@@ -47,6 +48,9 @@ class DealInfo:
     retailer: Optional[str] = None
     applied_coupon_code: Optional[str] = None
     coupon_discount: Optional[Decimal] = None
+    # ArbitrageDeal.id when the deal is persisted — lets distribute_deal tag
+    # notification_logs.deal_id so callers can dedup per-deal sends.
+    deal_id: Optional[UUID] = None
 
     @classmethod
     def from_opportunity(cls, opp: ArbitrageOpportunity) -> "DealInfo":
@@ -70,6 +74,7 @@ class DealInfo:
     @classmethod
     def from_deal(cls, deal: ArbitrageDeal) -> "DealInfo":
         return cls(
+            deal_id=deal.id,
             asin=deal.asin,
             title=deal.title,
             buy_price=deal.buy_price,
@@ -306,7 +311,11 @@ async def send_sms(deal: DealInfo, phone_number: str) -> bool:
 # ─── Push (Firebase Cloud Messaging) ────────────────────────────────────────
 
 async def send_push(deal: DealInfo, fcm_token: str) -> bool:
-    """Send push notification via Firebase Cloud Messaging."""
+    """Send push notification via Firebase Cloud Messaging.
+
+    Dead registrations self-heal: an FCM ``invalid_token`` response clears
+    the stored token + push preference, same as the /push/test endpoint.
+    """
     from app.services.firebase_service import send_push_notification
 
     title = f"🔥 {deal.deal_tier.upper()}" if deal.deal_tier != "clearance" else "💰 Deal Alert"
@@ -319,7 +328,27 @@ async def send_push(deal: DealInfo, fcm_token: str) -> bool:
         url=deal.deal_url,
         image_url=deal.image_url,
     )
+    if result.get("status") == "invalid_token":
+        _clear_dead_fcm_token(fcm_token)
     return result.get("status") == "success"
+
+
+def _clear_dead_fcm_token(fcm_token: str) -> None:
+    """Remove an FCM token Firebase rejected so we stop retrying dead registrations."""
+    from app.db.session import SessionLocal
+
+    db = SessionLocal()
+    try:
+        db.query(User).filter(User.fcm_token == fcm_token).update(
+            {"fcm_token": None, "push_notifications": False}
+        )
+        db.commit()
+        logger.info(f"Cleared invalid FCM token {fcm_token[:20]}…")
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"Failed to clear invalid FCM token: {e}")
+    finally:
+        db.close()
 
 
 # ─── Central distribution ───────────────────────────────────────────────────
@@ -409,6 +438,7 @@ async def distribute_deal(
 
             # Log to database
             log = NotificationLog(
+                deal_id=deal.deal_id,
                 asin=deal.asin,
                 channel=name.split(":")[0],
                 recipient=name.split(":")[1] if ":" in name else None,
@@ -420,6 +450,7 @@ async def distribute_deal(
         except Exception as e:
             results[name] = False
             log = NotificationLog(
+                deal_id=deal.deal_id,
                 asin=deal.asin,
                 channel=name.split(":")[0],
                 recipient=name.split(":")[1] if ":" in name else None,
@@ -476,6 +507,36 @@ def get_sms_recipients(db: Session, niche: Optional[str] = None) -> list[str]:
         phone = getattr(u, "phone_number", None)
         if phone:
             recipients.append(phone)
+    return recipients
+
+
+def get_push_recipients(db: Session, niche: Optional[str] = None) -> list[str]:
+    """Get FCM tokens of users who should receive a deal push alert.
+
+    A user is eligible when they have push notifications enabled and an
+    FCM token registered; users inside their quiet-hours window are
+    skipped. When a niche is given, only users subscribed to that niche
+    (or subscribed to nothing = all niches) are returned.
+    """
+    users = db.query(User).filter(
+        User.is_active == True,
+        User.push_notifications == True,
+        User.fcm_token != None,
+    ).all()
+
+    recipients: list[str] = []
+    for u in users:
+        # Niche subscription filter
+        if niche and not user_subscribed_to_niche(u, niche):
+            continue
+
+        # Quiet hours — never push a user inside their quiet window.
+        from app.services.alert_service import user_in_quiet_hours
+        if user_in_quiet_hours(u):
+            continue
+
+        if u.fcm_token:
+            recipients.append(u.fcm_token)
     return recipients
 
 

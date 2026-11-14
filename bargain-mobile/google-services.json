@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "809115335784",
+    "project_id": "bargainhuntrs-a57ec",
+    "storage_bucket": "bargainhuntrs-a57ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:809115335784:android:ea49278c82efb4c8498fdd",
+        "android_client_info": {
+          "package_name": "com.bargainhuntrs.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACQNvDv_pnKqWk1F-nlmsfkT5YvAKeuUM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -20,6 +20,7 @@
     "android": {
       "package": "com.bargainhuntrs.mobile",
       "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#09090b",
         "foregroundImage": "./assets/android-icon-foreground.png",

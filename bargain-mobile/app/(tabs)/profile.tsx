@@ -359,10 +359,17 @@ export default function Profile() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.setRowTitle}>Push deal alerts</Text>
                   <Text style={styles.setRowSub}>
-                    New deals for your niches, pushed to this device.
+                    {Platform.OS === 'android'
+                      ? 'New deals for your niches, pushed to this device.'
+                      : 'Coming soon on iOS — Android devices can get deal pushes today.'}
                   </Text>
                 </View>
-                {pushBusy ? (
+                {Platform.OS !== 'android' ? (
+                  // iOS mints a raw APNs token but bargain-api only sends via
+                  // FCM — the toggle would register a token nothing can reach.
+                  // Hidden until the iOS push path is decided (NEEDS_HUMAN).
+                  <Chip label="Coming soon" tone="muted" />
+                ) : pushBusy ? (
                   <ActivityIndicator color={colors.brandLight} size="small" />
                 ) : (
                   <Switch
@@ -373,7 +380,7 @@ export default function Profile() {
                   />
                 )}
               </View>
-              {pushOn ? (
+              {Platform.OS === 'android' && pushOn ? (
                 <Pressable onPress={testPush} hitSlop={8} style={styles.testPush}>
                   <Text style={styles.testPushText}>Send a test push</Text>
                 </Pressable>

@@ -58,7 +58,12 @@
       "expo-router",
       "expo-secure-store",
       "expo-local-authentication",
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "mode": "production"
+        }
+      ]
     ]
   }
 }

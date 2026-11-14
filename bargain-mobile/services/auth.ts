@@ -11,7 +11,6 @@
 // /refresh means the session was rotated/revoked; the app signs out.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 import { api, fetchMe, type MeProfile } from './api';
 import { cacheClear } from './cache';
 
@@ -24,30 +23,58 @@ export type SessionUser = MeProfile;
 
 // ---- storage --------------------------------------------------------------
 
-async function secureSet(key: string, value: string): Promise<void> {
-  try {
-    await SecureStore.setItemAsync(key, value);
-  } catch {
-    await AsyncStorage.setItem(key, value);
+// expo-secure-store is lazy-required, same convention as services/push.ts —
+// a binary built before the module was linked (or an OTA shipped to one)
+// must fall back to AsyncStorage, not crash at import time.
+type SecureStoreModule = typeof import('expo-secure-store');
+let secureStoreMod: SecureStoreModule | null | undefined;
+
+function secureStore(): SecureStoreModule | null {
+  if (secureStoreMod === undefined) {
+    try {
+      secureStoreMod = require('expo-secure-store') as SecureStoreModule;
+    } catch {
+      secureStoreMod = null;
+    }
   }
+  return secureStoreMod ?? null;
+}
+
+async function secureSet(key: string, value: string): Promise<void> {
+  const S = secureStore();
+  if (S) {
+    try {
+      await S.setItemAsync(key, value);
+      return;
+    } catch {
+      /* store threw — fall through to AsyncStorage */
+    }
+  }
+  await AsyncStorage.setItem(key, value);
 }
 
 async function secureGet(key: string): Promise<string | null> {
-  try {
-    const v = await SecureStore.getItemAsync(key);
-    if (v !== null) return v;
-    // fall through — may have been written by the AsyncStorage fallback
-  } catch {
-    /* native module missing — use AsyncStorage */
+  const S = secureStore();
+  if (S) {
+    try {
+      const v = await S.getItemAsync(key);
+      if (v !== null) return v;
+      // fall through — may have been written by the AsyncStorage fallback
+    } catch {
+      /* native module threw — use AsyncStorage */
+    }
   }
   return AsyncStorage.getItem(key);
 }
 
 async function secureDel(key: string): Promise<void> {
-  try {
-    await SecureStore.deleteItemAsync(key);
-  } catch {
-    /* ignore */
+  const S = secureStore();
+  if (S) {
+    try {
+      await S.deleteItemAsync(key);
+    } catch {
+      /* ignore */
+    }
   }
   await AsyncStorage.removeItem(key).catch(() => {});
 }

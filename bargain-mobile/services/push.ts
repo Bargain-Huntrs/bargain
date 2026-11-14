@@ -86,7 +86,7 @@ export function wireNotificationHandlers(navigate: (path: string) => void): void
 export async function registerDevicePush(jwt: string): Promise<void> {
   const N = notifications();
   if (!N) {
-    throw new Error('Push needs a newer build of the app — it works on the store build.');
+    throw new Error('Push isn\'t available in this build.');
   }
   let perms = await N.getPermissionsAsync().catch(() => null);
   if (!perms || (perms.status !== 'granted' && perms.canAskAgain !== false)) {
@@ -108,13 +108,28 @@ export async function unregisterDevicePush(jwt: string): Promise<void> {
   await api('/api/v1/notifications/push/unregister', { method: 'DELETE', token: jwt });
 }
 
-/** POST /push/test — the backend fires a real push at the stored token. */
+/**
+ * POST /push/test — the backend fires a real push at the stored token.
+ * The endpoint reports delivery inside the body: HTTP stays 200 even when
+ * FCM rejects the token ({"status":"invalid_token"} — the server then clears
+ * the registration) or the send errors ({"status":"error"}), so res.ok alone
+ * would lie about the outcome.
+ */
 export async function sendTestPush(jwt: string): Promise<void> {
-  await api('/api/v1/notifications/push/test', {
-    token: jwt,
-    body: {
-      title: 'BargainHuntrs test alert',
-      body: 'Push is wired — deal alerts will land here.',
+  const result = await api<{ status?: string; error?: string }>(
+    '/api/v1/notifications/push/test',
+    {
+      token: jwt,
+      body: {
+        title: 'BargainHuntrs test alert',
+        body: 'Push is wired — deal alerts will land here.',
+      },
     },
-  });
+  );
+  if (result?.status === 'invalid_token') {
+    throw new Error('This device\'s push token was rejected — turn push alerts off and back on to re-register.');
+  }
+  if (result?.status !== 'success') {
+    throw new Error(result?.error ? `Test push failed — ${result.error}` : 'Test push failed — the server could not send it.');
+  }
 }

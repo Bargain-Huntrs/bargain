@@ -17,16 +17,16 @@ export default function Footer() {
               <img
                 src="/logos/wordmark-light.png"
                 alt="BargainHuntrs"
-                width={300}
-                height={53}
+                width={287}
+                height={71}
                 className="h-7 w-auto shrink-0 dark:hidden"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/logos/wordmark-dark.png"
                 alt="BargainHuntrs"
-                width={300}
-                height={53}
+                width={287}
+                height={71}
                 className="h-7 w-auto shrink-0 hidden dark:block"
               />
             </Link>

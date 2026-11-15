@@ -22,5 +22,11 @@
       "at": "2026-11-14 10:01:10.409779",
       "ref": "twitter:6af8a1e3e86a5789a6c2ae3a (failed: instagram:Invalid post: Instagram posts require a type (post, story, or reel).)"
     }
+  },
+  "2026-11-15": {
+    "buffer": {
+      "at": "2026-11-15 10:00:17.517374",
+      "ref": "twitter:6af9f32e4f0276ab9453437b (failed: instagram:Invalid post: Instagram posts require a type (post, story, or reel).)"
+    }
   }
 }

@@ -92,15 +92,22 @@ export default function Header() {
           className="flex items-center gap-2 group"
           onClick={() => setMenuOpen(false)}
         >
-          <svg width="28" height="28" viewBox="0 0 128 128" className="rounded-lg shrink-0" aria-label="BargainHuntrs">
-            <rect width="128" height="128" rx="28" className="fill-zinc-900 dark:fill-emerald-500" />
-            <text x="38" y="64" textAnchor="middle" dominantBaseline="central" fontFamily="system-ui, -apple-system, sans-serif" fontSize="48" fontWeight="900" className="fill-white dark:fill-white">B</text>
-            <path d="M64 28 L54 62 L62 62 L58 100 L74 58 L66 58 L70 28 Z" className="fill-white dark:fill-white" />
-            <text x="92" y="64" textAnchor="middle" dominantBaseline="central" fontFamily="system-ui, -apple-system, sans-serif" fontSize="48" fontWeight="900" className="fill-white dark:fill-white">H</text>
-          </svg>
-          <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-50 group-hover:opacity-80 transition-opacity">
-            BargainHuntrs
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logos/wordmark-light.png"
+            alt="BargainHuntrs"
+            width={300}
+            height={53}
+            className="h-7 w-auto shrink-0 dark:hidden"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logos/wordmark-dark.png"
+            alt="BargainHuntrs"
+            width={300}
+            height={53}
+            className="h-7 w-auto shrink-0 hidden dark:block"
+          />
         </Link>
 
         {/* Desktop nav — grouped dropdowns */}

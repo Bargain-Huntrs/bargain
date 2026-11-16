@@ -39,6 +39,26 @@ env in `~/apps/Bargain/bargain-api/.env`, Supabase prod DB.
 `bargain-api.settleinpeace.com` → cloudflared tunnel `e0a01d10` → :4035.
 Deploy: rsync `bargain-api/app/` to the box + `pm2 restart bargain-api`.
 
+### SI gateway environment and port boundaries
+
+- Local development uses **4040**, renumbered from 4030. This is not a
+  production port migration: keep the live uvicorn listener and tunnel on **4035**.
+- Oracle listeners verified against pm2 PIDs: `si-gateway` **4030**,
+  `bargain-api` **4035**, `reid-api` **4011**.
+- In oracle `~/apps/Bargain/bargain-api/.env`, use
+  `AI_BASE_URL=http://localhost:4030/v1`, `AI_MODEL=si`, and
+  `AI_API_KEY=<shared SI_GATEWAY_KEY>`. The key must match the existing
+  Prime API gateway key; retrieve it securely, never put it in tracked files.
+- `SI_GATEWAY_URL` is the convention used by some other services; Bargain
+  reads `AI_BASE_URL` directly (including `/v1`), not `SI_GATEWAY_URL`.
+  Off-oracle callers use `https://si.primetransit.com/v1` with the same key.
+- Verify `curl -fsS https://api.bargainhuntrs.com/api/v1/ai/status` returns
+  `{"configured":true,"model":"si"}`. This verifies configuration, not an
+  upstream completion. An empty `AI_API_KEY` leaves SI endpoints unavailable
+  (503), allowing callers to degrade gracefully.
+- Resume verification found these envs already correct (shared key matched
+  Prime); no live env edits, restarts, or deployment were needed.
+
 The section below documents the LEGACY Render service — kept for
 reference only; it auto-deploys from main but serves nothing real
 (stale env). Suspend it at dashboard.render.com.

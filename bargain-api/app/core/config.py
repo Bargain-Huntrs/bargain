@@ -282,7 +282,7 @@ class Settings(BaseSettings):
     ]
 
     # Render sets PORT automatically; Railway vars kept for backward compat.
-    # Default 4040 — 4030 is si-gateway and 4035 is reid-api on the oracle box.
+    # Local default 4040; oracle: si-gateway 4030, LIVE bargain-api 4035, Reid 4011.
     PORT: int = 4040
     RAILWAY_ENVIRONMENT: Optional[str] = None  # legacy, no longer used on Render
     RAILWAY_PROJECT_NAME: Optional[str] = None  # legacy, no longer used on Render

@@ -7,6 +7,45 @@ import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import GoogleAnalytics from "@/app/components/GoogleAnalytics";
 import CookieNotice from "@/components/CookieNotice";
+import { stringifyJsonLd } from "@/lib/jsonld";
+
+// Sitewide entity schema — Organization + WebSite render on every page so
+// search engines can consolidate BargainHuntrs as a single entity. The
+// @id anchors let other pages reference (and extend) these entities.
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://www.bargainhuntrs.com/#organization",
+  name: "BargainHuntrs",
+  url: "https://www.bargainhuntrs.com",
+  logo: "https://www.bargainhuntrs.com/og-image.png",
+  description:
+    "Discover the best deals, discounts, clearance items, and arbitrage opportunities from Amazon, Walmart, and more.",
+  sameAs: [
+    "https://x.com/bargain4huntrs",
+    "https://www.instagram.com/bargainhuntrs/",
+    "https://www.facebook.com/bargainhuntrs",
+  ],
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://www.bargainhuntrs.com/#website",
+  name: "BargainHuntrs",
+  url: "https://www.bargainhuntrs.com",
+  publisher: { "@id": "https://www.bargainhuntrs.com/#organization" },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      // /deals reads the ?q= param into its search box — a real search page.
+      urlTemplate:
+        "https://www.bargainhuntrs.com/deals?q={search_term_string}",
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -71,6 +110,14 @@ export default function RootLayout({
         {/* Prime-pattern theme init — before paint: localStorage 'theme' wins,
             else prefers-color-scheme, else site default (light). */}
         <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('theme');if(!t)t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.add(t);document.documentElement.style.colorScheme=t}catch(e){document.documentElement.classList.add('light')}" }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: stringifyJsonLd(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: stringifyJsonLd(websiteJsonLd) }}
+        />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <meta name="p:domain_verify" content="668ecc0f3284e738c81ab6e51a58213d" />

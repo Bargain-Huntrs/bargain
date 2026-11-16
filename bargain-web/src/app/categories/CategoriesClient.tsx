@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { DEAL_CATEGORIES } from "@/lib/deal-categories";
 
 type Category = {
   href: string;
@@ -13,6 +14,17 @@ type Category = {
 };
 
 const GROUPS: { label: string; blurb: string; items: Category[] }[] = [
+  {
+    label: "Shop by category",
+    blurb: "Live deals filtered by product category — each page updates hourly.",
+    items: DEAL_CATEGORIES.map((c) => ({
+      href: `/categories/${c.slug}`,
+      icon: "🛍️",
+      title: c.name,
+      desc: `Today's best ${c.name.toLowerCase()} deals`,
+      tag: "Live",
+    })),
+  },
   {
     label: "Retail deals",
     blurb: "Price glitches, clearance, and arbitrage scanned across 500+ retailers.",

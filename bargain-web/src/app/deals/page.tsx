@@ -25,29 +25,7 @@ import {
   type PricePrediction,
 } from "@/lib/api";
 
-// Most scraped deals arrive with no `category` set, so we infer a bucket
-// from the title. Keeps the filter chips useful instead of 90% "none".
-const CATEGORY_KEYWORDS: [string, string[]][] = [
-  ["Electronics", ["laptop", "headphone", "earbud", "speaker", "monitor", "tv", "tablet", "phone", "charger", "camera", "printer", "keyboard", "mouse", "ssd", "hard drive", "bluetooth", "smartwatch", "gaming", "console", "ps5", "xbox", "nintendo", "router", "drone", "projector"]],
-  ["Home & Kitchen", ["kitchen", "cookware", "mattress", "pillow", "blanket", "vacuum", "air fryer", "blender", "coffee", "lamp", "furniture", "desk", "chair", "storage", "organizer", "towel", "bedding", "sheet"]],
-  ["Beauty & Care", ["makeup", "skincare", "serum", "moisturizer", "shampoo", "conditioner", "toothpaste", "lotion", "fragrance", "perfume", "razor", "hair dryer", "curling"]],
-  ["Clothing & Shoes", ["dress", "shirt", "jeans", "jacket", "sneaker", "boots", "shoes", "hoodie", "leggings", "bra ", "underwear", "socks", "coat"]],
-  ["Toys & Games", ["lego", "toy", "doll", "puzzle", "board game", "action figure", "plush", "nerf", "barbie", "hot wheels"]],
-  ["Sports & Outdoors", ["fitness", "yoga", "dumbbell", "treadmill", "bike", "camping", "tent", "fishing", "golf", "basketball", "hiking", "kayak"]],
-  ["Tools & Auto", ["drill", "saw", "wrench", "tool", "dewalt", "milwaukee", "ryobi", "automotive", "tire", "car ", "mechanic"]],
-  ["Baby & Kids", ["baby", "diaper", "stroller", "crib", "toddler", "kids", "children"]],
-  ["Pet Supplies", ["dog", "cat ", "pet", "puppy", "kitten", "aquarium", "bird"]],
-  ["Grocery & Health", ["vitamin", "supplement", "protein", "snack", "grocery", "food", "medicine", "first aid"]],
-];
-
-function inferDealCategory(deal: ArbitrageDeal): string {
-  if (deal.category && deal.category.trim()) return deal.category;
-  const t = (deal.title || "").toLowerCase();
-  for (const [bucket, keywords] of CATEGORY_KEYWORDS) {
-    if (keywords.some((k) => t.includes(k))) return bucket;
-  }
-  return "Other";
-}
+import { inferDealCategory } from "@/lib/deal-categories";
 
 export default function DealsPage() {
   const router = useRouter();

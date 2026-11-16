@@ -30,36 +30,8 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "BargainHuntrs",
-  url: "https://www.bargainhuntrs.com",
-  logo: "https://www.bargainhuntrs.com/og-image.png",
-  description:
-    "Discover the best deals, discounts, clearance items, and arbitrage opportunities from Amazon, Walmart, and more.",
-  sameAs: [
-    "https://twitter.com/bargain4huntrs",
-  ],
-};
-
-const websiteJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: "BargainHuntrs",
-  url: "https://www.bargainhuntrs.com",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      // /deals reads the ?q= param into its search box — a real search page.
-      urlTemplate:
-        "https://www.bargainhuntrs.com/deals?q={search_term_string}",
-    },
-    "query-input": "required name=search_term_string",
-  },
-};
-
+// Organization + WebSite entity JSON-LD lives in layout.tsx so it renders
+// sitewide; only the homepage-specific ItemList stays here.
 const dealsJsonLd = {
   "@context": "https://schema.org",
   "@type": "ItemList",
@@ -72,14 +44,6 @@ const dealsJsonLd = {
 export default function HomePage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(jsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(websiteJsonLd) }}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: stringifyJsonLd(dealsJsonLd) }}

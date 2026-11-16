@@ -5,6 +5,7 @@ import type { MetadataRoute } from "next";
 // from the public API at request time, paginating 200 at a time.
 
 import { retailerSlug } from "@/lib/retailers";
+import { DEAL_CATEGORIES } from "@/lib/deal-categories";
 
 const BASE_URL = "https://www.bargainhuntrs.com";
 const API_URL = "https://api.bargainhuntrs.com";
@@ -19,6 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/`, lastModified: now, changeFrequency: "hourly", priority: 1.0 },
     { url: `${BASE_URL}/deals`, lastModified: now, changeFrequency: "hourly", priority: 0.9 },
     { url: `${BASE_URL}/categories`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    ...DEAL_CATEGORIES.map((c) => ({
+      url: `${BASE_URL}/categories/${c.slug}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    })),
     { url: `${BASE_URL}/deals/best`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/deals/amazon`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/deals/today`, lastModified: now, changeFrequency: "hourly", priority: 0.9 },

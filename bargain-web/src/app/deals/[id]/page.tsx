@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import DealPageClient from "../detail/DealPageClient";
-import { getPublicDeal } from "@/lib/api";
+import { getPublicDeal, type ArbitrageDeal } from "@/lib/api";
 import { retailerName } from "@/lib/seo-helpers";
 import { stringifyJsonLd } from "@/lib/jsonld";
+
+// Deals change through the day; on-demand ISR keeps first-hit HTML fresh
+// while CDN-caching repeat views — same cadence as /stores/[slug].
+export const revalidate = 1800;
 
 // Dynamic deal detail route: /deals/:id
 // Static sibling routes (today, best, calendar, etc.) take precedence over this

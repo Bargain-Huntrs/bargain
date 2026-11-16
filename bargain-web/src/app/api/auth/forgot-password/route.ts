@@ -143,8 +143,19 @@ export async function POST(req: NextRequest) {
       console.log(
         "[forgot-password] Backend failed to send email, sending from worker...",
       );
-      const sendTo =
-        process.env.EMAIL_FORWARD_TO || (data._sendTo as string) || email;
+      // EMAIL_FORWARD_TO is a dev/test escape hatch — honoring it in prod
+      // would route EVERY member's reset link to one mailbox (account
+      // takeover). Guarded to non-production.
+      const forwardTo =
+        process.env.NODE_ENV === "production"
+          ? undefined
+          : process.env.EMAIL_FORWARD_TO;
+      if (forwardTo) {
+        console.warn(
+          `[forgot-password] EMAIL_FORWARD_TO active — reset email redirected to ${forwardTo}`,
+        );
+      }
+      const sendTo = forwardTo || (data._sendTo as string) || email;
       await sendResetEmailDirectly(
         sendTo,
         data._resetToken as string,

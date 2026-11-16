@@ -27,6 +27,7 @@ import {
   type DropshipNiche,
   type DropshipChannel,
 } from "@/lib/api";
+import { isPaidTier } from "@/lib/plans";
 
 const money = (n: number | null | undefined) =>
   n === null || n === undefined ? "—" : `$${n.toFixed(2)}`;
@@ -384,7 +385,7 @@ export default function DropshipPage() {
   const [hasCard, setHasCard] = useState(true);
   const [paySetupOpen, setPaySetupOpen] = useState(false);
 
-  const paid = tier !== "free";
+  const paid = isPaidTier(tier);
 
   const load = useCallback(async () => {
     if (!idToken) return;

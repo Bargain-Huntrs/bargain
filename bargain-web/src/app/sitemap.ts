@@ -62,71 +62,92 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/delete-account`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  let dealUrls: MetadataRoute.Sitemap = [];
-  try {
-    for (let offset = 0; offset < 2000; offset += MAX_LIMIT) {
+  // All three API sections run in parallel — sequential 8s timeouts could
+  // stretch a slow API into a ~30s sitemap render. Each fetch is bounded at
+  // 5s and each section fails open to its own empty slice.
+  const FETCH_INIT: RequestInit = {
+    headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" },
+    signal: AbortSignal.timeout(5000),
+  };
+
+  const loadDealUrls = async (): Promise<MetadataRoute.Sitemap> => {
+    const urls: MetadataRoute.Sitemap = [];
+    try {
+      for (let offset = 0; offset < 2000; offset += MAX_LIMIT) {
+        const res = await fetch(
+          `${API_URL}/api/v1/arbitrage/deals/public?limit=${MAX_LIMIT}&offset=${offset}`,
+          FETCH_INIT
+        );
+        if (!res.ok) break;
+        const deals = await res.json();
+        if (!Array.isArray(deals) || deals.length === 0) break;
+        urls.push(
+          ...deals.map(
+            (deal: {
+              id: string;
+              detected_at?: string;
+              updated_at?: string;
+            }) => ({
+              url: `${BASE_URL}/deals/${deal.id}`,
+              lastModified: deal.detected_at || deal.updated_at || now,
+              changeFrequency: "daily" as const,
+              priority: 0.7,
+            })
+          )
+        );
+        if (deals.length < MAX_LIMIT) break;
+      }
+    } catch {
+      // If the API is unreachable, return static pages only
+    }
+    return urls;
+  };
+
+  const loadStoreUrls = async (): Promise<MetadataRoute.Sitemap> => {
+    try {
       const res = await fetch(
-        `${API_URL}/api/v1/arbitrage/deals/public?limit=${MAX_LIMIT}&offset=${offset}`,
-        { headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" }, signal: AbortSignal.timeout(8000) }
+        `${API_URL}/api/v1/arbitrage/deals/public-retailers`,
+        FETCH_INIT
       );
-      if (!res.ok) break;
-      const deals = await res.json();
-      if (!Array.isArray(deals) || deals.length === 0) break;
-      dealUrls.push(
-        ...deals.map((deal: any) => ({
-          url: `${BASE_URL}/deals/${deal.id}`,
-          lastModified: deal.detected_at || deal.updated_at || now,
-          changeFrequency: "daily" as const,
-          priority: 0.7,
-        }))
+      if (!res.ok) return [];
+      const retailers = await res.json();
+      if (!Array.isArray(retailers)) return [];
+      return retailers.map((r: { retailer?: unknown }) => ({
+        url: `${BASE_URL}/stores/${retailerSlug(String(r.retailer))}`,
+        lastModified: now,
+        changeFrequency: "hourly" as const,
+        priority: 0.7,
+      }));
+    } catch {
+      return [];
+    }
+  };
+
+  const loadCouponUrls = async (): Promise<MetadataRoute.Sitemap> => {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/v1/coupons/public/retailers`,
+        FETCH_INIT
       );
-      if (deals.length < MAX_LIMIT) break;
-    }
-  } catch {
-    // If the API is unreachable, return static pages only
-  }
-
-  let storeUrls: MetadataRoute.Sitemap = [];
-  try {
-    const res = await fetch(
-      `${API_URL}/api/v1/arbitrage/deals/public-retailers`,
-      { headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" }, signal: AbortSignal.timeout(8000) }
-    );
-    if (res.ok) {
+      if (!res.ok) return [];
       const retailers = await res.json();
-      if (Array.isArray(retailers)) {
-        storeUrls = retailers.map((r: any) => ({
-          url: `${BASE_URL}/stores/${retailerSlug(String(r.retailer))}`,
-          lastModified: now,
-          changeFrequency: "hourly" as const,
-          priority: 0.7,
-        }));
-      }
+      if (!Array.isArray(retailers)) return [];
+      return retailers.map((r: unknown) => ({
+        url: `${BASE_URL}/coupons/${retailerSlug(String(r))}`,
+        lastModified: now,
+        changeFrequency: "daily" as const,
+        priority: 0.7,
+      }));
+    } catch {
+      return [];
     }
-  } catch {
-    // API unreachable — skip store URLs
-  }
+  };
 
-  let couponUrls: MetadataRoute.Sitemap = [];
-  try {
-    const res = await fetch(`${API_URL}/api/v1/coupons/public/retailers`, {
-      headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (res.ok) {
-      const retailers = await res.json();
-      if (Array.isArray(retailers)) {
-        couponUrls = retailers.map((r: any) => ({
-          url: `${BASE_URL}/coupons/${retailerSlug(String(r))}`,
-          lastModified: now,
-          changeFrequency: "daily" as const,
-          priority: 0.7,
-        }));
-      }
-    }
-  } catch {
-    // API unreachable — skip coupon URLs
-  }
+  const [dealUrls, storeUrls, couponUrls] = await Promise.all([
+    loadDealUrls(),
+    loadStoreUrls(),
+    loadCouponUrls(),
+  ]);
 
   return [...staticUrls, ...storeUrls, ...couponUrls, ...dealUrls];
 }

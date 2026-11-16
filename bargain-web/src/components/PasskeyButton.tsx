@@ -123,10 +123,13 @@ export default function PasskeyButton({
     }
     const data = await finishRes.json();
     if (data.accessToken && data.user) {
-      // Store the token the same way password login does.
-      localStorage.setItem("bargain_auth_token", data.accessToken);
-      localStorage.setItem("bargain_refresh_token", data.refreshToken || "");
-      localStorage.setItem("bargain_user_data", JSON.stringify(data.user));
+      // Store the session through authService so AuthContext gets the
+      // same-tab auth-changed event (raw localStorage writes don't notify it).
+      authService.storeSession(
+        data.accessToken,
+        data.refreshToken || "",
+        data.user,
+      );
       onSuccess?.();
       router.push("/dashboard");
     } else {

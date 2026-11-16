@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Cloudflare/OpenNext build output + generated PWA worker:
+    ".open-next/**",
+    ".wrangler/**",
+    "worker-configuration.d.ts",
+    "public/sw.js",
+    "public/workbox-*.js",
+    "public/worker-*.js",
   ]),
 ]);
 

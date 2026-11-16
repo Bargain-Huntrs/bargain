@@ -3,6 +3,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.bargainhuntrs.co
 const TOKEN_KEY = "bargain_auth_token";
 const REQUEST_TIMEOUT_MS = 25_000;
 
+/**
+ * Same-tab auth change signal. The `storage` event does NOT fire in the tab
+ * that wrote localStorage — without this, AuthContext keeps a stale
+ * user=null after login and /dashboard bounces straight back to /login.
+ */
+export const AUTH_CHANGED_EVENT = "bargain-auth-changed";
+
+function notifyAuthChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
+
 /** fetch with a hard timeout — a cold-starting API must not wedge the UI. */
 function fetchWithTimeout(
   url: string,
@@ -89,6 +101,7 @@ function storeAuth(accessToken: string, refreshToken: string, user: AuthUser) {
   localStorage.setItem(TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_KEY, refreshToken);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  notifyAuthChanged();
 }
 
 function clearAuth() {
@@ -96,6 +109,7 @@ function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
+  notifyAuthChanged();
 }
 
 function getAuthHeaders(): Record<string, string> {
@@ -206,6 +220,7 @@ class AuthService {
       const accessToken = json?.accessToken || json?.access_token;
       if (accessToken && typeof window !== "undefined") {
         localStorage.setItem(TOKEN_KEY, accessToken);
+        notifyAuthChanged();
       }
       return { success: true, accessToken };
     } catch (error) {
@@ -278,6 +293,14 @@ class AuthService {
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
+  }
+
+  /**
+   * Persist a session minted outside the password login/register paths
+   * (e.g. passkey login, which receives its own JWT response shape).
+   */
+  storeSession(accessToken: string, refreshToken: string, user: AuthUser): void {
+    storeAuth(accessToken, refreshToken, user);
   }
 
   logout(): void {

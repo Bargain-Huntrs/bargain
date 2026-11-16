@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { isPaidTier } from "@/lib/plans";
 import {
   getCurrentUser,
   getNotificationPreferences,
@@ -60,7 +61,7 @@ const PREFERENCE_ITEMS: {
   key: keyof NotificationPreferences;
   label: string;
   description: string;
-  hunterOnly?: boolean;
+  paidOnly?: boolean;
 }[] = [
   {
     key: "email_deal_alerts",
@@ -71,7 +72,7 @@ const PREFERENCE_ITEMS: {
     key: "sms_deal_alerts",
     label: "SMS deal alerts",
     description: "Instant text notifications for high-priority deals.",
-    hunterOnly: true,
+    paidOnly: true,
   },
   {
     key: "discord_alerts",
@@ -117,18 +118,9 @@ export default function NotificationSettingsPage() {
   const [success, setSuccess] = useState("");
   const [pushStatus, setPushStatus] = useState("");
 
-  const isHunter = (userData?.subscription_tier || "free").toLowerCase() === "hunter";
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login?next=/settings/notifications");
-      return;
-    }
-
-    if (idToken) {
-      loadAll(idToken);
-    }
-  }, [user, loading, idToken, router]);
+  // SMS gating: every paid tier (hunter|pro|agency) gets it — gating on
+  // "hunter" alone locked Pro/Agency members out of a paid feature.
+  const isPaid = isPaidTier(userData?.subscription_tier);
 
   async function loadAll(token: string) {
     setIsLoading(true);
@@ -154,6 +146,17 @@ export default function NotificationSettingsPage() {
       setIsLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login?next=/settings/notifications");
+      return;
+    }
+
+    if (idToken) {
+      queueMicrotask(() => loadAll(idToken));
+    }
+  }, [user, loading, idToken, router]);
 
   function updatePreference(key: keyof NotificationPreferences, value: boolean) {
     setPreferences((prev) => ({ ...prev, [key]: value }));
@@ -337,7 +340,7 @@ export default function NotificationSettingsPage() {
         <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Alert channels</h2>
-            {!isHunter && (
+            {!isPaid && (
               <Link
                 href="/pricing"
                 className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
@@ -351,8 +354,8 @@ export default function NotificationSettingsPage() {
           </p>
 
           <div className="mt-6 space-y-4">
-            {PREFERENCE_ITEMS.map(({ key, label, description, hunterOnly }) => {
-              const disabled = hunterOnly && !isHunter;
+            {PREFERENCE_ITEMS.map(({ key, label, description, paidOnly }) => {
+              const disabled = paidOnly && !isPaid;
               return (
                 <label
                   key={key}
@@ -363,9 +366,9 @@ export default function NotificationSettingsPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-zinc-900 dark:text-zinc-50">{label}</span>
-                      {hunterOnly && (
+                      {paidOnly && (
                         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                          Hunter
+                          Paid
                         </span>
                       )}
                     </div>

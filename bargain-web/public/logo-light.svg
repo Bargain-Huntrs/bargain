@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
-  <rect width="128" height="128" rx="28" fill="#09090b"/>
-  <text x="38" y="64" text-anchor="middle" dominant-baseline="central" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="900" fill="#fafafa">B</text>
-  <path d="M64 28 L54 62 L62 62 L58 100 L74 58 L66 58 L70 28 Z" fill="#fafafa"/>
-  <text x="92" y="64" text-anchor="middle" dominant-baseline="central" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="900" fill="#fafafa">H</text>
-</svg>

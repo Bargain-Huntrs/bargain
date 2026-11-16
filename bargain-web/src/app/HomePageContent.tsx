@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import NewsletterPopup from "@/components/NewsletterPopup";
 import LiveActivityFeed from "@/components/LiveActivityFeed";
 import { getPublicDeals, clickAffiliatePublic, getCommunityStats, addUtmParameters, getProperties, getListings, getPublicCoupons, getPublicCommunityDeals, getPublicLeaderboard, type ArbitrageDeal, type CommunityStats } from "@/lib/api";
+import { authService } from "@/lib/authService";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -160,7 +161,9 @@ export default function HomePageContent() {
 
   // Load community stats (non-critical, fail silently)
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    // Auth stores under "bargain_auth_token" — a bare "token" key never
+    // exists, which is why community stats silently never loaded.
+    const token = authService.getToken();
     if (token) {
       getCommunityStats(token).then(setCommunityStats).catch(() => {});
     }
@@ -507,7 +510,7 @@ export default function HomePageContent() {
               What to expect
             </h2>
             <p className="mt-1 mb-6 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-              Everything on the platform, explained. No inflated "was" prices, no recycled deals —
+              Everything on the platform, explained. No inflated &quot;was&quot; prices, no recycled deals —
               every card shows the real discount and the math behind it.
             </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -607,7 +610,7 @@ export default function HomePageContent() {
               Free vs. Hunter
             </h2>
             <p className="mt-1 mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-              Start free forever. Upgrade when you're ready to move faster than everyone else.
+              Start free forever. Upgrade when you&apos;re ready to move faster than everyone else.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">

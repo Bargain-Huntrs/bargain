@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
+import { SECURITY_HEADERS } from "./src/lib/securityHeaders";
 
 // Cloudflare Pages sets CF_PAGES=1 automatically.
 // When building for CF Pages, use static export; otherwise use standalone (Render).
@@ -11,7 +12,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
   },
   output: isCloudflarePages ? "export" : "standalone",
-  // For static export, we need to set the base path and image config
+  // next/image remote-config decision: NO remotePatterns — raw <img> is the
+  // repo convention (same as favestate-web). Deal images come from arbitrary
+  // retailer CDNs, so a remote allowlist would have to be https:* anyway;
+  // unoptimized stays on for static-export (CF Pages) builds.
   ...(isCloudflarePages ? {
     images: { unoptimized: true },
     trailingSlash: true,
@@ -19,20 +23,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{
       source: '/(.*)',
-      headers: [
-        { key: 'X-Content-Type-Options', value: 'nosniff' },
-        { key: 'X-Frame-Options', value: 'DENY' },
-        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-        { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=()' },
-        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-        {
-          key: 'Content-Security-Policy',
-          // js.stripe.com script/frame + m.stripe.network frame = Stripe
-          // Elements (PoolPaymentSetup); *.googleapis.com connect + google/
-          // recaptcha/firebaseapp frames = Firebase phone auth + FCM.
-          value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://*.impactcdn.com https://*.impactradius.com https://*.sjv.io https://*.7eer.net https://*.pxf.io https://*.evyy.net https://js.stripe.com https://www.google.com https://www.recaptcha.net https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' https: data: blob:; connect-src 'self' https://api.bargainhuntrs.com https://www.bargainhuntrs.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://*.googletagmanager.com https://*.impactradius.com https://*.sjv.io https://*.7eer.net https://*.pxf.io https://*.googleapis.com https://*.stripe.com wss:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://m.stripe.network https://checkout.stripe.com https://www.google.com https://www.recaptcha.net https://recaptcha.google.com https://*.firebaseapp.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
-        },
-      ],
+      // CSP lives in src/lib/securityHeaders.ts — also stamped by src/proxy.ts
+      // on the apex→www 301 and mirrored statically in public/_headers.
+      // js.stripe.com script/frame + m.stripe.network frame = Stripe Elements
+      // (PoolPaymentSetup); *.googleapis.com connect + google/recaptcha/
+      // firebaseapp frames = Firebase phone auth + FCM.
+      headers: Object.entries(SECURITY_HEADERS).map(([key, value]) => ({
+        key,
+        value,
+      })),
     }];
   },
 };

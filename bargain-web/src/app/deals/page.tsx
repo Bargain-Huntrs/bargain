@@ -51,10 +51,14 @@ function inferDealCategory(deal: ArbitrageDeal): string {
 
 export default function DealsPage() {
   const router = useRouter();
-  const { user, loading, idToken } = useAuth();
+  const { idToken } = useAuth();
 
   const [deals, setDeals] = useState<ArbitrageDeal[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<{
+    total_profitable_deals?: number;
+    active_deals?: number;
+    tier_counts?: Record<string, number>;
+  } | null>(null);
   const [niches, setNiches] = useState<Niche[]>([]);
   const [selectedNiche, setSelectedNiche] = useState<string>("");
   const [selectedTier, setSelectedTier] = useState<string>("");
@@ -72,9 +76,6 @@ export default function DealsPage() {
   const [filterRetailer, setFilterRetailer] = useState<string | null>(null);
   const [filterSource, setFilterSource] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
-
-  const isPaidTier = (user?.subscriptionTier || "").toLowerCase() === "pro" ||
-    (user?.subscriptionTier || "").toLowerCase() === "enterprise";
 
   // Load deals — public for logged-out users, authenticated for logged-in users
   const loadDeals = useCallback(async () => {
@@ -375,7 +376,7 @@ export default function DealsPage() {
                   </p>
                 </div>
                 {stats.tier_counts &&
-                  Object.entries(stats.tier_counts).map(([tier, count]: [string, any]) => (
+                  Object.entries(stats.tier_counts).map(([tier, count]) => (
                     <div key={tier} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">{tier}</p>
                       <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-50">{count}</p>

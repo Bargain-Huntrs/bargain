@@ -47,10 +47,14 @@ function formatPrice(cents: number | null | undefined): string | null {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+const PAGE_SIZE = 25;
+
 export default function CommunityFeed() {
   const { idToken, user, loading: authLoading } = useAuth();
   const [threads, setThreads] = useState<DealThread[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
   const [sort, setSort] = useState<"hot" | "new">("hot");
   const [showForm, setShowForm] = useState(false);
@@ -66,22 +70,43 @@ export default function CommunityFeed() {
     author_email: "",
   });
 
-  const load = useCallback(async () => {
-    try {
-      const data = await getCommunityThreads({ sort, limit: 50 });
-      const voted = getVotedIds();
-      setThreads(data.map((t) => ({ ...t, voted: !!voted[t.id] })));
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load community threads");
-    } finally {
-      setLoading(false);
-    }
-  }, [sort]);
+  const load = useCallback(
+    async (offset = 0, append = false) => {
+      try {
+        const data = await getCommunityThreads({
+          sort,
+          limit: PAGE_SIZE,
+          offset,
+        });
+        const voted = getVotedIds();
+        const mapped = data.map((t) => ({ ...t, voted: !!voted[t.id] }));
+        setThreads((prev) =>
+          append
+            ? [...prev, ...mapped.filter((m) => !prev.some((p) => p.id === m.id))]
+            : mapped,
+        );
+        setHasMore(data.length === PAGE_SIZE);
+        setError("");
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to load community threads",
+        );
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [sort],
+  );
 
   useEffect(() => {
-    if (!authLoading) load();
+    if (!authLoading) queueMicrotask(() => load(0));
   }, [authLoading, load]);
+
+  function loadMore() {
+    setLoadingMore(true);
+    load(threads.length, true);
+  }
 
   async function handleVote(threadId: string) {
     // Optimistic toggle
@@ -313,6 +338,15 @@ export default function CommunityFeed() {
           {threads.map((t) => (
             <ThreadCard key={t.id} thread={t} onVote={handleVote} />
           ))}
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full rounded-xl border border-zinc-300 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              {loadingMore ? "Loading…" : "Load more deals"}
+            </button>
+          )}
         </div>
       )}
     </main>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/lib/authService";
+import { isPaidTier } from "@/lib/plans";
 import {
   getCurrentUser,
   getWatchlist,
@@ -1305,20 +1306,20 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Phone number for SMS alerts (Hunter tier) */}
+        {/* Phone number for SMS alerts (paid tiers — hunter|pro|agency) */}
         <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">SMS Alerts</h2>
-            {(userData?.subscription_tier || "free").toLowerCase() !== "hunter" && (
+            {!isPaidTier(userData?.subscription_tier) && (
               <Link href="/pricing" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-                Upgrade to Hunter →
+                Upgrade →
               </Link>
             )}
           </div>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            {(userData?.subscription_tier || "free").toLowerCase() === "hunter"
+            {isPaidTier(userData?.subscription_tier)
               ? "Enter your phone number to receive instant SMS deal alerts."
-              : "SMS alerts are a Hunter plan feature. Upgrade to get instant deal notifications via text."}
+              : "SMS alerts are a paid plan feature. Upgrade to get instant deal notifications via text."}
           </p>
           <div className="mt-5 flex gap-3">
             <input
@@ -1326,12 +1327,12 @@ export default function DashboardPage() {
               placeholder="+1234567890"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              disabled={(userData?.subscription_tier || "free").toLowerCase() !== "hunter"}
+              disabled={!isPaidTier(userData?.subscription_tier)}
               className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             />
             <button
               onClick={savePhone}
-              disabled={savingPhone || (userData?.subscription_tier || "free").toLowerCase() !== "hunter"}
+              disabled={savingPhone || !isPaidTier(userData?.subscription_tier)}
               className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               {savingPhone ? "Saving..." : phoneSaved ? "Saved!" : "Save number"}

@@ -94,19 +94,19 @@ export default function Header() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logos/wordmark-light.png"
+            src="/logos/wordmark-light@4x.png"
             alt="BargainHuntrs"
             width={287}
             height={71}
-            className="h-7 w-auto shrink-0 dark:hidden"
+            className="h-10 w-auto shrink-0 dark:hidden"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logos/wordmark-dark.png"
+            src="/logos/wordmark-dark@4x.png"
             alt="BargainHuntrs"
             width={287}
             height={71}
-            className="h-7 w-auto shrink-0 hidden dark:block"
+            className="h-10 w-auto shrink-0 hidden dark:block"
           />
         </Link>
 

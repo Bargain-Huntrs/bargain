@@ -15,19 +15,19 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-2 group w-fit">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logos/wordmark-light.png"
+                src="/logos/wordmark-light@4x.png"
                 alt="BargainHuntrs"
                 width={287}
                 height={71}
-                className="h-7 w-auto shrink-0 dark:hidden"
+                className="h-9 w-auto shrink-0 dark:hidden"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logos/wordmark-dark.png"
+                src="/logos/wordmark-dark@4x.png"
                 alt="BargainHuntrs"
                 width={287}
                 height={71}
-                className="h-7 w-auto shrink-0 hidden dark:block"
+                className="h-9 w-auto shrink-0 hidden dark:block"
               />
             </Link>
             <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400 max-w-xs leading-relaxed">

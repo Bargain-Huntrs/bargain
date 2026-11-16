@@ -1,118 +1,107 @@
 #!/usr/bin/env python3
-"""BargainHuntrs app-icon generator — the "B⚡H" mark from bargain-web/public/logo.svg.
+"""BargainHuntrs app-icon generator — the fox mark (assets/fox-mark.png).
 
-The site's dark-mode logo is an emerald (#10b981) tile carrying a dark
-(#09090b) B + lightning bolt + H lockup. The app is dark-only, so every
-surface uses that colorway.
+Owner-supplied mark (2026-11-15): the fox head PNG dropped into
+bargain-web/public/icons/icon-fox-192.png, copied here as the canonical
+source. Green-toned fox on transparency → ships on the dark #09090b canvas
+(the app is dark-only).
 
-Run:  /tmp/iconenv/bin/python scripts/gen_app_icons.py   (from bargain-mobile/)
-      (any python with Pillow works — `python3 -m venv /tmp/iconenv &&
-       /tmp/iconenv/bin/pip install Pillow`)
+Run:  /Volumes/Os_Sites/Prime/prime-mobile/.venv-emblem/bin/python \
+        scripts/gen_app_icons.py   (from bargain-mobile/; any python3 with
+      Pillow works)
 
 Outputs (assets/):
-  icon.png                     — 1024x1024 full-bleed emerald (iOS + legacy Android)
-  android-icon-foreground.png  — 1024x1024 transparent, tile inside safe zone
+  icon.png                     — 1024x1024 full-bleed #09090b + fox (iOS + legacy Android)
+  android-icon-foreground.png  — 1024x1024 transparent, fox inside safe zone
   android-icon-background.png  — 1024x1024 solid #09090b
-  android-icon-monochrome.png  — 1024x1024 white mark on transparent
-  splash-icon.png              — 512x512 transparent, tile mark (splash plugin)
-  favicon.png                  — 64x64 tile mark
+  android-icon-monochrome.png  — 1024x1024 white fox silhouette on transparent
+  splash-icon.png              — 512x512 transparent fox mark (splash plugin)
+  favicon.png                  — 64x64 dark tile + fox
 """
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
 OUT = os.path.join(ROOT, 'assets')
+FOX_SRC = os.path.join(OUT, 'fox-mark.png')
 
-EMERALD = (16, 185, 129, 255)    # #10b981 — brand tile
-INK = (9, 9, 11, 255)            # #09090b — glyph on emerald / app bg
-WHITE = (250, 250, 250, 255)
-
-FONT = '/System/Library/Fonts/Supplemental/Arial Black.ttf'
-if not os.path.exists(FONT):
-    FONT = '/System/Library/Fonts/Supplemental/Arial Bold.ttf'
-if not os.path.exists(FONT):
-    raise SystemExit('no heavy system font found')
-
-# Logo geometry in the SVG's 128x128 viewbox.
-GRID = 128
-SS = 16  # supersample factor — compose at 2048, downscale for crisp edges
-B_X, H_X, MID_Y = 38, 92, 64
-FONT_SIZE = 48
-BOLT = [(64, 28), (54, 62), (62, 62), (58, 100), (74, 58), (66, 58), (70, 28)]
-TILE_RADIUS = 28
+INK = (9, 9, 11, 255)            # #09090b — app background
+WHITE = (255, 255, 255, 255)
 
 
-def render_mark(fg, scale=SS):
-    """Draw the B+bolt+H lockup on a transparent canvas, cropped to ink."""
-    size = GRID * scale
-    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    font = ImageFont.truetype(FONT, FONT_SIZE * scale)
-    for ch, cx in (('B', B_X), ('H', H_X)):
-        d.text((cx * scale, MID_Y * scale), ch, font=font, fill=fg, anchor='mm')
-    d.polygon([(x * scale, y * scale) for x, y in BOLT], fill=fg)
-    bbox = img.getbbox()
-    return img.crop(bbox) if bbox else img
+def load_fox():
+    """Fox mark cropped to its alpha bounding box."""
+    im = Image.open(FOX_SRC).convert('RGBA')
+    return im.crop(im.getbbox())
 
 
-def rounded_tile(size, radius_frac=TILE_RADIUS / GRID, color=EMERALD):
-    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.rounded_rectangle([0, 0, size - 1, size - 1], radius=int(size * radius_frac), fill=color)
-    return img
+def scaled(mark, width_px, height_px=None):
+    "Resize proportionally to width_px (or exact w×h if height given)."
+    if height_px is None:
+        height_px = round(mark.height * width_px / mark.width)
+    return mark.resize((width_px, height_px), Image.LANCZOS)
 
 
-def paste_center(base, mark, width_frac):
-    w = int(base.width * width_frac)
-    h = int(mark.height * (w / mark.width))
-    m = mark.resize((w, h), Image.LANCZOS)
-    base.alpha_composite(m, ((base.width - w) // 2, (base.height - h) // 2))
+def paste_center(base, mark, width_px):
+    m = scaled(mark, width_px)
+    base.alpha_composite(m, ((base.width - m.width) // 2,
+                             (base.height - m.height) // 2))
     return base
+
+
+def white_silhouette(mark, width_px):
+    "Alpha-mask silhouette of the fox filled solid white."""
+    m = scaled(mark, width_px)
+    sil = Image.new('RGBA', m.size, WHITE)
+    sil.putalpha(m.getchannel('A'))
+    return sil
+
+
+def rounded_tile(size, radius_frac=28 / 128, color=INK):
+    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    from PIL import ImageDraw
+    ImageDraw.Draw(img).rounded_rectangle(
+        [0, 0, size - 1, size - 1],
+        radius=int(size * radius_frac), fill=color)
+    return img
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    dark_mark = render_mark(INK)
-    white_mark = render_mark(WHITE)
+    fox = load_fox()
 
-    # icon.png — full-bleed emerald, dark mark ~62% wide
-    icon = Image.new('RGBA', (1024, 1024), EMERALD)
-    paste_center(icon, dark_mark, 0.62)
+    # icon.png — full-bleed near-black, fox ~58% wide
+    icon = Image.new('RGBA', (1024, 1024), INK)
+    paste_center(icon, fox, round(1024 * 0.58))
     icon.save(os.path.join(OUT, 'icon.png'))
 
-    # android adaptive foreground — tile + mark inside the 66% safe zone
+    # android adaptive foreground — transparent, fox inside the ~66% safe zone
     fg = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
-    tile = rounded_tile(int(1024 * 0.66))
-    fg.alpha_composite(tile, ((1024 - tile.width) // 2, (1024 - tile.width) // 2))
-    inner = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
-    paste_center(inner, dark_mark, 0.40)
-    fg.alpha_composite(inner)
+    paste_center(fg, fox, round(1024 * 0.60))
     fg.save(os.path.join(OUT, 'android-icon-foreground.png'))
 
     # android adaptive background — solid app-bg ink
-    Image.new('RGBA', (1024, 1024), INK).save(os.path.join(OUT, 'android-icon-background.png'))
+    Image.new('RGBA', (1024, 1024), INK).save(
+        os.path.join(OUT, 'android-icon-background.png'))
 
-    # android monochrome — white mark on transparent, safe-zone sized
+    # android monochrome — white fox silhouette, safe-zone sized
     mono = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
-    paste_center(mono, white_mark, 0.55)
+    sil = white_silhouette(fox, round(1024 * 0.55))
+    mono.alpha_composite(sil, ((1024 - sil.width) // 2,
+                               (1024 - sil.height) // 2))
     mono.save(os.path.join(OUT, 'android-icon-monochrome.png'))
 
-    # splash-icon.png — transparent canvas, tile mark centered
+    # splash-icon.png — transparent canvas, fox mark centered
     splash = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
-    tile = rounded_tile(512)
-    splash.alpha_composite(tile, (0, 0))
-    inner = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
-    paste_center(inner, dark_mark, 0.58)
-    splash.alpha_composite(inner)
+    paste_center(splash, fox, round(512 * 0.62))
     splash.save(os.path.join(OUT, 'splash-icon.png'))
 
-    # favicon.png — 64px tile mark
+    # favicon.png — 64px dark rounded tile + fox
     fav = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
-    tile = rounded_tile(64)
-    fav.alpha_composite(tile, (0, 0))
+    fav.alpha_composite(rounded_tile(64), (0, 0))
     inner = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
-    paste_center(inner, dark_mark, 0.58)
+    paste_center(inner, fox, round(64 * 0.60))
     fav.alpha_composite(inner)
     fav.save(os.path.join(OUT, 'favicon.png'))
 

@@ -20,17 +20,25 @@ export function generateStaticParams() {
 type Params = { category: string };
 
 const BASE_URL = "https://www.bargainhuntrs.com";
-const MAX_DEALS_FETCH = 500;
+const PAGE_SIZE = 200; // API hard-caps limit at 200 — paginate like sitemap.ts
+const MAX_DEALS_TOTAL = 1000;
 const MAX_DEALS_SHOWN = 48;
 
 // React cache() dedupes this across generateMetadata + the page render
-// within a single request, so the 500-deal fetch happens once per hit.
+// within a single request, so the deal fetches happen once per hit.
 const getAllPublicDeals = cache(async (): Promise<ArbitrageDeal[]> => {
+  const deals: ArbitrageDeal[] = [];
   try {
-    return await getPublicDeals(MAX_DEALS_FETCH, 0);
+    for (let offset = 0; offset < MAX_DEALS_TOTAL; offset += PAGE_SIZE) {
+      const batch = await getPublicDeals(PAGE_SIZE, offset);
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      deals.push(...batch);
+      if (batch.length < PAGE_SIZE) break;
+    }
   } catch {
-    return [];
+    // Partial results are fine — return whatever loaded before the failure.
   }
+  return deals;
 });
 
 function dealsForCategory(name: string, deals: ArbitrageDeal[]): ArbitrageDeal[] {

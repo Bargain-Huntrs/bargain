@@ -27,7 +27,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     })),
     { url: `${BASE_URL}/deals/best`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
-    { url: `${BASE_URL}/deals/amazon`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/deals/today`, lastModified: now, changeFrequency: "hourly", priority: 0.9 },
     { url: `${BASE_URL}/deals/amazon-deals`, lastModified: now, changeFrequency: "hourly", priority: 0.8 },
     { url: `${BASE_URL}/deals/walmart-deals`, lastModified: now, changeFrequency: "hourly", priority: 0.8 },

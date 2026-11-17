@@ -649,6 +649,40 @@ def _buffer_gql(token: str, query: str, variables: dict | None = None) -> dict:
     return res if isinstance(res, dict) else {}
 
 
+def upload_media_public(path: Path) -> str | None:
+    """Push a card/video to the public social-media bucket and return its URL.
+    Buffer (and other URL-based platforms) need publicly fetchable media —
+    the repo is private so raw.githubusercontent links won't work, and
+    committed cards only serve after the next web deploy. Uploading to
+    Supabase Storage makes the asset live immediately; the bucket is
+    auto-created as public on first use.
+    Env: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY."""
+    base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not (base and key):
+        return None
+    mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+            ".mp4": "video/mp4"}.get(path.suffix.lower(), "application/octet-stream")
+    prefix = os.environ.get("SUPABASE_MEDIA_PREFIX", "posts").strip("/")
+    obj = f"{prefix}/{path.name}"
+    auth = {"Authorization": f"Bearer {key}", "apikey": key}
+    status, _ = _http_bytes(
+        f"{base}/storage/v1/object/social-media/{obj}",
+        body=path.read_bytes(),
+        headers={**auth, "Content-Type": mime, "x-upsert": "true"},
+    )
+    if status in (400, 404):
+        # First use on a fresh project — create the public bucket, retry once.
+        _http(f"{base}/storage/v1/bucket", method="POST", headers=auth,
+              data={"id": "social-media", "name": "social-media", "public": True})
+        status, _ = _http_bytes(
+            f"{base}/storage/v1/object/social-media/{obj}",
+            body=path.read_bytes(),
+            headers={**auth, "Content-Type": mime, "x-upsert": "true"},
+        )
+    return f"{base}/storage/v1/object/public/social-media/{obj}" if status in (200, 201) else None
+
+
 def buffer_fit_text(text: str, link: str | None, service: str) -> str:
     """X enforces 280 chars; the other Buffer channels allow long posts.
     For twitter/x channels trim the body at a word boundary and keep the
@@ -688,11 +722,17 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
       BUFFER_ORG_ID        — optional; defaults to first organization
       BUFFER_CHANNEL_IDS   — optional CSV; default posts to ALL connected
                              channels (isDisconnected channels are skipped)
-      BUFFER_MEDIA_BASE    — optional public base URL where committed
+      SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+                           — preferred media host: cards/videos upload to a
+                             public `social-media` storage bucket at post
+                             time and Buffer fetches the live URL. The
+                             bucket is auto-created on first use.
+      BUFFER_MEDIA_BASE    — fallback public base URL where committed
                              cards/videos are served (e.g.
-                             https://<site>/social-cards). Buffer has no
-                             upload endpoint — assets are fetched by URL at
-                             publish time. Without it, posts stay text-only.
+                             https://<site>/social-cards), used only when
+                             the Supabase upload isn't configured/didn't
+                             succeed. Buffer has no upload endpoint —
+                             assets are fetched by URL at publish time.
                              Asset URLs are HEAD-checked first — a
                              committed-but-undeployed card posts text-only
                              rather than risking an unfetchable asset.
@@ -720,16 +760,22 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
         return False, "no Buffer channels connected (link X/FB/etc in Buffer dashboard)"
 
     media_base = os.environ.get("BUFFER_MEDIA_BASE", "").rstrip("/")
-    # Card asset URLs — resolved + liveness-checked ONCE per post (Buffer
-    # fetches them at publish time). None = post that channel text-only.
+    # Card asset URLs — resolved ONCE per post (Buffer fetches them at
+    # publish time). Supabase Storage upload is primary (asset goes live
+    # immediately); BUFFER_MEDIA_BASE + liveness check is the fallback for
+    # envs without Supabase keys. None = post that channel text-only.
     img_url = vid_url = None
-    if media_base and media:
+    if media:
+        img_url = upload_media_public(media)
+    if not img_url and media_base and media:
         cand = f"{media_base}/{media.name}"
         if _url_live(cand):
             img_url = cand
         else:
             print(f"  NOTE: card image not live yet ({cand}) — Buffer posts text-only")
-    if media_base and video:
+    if video:
+        vid_url = upload_media_public(video)
+    if not vid_url and media_base and video:
         cand = f"{media_base}/{video.name}"
         if _url_live(cand):
             vid_url = cand
@@ -874,7 +920,7 @@ def main() -> None:
 
             if args.dry_run:
                 tag = " [poll]" if poll else ""
-                tag += " [img]" if use_media else ""
+                tag += " [img]" if use_media or (name == "buffer" and media) else ""
                 tag += " [vid]" if name == "buffer" and video else ""
                 print(f"  [dry-run] {item['date']} {name}{tag}: {ptext[:70]}…")
                 sent += 1

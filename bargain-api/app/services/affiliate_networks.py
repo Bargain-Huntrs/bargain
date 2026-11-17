@@ -28,6 +28,7 @@ Env vars:
 import asyncio
 import hashlib
 import logging
+import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime
@@ -293,32 +294,47 @@ async def fetch_awin_promotions(max_results: int = 200) -> list[AffiliateDeal]:
             except Exception as e:
                 logger.warning(f"Awin programmes fetch failed: {e}")
 
-            # Fetch promotions via POST endpoint
+            # Fetch promotions via POST endpoint. The API ignores
+            # advertiserIds/membership filters AND flat page/pageSize params —
+            # only the nested body `pagination: {page: n}` works (verified
+            # 2026-12-29), and every page is capped at 200 results. Joined
+            # promos are sparse in the ~35k feed (verified: p5×1, p20×17), so
+            # we paginate up to AWIN_PROMO_MAX_PAGES collecting joined+region
+            # matches, paced under the 20 req/min throttle.
             url = f"{AWIN_API_BASE}/publisher/{publisher_id}/promotions"
             params = {"accessToken": token}
-            body = {
-                "pageSize": str(max_results),
-                "type": "promotion",  # Get promotion-type offers first
-            }
+            max_pages = int(get_affiliate_config("AWIN_PROMO_MAX_PAGES") or "25")
+            promos: list[dict] = []
+            calls = 0
 
-            resp = await client.post(url, params=params, json=body)
-
-            if resp.status_code != 200:
-                logger.warning(f"Awin promotions API returned {resp.status_code}: {resp.text[:200]}")
-                return []
-
-            data = resp.json()
-            promos = data.get("data", [])
-            total_available = data.get("pagination", {}).get("total", 0)
-            logger.info(f"Awin: {len(promos)} promotions on page (total available: {total_available})")
-
-            # Also fetch voucher-type offers
-            body_voucher = {"pageSize": str(max_results), "type": "voucher"}
-            resp_v = await client.post(url, params=params, json=body_voucher)
-            if resp_v.status_code == 200:
-                data_v = resp_v.json()
-                promos.extend(data_v.get("data", []))
-                logger.info(f"Awin: {len(data_v.get('data', []))} voucher offers added")
+            for promo_type in ("promotion", "voucher"):
+                for page in range(1, max_pages + 1):
+                    body = {
+                        "type": promo_type,
+                        "pagination": {"page": page},
+                    }
+                    try:
+                        resp = await client.post(url, params=params, json=body)
+                    except Exception as e:
+                        logger.warning(f"Awin page {page} ({promo_type}) failed: {e}")
+                        break
+                    calls += 1
+                    if resp.status_code != 200:
+                        logger.warning(
+                            f"Awin promotions API returned {resp.status_code}: {resp.text[:200]}"
+                        )
+                        break
+                    data = resp.json()
+                    page_promos = data.get("data", [])
+                    promos.extend(page_promos)
+                    if len(page_promos) < 200:
+                        break  # last page of the feed
+                    # 20 calls/min throttle — pace page fetches
+                    await asyncio.sleep(3.1)
+            logger.info(
+                f"Awin: {len(promos)} promotions scanned "
+                f"({calls} pages, feed total ~35500)"
+            )
 
             for promo in promos:
                 try:
@@ -430,7 +446,6 @@ def _extract_awin_prices(
     title/description often contains discount info like "$50 off", "20% off",
     "Save $30", etc.
     """
-    import re
 
     text = f"{title} {description}".lower()
 
@@ -508,6 +523,15 @@ async def fetch_cj_links(max_results: int = 100) -> list[AffiliateDeal]:
     """Fetch promotional links from CJ Affiliate Link Search API.
 
     Requires CJ_ACCESS_TOKEN and CJ_WEBSITE_ID env vars.
+
+    Only JOINED advertisers can pay commission, so the query passes
+    ``advertiser-ids=joined`` — a server-side filter (unfiltered pages are
+    ~100% notjoined, so a client-side check alone starves the feed), with a
+    per-link ``relationship-status`` check kept as a safety net.
+
+    ``clickUrl`` is the affiliate tracking URL; ``destination`` is the raw
+    landing page. Saving ``destination`` as the deal URL would lose
+    attribution entirely.
     """
     if not _cj_configured():
         logger.info("CJ Affiliate not configured — skipping")
@@ -519,73 +543,91 @@ async def fetch_cj_links(max_results: int = 100) -> list[AffiliateDeal]:
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # Link Search API — fetch coupon/sale links
+            # Link Search API — coupon + sale/discount promo links
             url = f"{CJ_API_BASE}/link-search"
             headers = {"Authorization": f"Bearer {token}"}
-            params = {
-                "website-id": website_id,
-                "promotion-type": "coupon",
-                "records-per-page": str(min(max_results, 1000)),
-                "page-number": "1",
-            }
-            resp = await client.get(url, headers=headers, params=params)
+            for promo_type in ("coupon", "sale/discount"):
+                params = {
+                    "website-id": website_id,
+                    "promotion-type": promo_type,
+                    "advertiser-ids": "joined",
+                    "records-per-page": str(min(max_results, 1000)),
+                    "page-number": "1",
+                }
+                resp = await client.get(url, headers=headers, params=params)
 
-            if resp.status_code != 200:
-                logger.warning(f"CJ API error: {resp.status_code}")
-                return []
+                if resp.status_code != 200:
+                    logger.warning(f"CJ API error ({promo_type}): {resp.status_code}")
+                    continue
 
-            # Link Search returns XML:
-            # <cj-api><links ...><link><link-name/>..<destination/>..</link></links></cj-api>
-            try:
-                root = ET.fromstring(resp.text)
-            except ET.ParseError as e:
-                logger.warning(f"CJ XML parse error: {e}")
-                return []
-
-            error = root.findtext("error-message")
-            if error:
-                logger.warning(f"CJ API error: {error.strip()}")
-                return []
-
-            for link in root.iter("link"):
+                # Link Search returns XML:
+                # <cj-api><links ...><link><link-name/>..<clickUrl/>..</link></links></cj-api>
                 try:
-                    title = link.findtext("link-name") or ""
-                    deal_url = link.findtext("destination") or ""
-                    promo_code = link.findtext("coupon-code") or ""
-                    advertiser = link.findtext("advertiser-name") or ""
-                    expires = (link.findtext("promotion-end-date") or "").strip()
+                    root = ET.fromstring(resp.text)
+                except ET.ParseError as e:
+                    logger.warning(f"CJ XML parse error ({promo_type}): {e}")
+                    continue
 
-                    if not title or not deal_url:
-                        continue
+                error = root.findtext("error-message")
+                if error:
+                    logger.warning(f"CJ API error ({promo_type}): {error.strip()}")
+                    continue
 
-                    retailer = _normalize_retailer(advertiser)
-                    expires_at = None
-                    if expires and expires.lower() != "null":
-                        for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
-                            try:
-                                expires_at = datetime.strptime(expires, fmt)
-                                break
-                            except ValueError:
-                                continue
+                for link in root.iter("link"):
+                    try:
+                        # JOINED ONLY — owner directive (same as Awin): CJ's
+                        # link search can return notjoined advertisers whose
+                        # clicks pay nothing. Skip them.
+                        rel = (link.findtext("relationship-status") or "").strip().lower()
+                        if rel != "joined":
+                            continue
 
-                    deals.append(AffiliateDeal(
-                        title=title[:500],
-                        deal_url=deal_url,
-                        original_url=deal_url,
-                        retailer=retailer,
-                        network="cj",
-                        promo_code=promo_code if promo_code else None,
-                        description=(link.findtext("description") or "")[:1000],
-                        expires_at=expires_at,
-                    ))
-                except Exception as e:
-                    logger.debug(f"Failed to parse CJ link: {e}")
+                        title = link.findtext("link-name") or ""
+                        deal_url = link.findtext("clickUrl") or ""
+                        original_url = link.findtext("destination") or deal_url
+                        promo_code = link.findtext("coupon-code") or ""
+                        advertiser = link.findtext("advertiser-name") or ""
+                        expires = (link.findtext("promotion-end-date") or "").strip()
+
+                        if not title or not deal_url:
+                            continue
+
+                        retailer = _normalize_retailer(advertiser)
+                        expires_at = None
+                        if expires and expires.lower() != "null":
+                            for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+                                try:
+                                    expires_at = datetime.strptime(expires, fmt)
+                                    break
+                                except ValueError:
+                                    continue
+
+                        deals.append(AffiliateDeal(
+                            title=title[:500],
+                            deal_url=deal_url,
+                            original_url=original_url,
+                            retailer=retailer,
+                            network="cj",
+                            promo_code=promo_code if promo_code else None,
+                            description=(link.findtext("description") or "")[:1000],
+                            expires_at=expires_at,
+                        ))
+                    except Exception as e:
+                        logger.debug(f"Failed to parse CJ link: {e}")
 
     except Exception as e:
         logger.error(f"CJ fetch failed: {e}")
 
-    logger.info(f"CJ: {len(deals)} links fetched")
-    return deals
+    # Dedupe by tracking URL (a link can appear under both promo types)
+    seen_urls: set[str] = set()
+    unique_deals: list[AffiliateDeal] = []
+    for deal in deals:
+        if deal.deal_url not in seen_urls:
+            seen_urls.add(deal.deal_url)
+            unique_deals.append(deal)
+
+    logger.info(f"CJ: {len(unique_deals)} joined links fetched")
+    return unique_deals
 
 
 # ============================================================
@@ -687,9 +729,19 @@ _RETAILER_MAP = {
 
 
 def _normalize_retailer(name: str) -> str:
-    """Normalize a retailer name to our internal key."""
+    """Normalize a retailer name to our internal key.
+
+    Falls back to a slug of the raw name — network advertiser names carry
+    punctuation ("Dream Pairs, Bruno Marc, Nortiv 8 & Allswift Shoes",
+    "AliExpress - Global") that must not leak into retailer filter chips or
+    deal IDs.
+    """
     name_lower = name.lower().strip()
-    return _RETAILER_MAP.get(name_lower, name_lower.replace(" ", "_").replace("'", ""))
+    mapped = _RETAILER_MAP.get(name_lower)
+    if mapped:
+        return mapped
+    slug = re.sub(r"[^a-z0-9]+", "_", name_lower).strip("_")
+    return slug or "unknown"
 
 
 async def fetch_all_affiliate_deals() -> list[AffiliateDeal]:
@@ -731,6 +783,22 @@ def get_configured_networks() -> list[str]:
     return configured
 
 
+def _affiliate_deal_key(deal: AffiliateDeal) -> str:
+    """Stable dedupe identity for a network deal.
+
+    CJ rotates click domains AND appends a per-fetch timestamp to clickUrls
+    (``/click-{websiteid}-{linkid}-{ts}``), so the same promotion arrives as a
+    different URL every ingest — keying on the raw URL would duplicate the
+    row every scheduler cycle. The numeric link-id inside the path is stable.
+    Other networks emit stable tracking URLs, so the URL itself is the key.
+    """
+    if deal.network == "cj":
+        m = re.search(r"/click-\d+-(\d+)-", deal.deal_url)
+        if m:
+            return m.group(1)
+    return deal.deal_url
+
+
 def save_affiliate_deals_to_database(deals: list[AffiliateDeal], db_session) -> int:
     """Save affiliate deals to the ArbitrageDeal table.
 
@@ -745,14 +813,22 @@ def save_affiliate_deals_to_database(deals: list[AffiliateDeal], db_session) -> 
     saved = 0
     for deal in deals:
         try:
-            # Generate a unique ASIN-like ID from the network + retailer + URL hash
-            deal_id = f"{deal.network}_{deal.retailer}_{hashlib.md5(deal.deal_url.encode()).hexdigest()[:12]}"[:36]
+            # Generate a unique ASIN-like ID from the network + retailer +
+            # stable deal key. The slug is capped BEFORE the hash is appended
+            # — truncating the whole string used to cut the hash off entirely
+            # for long advertiser names ("dream_pairs_bruno_marc_nortiv_8_..."),
+            # so every link from that advertiser collapsed into one row.
+            url_hash = hashlib.md5(_affiliate_deal_key(deal).encode()).hexdigest()[:12]
+            deal_id = f"{deal.network}_{deal.retailer}"[:22] + f"_{url_hash}"
 
+            # Match on the new ID or the raw buy_url — rows written under the
+            # old truncated-hash scheme refresh in place instead of duping.
             existing = (
                 db_session.query(ArbitrageDeal)
                 .filter(
-                    ArbitrageDeal.asin == deal_id,
                     ArbitrageDeal.status == "active",
+                    (ArbitrageDeal.asin == deal_id)
+                    | (ArbitrageDeal.buy_url == deal.deal_url),
                 )
                 .first()
             )
@@ -763,7 +839,9 @@ def save_affiliate_deals_to_database(deals: list[AffiliateDeal], db_session) -> 
             tier = "glitch" if discount >= 75 else ("trending" if discount >= 50 else "clearance")
 
             if existing:
-                # Refresh existing deal
+                # Refresh existing deal (asin converges to the new scheme
+                # when matched via buy_url from an old truncated-hash row)
+                existing.asin = deal_id
                 if deal.deal_price:
                     existing.buy_price = buy_price
                 if deal.original_price:

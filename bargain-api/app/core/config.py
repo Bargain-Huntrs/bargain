@@ -246,6 +246,9 @@ class Settings(BaseSettings):
     # only promos whose advertiser primaryRegion is in this list (the feed is
     # EU/IT-heavy but bargainhuntrs.com is a US site).
     AWIN_REGIONS: str = "US"
+    # Pages of 200 scanned per promo type per fetch — the promotions endpoint
+    # ignores advertiser filters, so joined promos are found by paginating.
+    AWIN_PROMO_MAX_PAGES: str = "25"
 
     # CJ Affiliate (https://signup.cj.com)
     CJ_ACCESS_TOKEN: str = ""

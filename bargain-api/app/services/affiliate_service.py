@@ -11,7 +11,10 @@ from typing import Optional
 import httpx
 
 from app.core.config import settings
-from app.services.affiliate_config import get_affiliate_config
+from app.services.affiliate_config import (
+    AFFILIATE_TRACKING_MARKERS,
+    get_affiliate_config,
+)
 from app.services.utm_service import add_utm_parameters
 
 # Default UTM parameters applied to every affiliate link so clicks can be
@@ -223,6 +226,19 @@ def add_affiliate_tag(url: str, retailer: str = "", asin: str = "") -> str:
         # isn't destroyed by re-wrapping or direct-tag appending.
         if is_impact_link(url):
             return url
+        # Already affiliate-wrapped by another network (CJ click hosts,
+        # Rakuten linksynergy, Awin deeplinks, Skimlinks, Amazon/eBay/
+        # retailer tags) — never re-wrap. A second tracker destroys the deep
+        # link: e.g. a CJ clickUrl for "AliExpress - Global" would
+        # substring-match the Impact AliExpress campaign by retailer name
+        # and get swapped for a generic Impact link.
+        if any(marker in url_lower for marker in AFFILIATE_TRACKING_MARKERS):
+            return add_utm_parameters(
+                url,
+                DEFAULT_UTM_SOURCE,
+                DEFAULT_UTM_MEDIUM,
+                DEFAULT_UTM_CAMPAIGN,
+            )
         impact_url = add_impact_affiliate(url, detected)
         if impact_url != url:
             return impact_url

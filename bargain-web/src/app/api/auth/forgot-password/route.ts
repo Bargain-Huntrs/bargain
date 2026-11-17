@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+// Server-side fetches must use the api-guard upstream, not api.bargainhuntrs.com:
+// the zone rate-limit rule 429s worker-egress IPs before api-guard is invoked.
+// bargain-api.settleinpeace.com is the same tunnel origin api-guard proxies to.
 const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL || "https://api.bargainhuntrs.com"
+  process.env.API_INTERNAL_URL || "https://bargain-api.settleinpeace.com"
 ).replace(/\/+$/, "");
 
 /**

@@ -8,7 +8,11 @@ import { retailerSlug } from "@/lib/retailers";
 import { DEAL_CATEGORIES } from "@/lib/deal-categories";
 
 const BASE_URL = "https://www.bargainhuntrs.com";
-const API_URL = "https://api.bargainhuntrs.com";
+// Server-side fetches must use the api-guard upstream, not api.bargainhuntrs.com:
+// the zone rate-limit rule 429s worker-egress IPs before api-guard is invoked.
+// bargain-api.settleinpeace.com is the same tunnel origin api-guard proxies to.
+const API_URL =
+  process.env.API_INTERNAL_URL || "https://bargain-api.settleinpeace.com";
 const MAX_LIMIT = 200;
 
 export const revalidate = 3600;
@@ -73,7 +77,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 5s and each section fails open to its own empty slice.
   const FETCH_INIT: RequestInit = {
     headers: { "User-Agent": "BargainHuntrs-Sitemap/1.0" },
-    signal: AbortSignal.timeout(5000),
+    signal: AbortSignal.timeout(30000),
   };
 
   const loadDealUrls = async (): Promise<MetadataRoute.Sitemap> => {

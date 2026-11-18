@@ -51,6 +51,48 @@ const guides = [
     description: "The real mechanics behind finding deep discounts early — alerts, markdown cycles, and deal feeds.",
     readTime: "8 min read",
   },
+  {
+    href: "/guides/how-to-read-clearance-tags",
+    title: "How to Read Clearance Tags at Walmart, Target & More",
+    description: "Markdown dates, price-ending patterns, and sticker colors — what clearance tags actually tell you.",
+    readTime: "7 min read",
+  },
+  {
+    href: "/guides/warehouse-club-arbitrage",
+    title: "Warehouse Club Arbitrage: Costco, Sam's Club & BJ's Basics",
+    description: "Bulk pricing, instant rebates, and clearance finds — how resellers source warehouse clubs for profit.",
+    readTime: "9 min read",
+  },
+  {
+    href: "/guides/coupon-stacking-rules",
+    title: "Coupon Stacking Rules: What Actually Stacks & What Doesn't",
+    description: "The general stacking order — sale → store coupon → manufacturer coupon → rewards — and where the limits are.",
+    readTime: "8 min read",
+  },
+  {
+    href: "/guides/how-to-spot-fake-discounts",
+    title: "How to Spot Fake Discounts & Inflated 'Was' Prices",
+    description: "Inflated list prices, fake countdown timers, perpetual sales — how to check a deal's real history.",
+    readTime: "8 min read",
+  },
+  {
+    href: "/guides/online-arbitrage-vs-retail-arbitrage",
+    title: "Online Arbitrage vs Retail Arbitrage: Which Is Better?",
+    description: "Sourcing, costs, competition, and scale — an honest comparison of the two arbitrage models.",
+    readTime: "9 min read",
+  },
+  {
+    href: "/guides/best-things-to-flip-for-profit",
+    title: "Best Things to Flip for Profit: Categories That Actually Sell",
+    description: "The categories with real resale margins and the traits that make an item flippable.",
+    readTime: "9 min read",
+  },
+  {
+    href: "/guides/how-to-check-store-inventory",
+    title: "How to Check Store Inventory Before You Drive",
+    description: "Retailer apps, inventory tools, and SKU lookups — verify local stock before the trip.",
+    readTime: "7 min read",
+  },
 ];
 
 export default function GuidesIndex() {

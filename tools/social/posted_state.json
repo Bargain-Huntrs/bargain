@@ -28,5 +28,11 @@
       "at": "2026-11-15 10:00:17.517374",
       "ref": "twitter:6af9f32e4f0276ab9453437b (failed: instagram:Invalid post: Instagram posts require a type (post, story, or reel).)"
     }
+  },
+  "2026-11-19": {
+    "buffer": {
+      "at": "2026-11-19 10:00:31.726797",
+      "ref": "twitter:6aff393d6b15db548619ea1f (failed: instagram:[{'message': 'Variable \"$input\" got invalid value { channelId: \"6a54518180cc80cdcaa90ab6\", type: \"post\", text: \"The best deal is the one you didn\\'t have to hunt for.\\\\n\\\\nDaily alerts watch the feeds so you don\\'t have to \u2014 free tier included, instant SMS on paid when a glitch deal hits.\\\\n\\\\nhttps://bargainhuntrs.com/pricing\", mode: \"shareNow\", schedulingType: \"automatic\", needsApproval: false, assets: [{ image: [Object] }] }; Expected value of type \"CreatePostInput\" not to include unknown field \"type\", found: { channelId: \"6a54518180cc80cdcaa90ab6\", type: \"post\", text: \"The best deal is the one you didn\\'t have to hunt for.\\\\n\\\\nDaily alerts watch the feeds so you don\\'t have to \u2014 free tier included, instant SMS on paid when a glitch deal hits.\\\\n\\\\nhttps://bargainhuntrs.com/pricing\", mode: \"shareNow\", schedulingType: \"automatic\", needsApproval: false, assets: [{ image: [Object] }] }.', 'locations': [{'line': 1, 'column': 10}], 'extensions': {'code': 'INTERNAL_SERVER_ERROR'}}])"
+    }
   }
 }

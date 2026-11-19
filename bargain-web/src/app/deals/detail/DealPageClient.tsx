@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import AiVerdict from "@/components/AiVerdict";
 import AffiliateDisclosure from "@/components/AffiliateDisclosure";
-import { getPublicDeal, reportDeadDeal, type ArbitrageDeal } from "@/lib/api";
+import {
+  reportDeadDeal,
+  type ArbitrageDeal,
+  type DealPriceHistory,
+} from "@/lib/api";
 
 function retailerName(retailer?: string): string {
   if (!retailer) return "Amazon";
@@ -52,15 +55,21 @@ function formatDeal(deal: ArbitrageDeal) {
   return { discount, savings };
 }
 
-export default function DealPageClient() {
-  const router = useRouter();
-  const [deal, setDeal] = useState<ArbitrageDeal | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+// The deal (and its recorded price history) arrive as props from the server
+// component — this client component is still server-rendered with those
+// props, so the full body lands in the initial HTML for crawlers while the
+// interactive bits below (dead-deal report, SI verdict) hydrate on top.
+export default function DealPageClient({
+  deal,
+  initialHistory = null,
+}: {
+  deal: ArbitrageDeal;
+  initialHistory?: DealPriceHistory | null;
+}) {
   const [deadReported, setDeadReported] = useState(false);
 
   const handleReportDead = async () => {
-    if (!deal || deadReported) return;
+    if (deadReported) return;
     try {
       await reportDeadDeal(deal.id);
       setDeadReported(true);
@@ -68,61 +77,6 @@ export default function DealPageClient() {
       setDeadReported(true); // still show thanks — no error UI needed for a courtesy flag
     }
   };
-
-  useEffect(() => {
-    // Extract the deal ID from the URL pathname: /deals/:id
-    const pathParts = window.location.pathname.split("/");
-    const id = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2];
-
-    if (!id || id === "detail") {
-      setError(true);
-      setLoading(false);
-      return;
-    }
-
-    getPublicDeal(id)
-      .then((d) => {
-        setDeal(d);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError(true);
-        setLoading(false);
-      });
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="flex flex-col min-h-full bg-white dark:bg-zinc-950">
-        <Header />
-        <main className="flex-1 px-6 py-10">
-          <div className="mx-auto max-w-3xl">
-            <div className="h-6 w-32 animate-pulse rounded bg-zinc-200 dark:bg-zinc-800" />
-            <div className="mt-6 h-80 animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-900" />
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error || !deal) {
-    return (
-      <div className="flex flex-col min-h-full bg-white dark:bg-zinc-950">
-        <Header />
-        <main className="flex-1 px-6 py-10">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Deal not found</h1>
-            <p className="mt-2 text-zinc-500">This deal may have expired or been removed.</p>
-            <Link href="/deals" className="mt-4 inline-block text-emerald-600 hover:underline">
-              ← Back to deals
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   const { discount, savings } = formatDeal(deal);
   const retailer = retailerName(deal.retailer);
@@ -212,10 +166,11 @@ export default function DealPageClient() {
                   <p className="mt-6 text-sm text-zinc-500">No purchase link available.</p>
                 )}
 
-                {/* AI verdict — hidden unless AI is configured server-side */}
+                {/* SI verdict — hidden unless SI is configured server-side */}
                 <AiVerdict dealId={deal.id} />
 
-                {/* Crowd verification — dead deals get reported, auto-archive at 5 */}
+                {/* Crowd verification — dead deals get reported; the API
+                    dedupes per reporter and auto-archives at the threshold */}
                 <button
                   onClick={handleReportDead}
                   disabled={deadReported}
@@ -227,7 +182,7 @@ export default function DealPageClient() {
             </div>
           </div>
 
-          <PriceHistoryChart deal={deal} />
+          <PriceHistoryChart deal={deal} initialHistory={initialHistory} />
         </div>
       </main>
 

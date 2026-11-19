@@ -76,7 +76,7 @@ export default function SeoDealCard({
           {deal.net_profit != null && deal.net_profit > 0 && (
             <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
               Profit ${deal.net_profit.toFixed(2)}
-              {deal.roi != null && <span className="ml-1">({Math.round(deal.roi)}% ROI)</span>}
+              {deal.roi != null && <span className="ml-1">({Math.round(deal.roi * 100)}% ROI)</span>}
             </p>
           )}
           <p className="text-[11px] text-zinc-400 dark:text-zinc-500">

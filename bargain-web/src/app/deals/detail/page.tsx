@@ -1,28 +1,9 @@
-import type { Metadata } from "next";
-import DealPageClient from "./DealPageClient";
+import { permanentRedirect } from "next/navigation";
 
-export const dynamic = "force-static";
-
-export const metadata: Metadata = {
-  title: "Deal Details | BargainHuntrs",
-  description: "View this deal on BargainHuntrs — find it, flip it, profit.",
-  // Legacy alias of /deals/[id] — this route always renders the client's
-  // error state (pathname id resolves to "detail"), so keep it unindexed.
-  robots: { index: false },
-  openGraph: {
-    type: "website",
-    title: "Deal Details | BargainHuntrs",
-    description: "View this deal on BargainHuntrs — find it, flip it, profit.",
-  },
-  twitter: {
-    card: "summary_large_image",
-    site: "@bargain4huntrs",
-    creator: "@bargain4huntrs",
-    title: "Deal Details | BargainHuntrs",
-    description: "View this deal on BargainHuntrs — find it, flip it, profit.",
-  },
-};
-
+// Legacy alias of /deals/[id] — it never carried a real deal ID (the old
+// client component parsed the last path segment, which here resolves to
+// "detail"), so it always rendered the error state. Now that deal pages are
+// true SSR routes, fold the alias into the deals index permanently.
 export default function DealDetailPage() {
-  return <DealPageClient />;
+  permanentRedirect("/deals");
 }

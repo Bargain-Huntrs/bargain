@@ -138,7 +138,7 @@ export default async function BestDealsPage() {
                         )}
                         {deal.roi != null && (
                           <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                            {Math.round(deal.roi)}% ROI
+                            {Math.round(deal.roi * 100)}% ROI
                           </span>
                         )}
                       </div>

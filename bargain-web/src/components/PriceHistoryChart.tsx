@@ -9,6 +9,9 @@ import {
 
 interface PriceHistoryChartProps {
   deal: ArbitrageDeal;
+  // Server-fetched history (SSR path) — when provided, the recorded points
+  // render in the initial HTML and no client-side fetch is needed.
+  initialHistory?: DealPriceHistory | null;
 }
 
 interface PricePoint {
@@ -24,16 +27,20 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export default function PriceHistoryChart({ deal }: PriceHistoryChartProps) {
+export default function PriceHistoryChart({ deal, initialHistory }: PriceHistoryChartProps) {
   const buyPrice = deal.buy_price;
   const historicalAvg =
     deal.historical_avg && deal.historical_avg > 0 ? deal.historical_avg : null;
   const detectedAt = deal.detected_at || new Date().toISOString();
 
-  const [history, setHistory] = useState<DealPriceHistory | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [history, setHistory] = useState<DealPriceHistory | null>(
+    initialHistory ?? null,
+  );
+  const [loaded, setLoaded] = useState(initialHistory !== undefined);
 
   useEffect(() => {
+    // SSR path already supplied the history — nothing to fetch.
+    if (initialHistory !== undefined) return;
     let cancelled = false;
     getPublicDealPriceHistory(deal.id)
       .then((h) => {
@@ -46,7 +53,7 @@ export default function PriceHistoryChart({ deal }: PriceHistoryChartProps) {
     return () => {
       cancelled = true;
     };
-  }, [deal.id]);
+  }, [deal.id, initialHistory]);
 
   // Real recorded points only — never synthesized.
   const points: PricePoint[] = useMemo(() => {
@@ -177,7 +184,9 @@ export default function PriceHistoryChart({ deal }: PriceHistoryChartProps) {
           ? { label: "Fair price", color: "bg-amber-500" }
           : { label: "Wait for better", color: "bg-zinc-500" };
 
-  const roi = deal.roi ?? 0;
+  // `roi` is stored as a fraction (0.95 = 95%) — normalize to percent for
+  // thresholds and display, consistent with deals/page.tsx.
+  const roi = (deal.roi ?? 0) * 100;
   const netProfit = deal.net_profit ?? 0;
   const resalePotential =
     netProfit > 0 && roi >= 30

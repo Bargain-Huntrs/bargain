@@ -43,7 +43,7 @@ function savingsAmount(deal: ArbitrageDeal): number {
 /** Trending score: a blended rank combining profit, ROI, and discount. */
 function trendingScore(deal: ArbitrageDeal): number {
   const profit = deal.net_profit ?? 0;
-  const roi = deal.roi ?? 0; // already a percentage (e.g. 120 = 120%)
+  const roi = (deal.roi ?? 0) * 100; // stored as a fraction (0.95 = 95%)
   const discount = discountPercent(deal);
   // Weighted blend — profit in dollars, roi & discount as percentages.
   return profit * 1.0 + roi * 0.5 + discount * 0.3;
@@ -304,11 +304,7 @@ export default function TrendingDealsClient() {
                           const savings = savingsAmount(deal);
                           const retailer = retailerName(deal.retailer);
                           const roiPct =
-                            deal.roi != null
-                              ? deal.roi >= 1
-                                ? Math.round(deal.roi)
-                                : Math.round(deal.roi * 100)
-                              : null;
+                            deal.roi != null ? Math.round(deal.roi * 100) : null;
 
                           return (
                             <Link

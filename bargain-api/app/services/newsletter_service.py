@@ -300,6 +300,52 @@ def send_weekly_digest() -> int:
         db.close()
 
 
+def send_newsletter_confirmation(email: str, name: Optional[str] = None, api_base_url: str = "https://api.bargainhuntrs.com", token: str = "") -> bool:
+    """Send the double-opt-in confirmation email (not a welcome — the
+    subscription only activates when the recipient clicks the link, so an
+    unauthenticated POST can't enrol (and spam) arbitrary inboxes)."""
+    display_name = name or "there"
+    confirm_url = f"{api_base_url}/api/v1/newsletter/confirm?token={token}"
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="margin:0;padding:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+      <div style="max-width:600px;margin:0 auto;background:#09090b;">
+        <div style="background:linear-gradient(135deg,#18181b 0%,#27272a 100%);padding:32px 24px;text-align:center;border-bottom:1px solid #27272a;">
+          <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="background:#fafafa;color:#18181b;font-size:14px;font-weight:900;padding:4px 10px;border-radius:8px;">BH</span>
+            <span style="color:#fafafa;font-size:18px;font-weight:800;letter-spacing:-0.5px;">BargainHuntrs</span>
+          </div>
+          <h1 style="color:#fafafa;font-size:24px;margin:0;font-weight:800;">Confirm your subscription</h1>
+          <p style="color:#a1a1aa;font-size:14px;margin:8px 0 0;">One click and the daily deal digest is yours</p>
+        </div>
+        <div style="padding:32px 24px;">
+          <h2 style="color:#fafafa;font-size:20px;margin:0 0 16px;">Hey {display_name},</h2>
+          <p style="color:#d4d4d8;font-size:15px;line-height:1.6;margin:0 0 20px;">
+            Someone (hopefully you) asked to get the BargainHuntrs deal digest at this
+            address. Click below to confirm -- top deals, pricing glitches, and clearance
+            finds delivered every morning.
+          </p>
+          <div style="text-align:center;margin:28px 0;">
+            <a href="{confirm_url}" style="display:inline-block;background:#10b981;color:#fff;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px;text-decoration:none;">Confirm Subscription</a>
+          </div>
+          <p style="color:#71717a;font-size:13px;line-height:1.6;margin:0;">
+            If you didn't request this, just ignore the email -- you won't be
+            subscribed and won't hear from us again.
+          </p>
+          <div style="border-top:1px solid #27272a;padding:20px 0;margin-top:24px;text-align:center;">
+            <p style="color:#71717a;font-size:12px;margin:0;">
+              BargainHuntrs -- Arbitrage Intelligence Platform
+            </p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>"""
+    return _send_email(email, "Confirm your BargainHuntrs subscription", html)
+
+
 def send_welcome_newsletter(email: str, name: Optional[str] = None) -> bool:
     """Send a welcome email to a new newsletter subscriber."""
     display_name = name or "there"

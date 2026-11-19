@@ -15,6 +15,9 @@ type State =
 export default function UnsubscribeClient() {
   const params = useSearchParams();
   const emailParam = (params.get("email") || "").trim();
+  // Landing target for the double-opt-in confirm link — show a confirmed
+  // state instead of the unsubscribe form.
+  const confirmed = params.get("confirmed") === "1";
   const [email, setEmail] = useState(emailParam);
   const [state, setState] = useState<State>(
     emailParam ? { kind: "idle" } : { kind: "error", msg: "" }
@@ -54,6 +57,20 @@ export default function UnsubscribeClient() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emailParam]);
+
+  if (confirmed) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30 px-8 py-10 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500 text-xl text-white">
+          ✓
+        </div>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Subscription confirmed</h2>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          You&apos;re on the deal digest — the next issue lands in your inbox.
+        </p>
+      </div>
+    );
+  }
 
   if (state.kind === "unsubscribed") {
     return (

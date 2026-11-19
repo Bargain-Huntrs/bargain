@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from typing import Optional
 
+from app.core.rate_limit import rate_limit_or_429, request_ip
 from app.db.session import get_db
 from app.db.models import WaitlistEntry
 
@@ -23,7 +24,9 @@ class WaitlistResponse(BaseModel):
 
 
 @router.post("", response_model=WaitlistResponse, status_code=status.HTTP_201_CREATED)
-async def join_waitlist(body: WaitlistRequest, db: Session = Depends(get_db)):
+async def join_waitlist(request: Request, body: WaitlistRequest, db: Session = Depends(get_db)):
+    # Unauthenticated write endpoint — throttle signups per IP.
+    rate_limit_or_429("waitlist-join", request_ip(request))
     existing = db.query(WaitlistEntry).filter(WaitlistEntry.email == body.email).first()
     if existing:
         return WaitlistResponse(success=True, message="You are already on the waitlist.")

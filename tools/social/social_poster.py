@@ -808,6 +808,9 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
             assets = [{"image": {"url": img_url}}]
         res = _buffer_gql(token, mutation, {"input": {
             "channelId": ch["id"],
+            # Buffer createPost rejects instagram channels without an
+            # explicit post type.
+            **({"type": "post"} if svc == "instagram" else {}),
             "text": buffer_fit_text(text, link, svc),
             "mode": "shareNow",
             "schedulingType": "automatic",

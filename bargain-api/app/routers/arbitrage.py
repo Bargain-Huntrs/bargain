@@ -14,7 +14,7 @@ import urllib.parse
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status, Header
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func, cast, Date, text
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 from app.db.session import get_db
 from app.db.models import User, ArbitrageDeal, ScanRun, PriceSnapshot, AffiliateClick
 from app.core.config import settings
+from app.core.rate_limit import rate_limit_or_429, request_ip
 from app.routers.auth import get_current_user
 from app.services.affiliate_service import add_affiliate_tag, detect_retailer
 
@@ -278,18 +279,60 @@ async def get_public_deal_price_history(
     }
 
 
+# Anti-griefing for the public dead-report endpoint: the count only moves on
+# UNIQUE reporters (dedup table) and auto-archive needs a real crowd signal.
+DEAD_REPORT_THRESHOLD = 10  # unique reporters (was 5 raw hits — trivially farmable)
+_dead_reports_ensured = False
+
+
+def _ensure_dead_reports_schema(db: Session) -> None:
+    """Lazy DDL — same pattern as community/crm _ensure_table (prod runs no
+    migrations at boot). One row per (deal, reporter) = the dedup key."""
+    global _dead_reports_ensured
+    if _dead_reports_ensured:
+        return
+    try:
+        db.execute(text(
+            """CREATE TABLE IF NOT EXISTS deal_dead_reports (
+                deal_id UUID NOT NULL,
+                reporter_key VARCHAR(64) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                CONSTRAINT pk_deal_dead_reports PRIMARY KEY (deal_id, reporter_key)
+            )"""
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
+    _dead_reports_ensured = True
+
+
+def _record_dead_report(db: Session, deal_id: UUID, reporter_key: str) -> bool:
+    """Insert the reporter's dedup row. Returns True when this is a NEW
+    reporter for the deal (count should increment), False on a repeat
+    (same person reporting twice doesn't move the needle)."""
+    result = db.execute(text(
+        """INSERT INTO deal_dead_reports (deal_id, reporter_key)
+           VALUES (:deal_id, :reporter_key)
+           ON CONFLICT DO NOTHING"""
+    ), {"deal_id": str(deal_id), "reporter_key": reporter_key})
+    return getattr(result, "rowcount", 0) == 1
+
+
 @router.post("/deals/public/{deal_id}/report-dead", response_model=dict)
 async def report_dead_deal(
+    request: Request,
     deal_id: UUID = Path(..., description="Public deal ID"),
     db: Session = Depends(get_db),
 ):
     """Crowd report that a deal is dead (price reverted, OOS, link broken).
 
     Public endpoint — no auth so anyone hitting a dead link can flag it.
-    At DEAD_REPORT_THRESHOLD reports the deal auto-archives, which removes
-    it from every feed and starts the 90-day purge window.
+    Anti-griefing: reports are deduped per reporter (hashed IP), rate-limited
+    per IP, and auto-archive requires DEAD_REPORT_THRESHOLD *unique* reports —
+    one bad actor can no longer archive deals alone.
     """
-    DEAD_REPORT_THRESHOLD = 5
+    ip = request_ip(request)
+    rate_limit_or_429("report-dead", ip)
 
     deal = db.query(ArbitrageDeal).filter(ArbitrageDeal.id == deal_id).first()
     if not deal:
@@ -297,7 +340,18 @@ async def report_dead_deal(
     if deal.status == "archived":
         return {"archived": True, "reports": deal.dead_report_count or 0}
 
-    deal.dead_report_count = (deal.dead_report_count or 0) + 1
+    _ensure_dead_reports_schema(db)
+    reporter_key = hashlib.sha256(ip.encode("utf-8")).hexdigest()
+    try:
+        new_reporter = _record_dead_report(db, deal_id, reporter_key)
+    except Exception:
+        # Dedup infra failing should never block a report — fall back to the
+        # old raw-count behavior rather than 500 on a public endpoint.
+        db.rollback()
+        new_reporter = True
+
+    if new_reporter:
+        deal.dead_report_count = (deal.dead_report_count or 0) + 1
     archived = False
     if deal.dead_report_count >= DEAD_REPORT_THRESHOLD and deal.status in ("active", "alerted"):
         deal.status = "archived"

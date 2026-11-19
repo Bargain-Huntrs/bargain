@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.core.config import settings
+from app.core.rate_limit import rate_limit_or_429, request_ip
 from app.db.session import get_db
 from app.db.models import (
     User,
@@ -176,7 +177,8 @@ def get_current_user(
 
 
 @router.post("/register")
-async def register(body: RegisterRequest, db: Session = Depends(get_db)):
+async def register(request: Request, body: RegisterRequest, db: Session = Depends(get_db)):
+    rate_limit_or_429("auth-register", request_ip(request))
     existing = db.query(User).filter(User.email == body.email).first()
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User with this email already exists")
@@ -358,7 +360,8 @@ async def verify_phone(
 
 
 @router.post("/login")
-async def login(body: LoginRequest, db: Session = Depends(get_db)):
+async def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
+    rate_limit_or_429("auth-login", request_ip(request))
     user = db.query(User).filter(User.email == body.email).first()
     if user is None or not user.is_active or not verify_password(body.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
@@ -633,6 +636,12 @@ async def forgot_password(
     """
     internal_key = request.headers.get("x-internal-key", "")
     is_internal = bool(settings.INTERNAL_API_KEY) and internal_key == settings.INTERNAL_API_KEY
+
+    # Reset emails to arbitrary addresses = email-bomb vector, so throttle
+    # per IP. Trusted-worker calls (which already proxy real end users and
+    # arrive from shared egress IPs) are exempt.
+    if not is_internal:
+        rate_limit_or_429("forgot-password", request_ip(request))
 
     result: dict = {"success": True, "message": "If an account exists with that email, a reset link has been sent."}
 

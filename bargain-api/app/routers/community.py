@@ -658,7 +658,6 @@ async def seed_community_deals(
 # support anonymous authors/voters, and have comments.
 # ═══════════════════════════════════════════════════════════════════════════
 
-import time
 from jose import JWTError, jwt
 from sqlalchemy import text
 from app.core.config import settings
@@ -741,31 +740,19 @@ def get_optional_user(
         return None
 
 
-# Light in-memory rate limiting — per Render instance, resets on deploy.
-# Enough to blunt spam without adding Redis for a first pass.
-_RATE_LIMIT_STATE: dict = {}
-_RATE_LIMIT_WINDOW = 3600  # 1 hour
-_RATE_LIMIT_MAX = {"thread": 5, "comment": 30}
+# Light in-memory rate limiting — shared implementation in app/core/rate_limit
+# (per-process, resets on restart). Enough to blunt spam without Redis.
+from app.core.rate_limit import rate_limit_or_429 as _shared_rate_limit, request_ip
 
 
 def _rate_limit_or_429(kind: str, key: str) -> None:
-    now = time.time()
-    bucket = _RATE_LIMIT_STATE.setdefault(f"{kind}:{key}", [])
-    bucket[:] = [t for t in bucket if now - t < _RATE_LIMIT_WINDOW]
-    if len(bucket) >= _RATE_LIMIT_MAX[kind]:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="You're posting too fast — please try again later",
-        )
-    bucket.append(now)
+    _shared_rate_limit(kind, key, detail="You're posting too fast — please try again later")
 
 
 def _rate_key(request, user: Optional[User]) -> str:
     if user is not None:
         return f"u:{user.id}"
-    forwarded = request.headers.get("x-forwarded-for") if request else None
-    ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request and request.client else "anon")
-    return f"ip:{ip}"
+    return f"ip:{request_ip(request)}"
 
 
 class ThreadCreateRequest(BaseModel):

@@ -126,8 +126,13 @@ def _issue_confirmation(db: Session, email: str) -> tuple[str, bool]:
     """
     existing = _pending_confirmation(db, email)
     if existing and existing[1] is not None:
-        age = datetime.utcnow() - existing[1]
-        if age < timedelta(seconds=_CONFIRM_RESEND_SECONDS):
+        created = existing[1]
+        if isinstance(created, str):  # sqlite returns str; postgres returns datetime
+            try:
+                created = datetime.fromisoformat(created)
+            except ValueError:
+                created = None
+        if created is not None and datetime.utcnow() - created < timedelta(seconds=_CONFIRM_RESEND_SECONDS):
             return existing[0], False
     token = secrets.token_urlsafe(32)
     db.execute(text(

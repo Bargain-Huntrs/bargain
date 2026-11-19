@@ -3,7 +3,11 @@
   "name": "bargain-web",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-09-11",
-  "compatibility_flags": ["nodejs_compat"],
+  // global_fetch_strictly_public: SSR fetch() to api.bargainhuntrs.com is a
+  // same-zone Worker route (bargain-api-guard) — without this flag worker-to-
+  // worker subrequests die at the edge with error 1042 and every server-side
+  // API call (e.g. /deals/[id]) silently fails to 404.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

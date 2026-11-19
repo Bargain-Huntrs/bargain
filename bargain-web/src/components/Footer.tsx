@@ -8,7 +8,7 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl">
 
         {/* Top row */}
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
 
           {/* Brand */}
           <div className="lg:col-span-2">
@@ -127,6 +127,16 @@ export default function Footer() {
               <li><Link href="/privacy" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Terms of Service</Link></li>
               <li><Link href="/disclosure" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Affiliate Disclosure</Link></li>
+            </ul>
+          </div>
+
+          {/* Reid Technology ecosystem */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-50 mb-4">From Reid Technology</h4>
+            <ul className="space-y-2.5 text-sm text-zinc-500 dark:text-zinc-400">
+              <li><a href="https://clipstakes.com" target="_blank" rel="noopener" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">ClipStakes — creative bounties</a></li>
+              <li><a href="https://favestate.com" target="_blank" rel="noopener" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Favestate — investor OS</a></li>
+              <li><a href="https://settleinpeace.com" target="_blank" rel="noopener" className="hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">Settle in Peace — debt relief</a></li>
             </ul>
           </div>
 

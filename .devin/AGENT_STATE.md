@@ -20,6 +20,8 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 - **P2** Monetization wiring audit — every click-out carrying affiliate/tracked links
 - **P3** LeadOps cross-promo (deals audience → other products' funnels)
 
+> **OWNER DIRECTIVE 2026-11-19 — AUTONOMOUS MODE, MONETIZATION = #1 PRIORITY.** Agents implement revenue work without waiting for owner steps; escalate ONLY critical decisions (fees, contract signatures, sends under owner's name, destructive ops). Owner defers to agent suggestions. See /Volumes/Os_Sites/REVENUE_LEVERS.md for this project's ranked levers.
+
 ## Active
 
 

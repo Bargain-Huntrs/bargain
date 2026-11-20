@@ -802,7 +802,7 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
         #                    falling back to the PNG image asset
         #   everything else → the PNG card ({image: {url}})
         assets: list[dict] = []
-        if svc == "tiktok" and vid_url:
+        if svc == "tiktok" and vid_url and os.environ.get("BUFFER_VIDEO_UPLOADS") == "on":
             assets = [{"video": {"url": vid_url}}]
         elif img_url:
             assets = [{"image": {"url": img_url}}]

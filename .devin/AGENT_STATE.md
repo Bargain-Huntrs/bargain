@@ -24,7 +24,7 @@ Daily ritual: **round table 8:00 AM PT** — new ideas get ranked into P1–P3 t
 
 ## Active
 
-- 2026-12-12 | devin-tiktok-growth | TikTok @bargain.huntrs growth setup: logged in via email code (Mail.app), bio set, account at 0 followers/0 videos; building deal-video drafts for organic growth toward TikTok Shop 1000-follower affiliate threshold | session-only, no repo files
+- 2026-12-12 | devin-tiktok-growth | TikTok @bargain.huntrs growth setup: logged in via email code (Mail.app), bio set, account at 0 followers/0 videos; building deal-video drafts for organic growth toward TikTok Shop 1000-follower affiliate threshold | done: profile configured (bio+fox avatar verified live); video drafts pending owner pre-approval gate
 
 
 - 2026-11-24 | devin-verify-push | **DONE — verified clean, no fixes needed.** Overnight sweep results: `bargain-web` tsc --noEmit clean; `bargain-mobile` tsc --noEmit clean; `bargain-api` python compileall clean (app/ + repo tools/ + scripts/); pytest **47/47 passed** (82s); `bargain-web` pnpm lint exits 1 with 55 errors/22 warnings — all pre-existing class (react-hooks/set-state-in-effect, no-explicit-any, static-components; state file documented 56 — same known-failure set, no CI gate). Foreign WIP left untouched: `bargain-web/public/logo-*` deletions + `bargain-web/public/sw.js` (logo-replacement agent). No code commits — only this state update. | `.devin/AGENT_STATE.md`

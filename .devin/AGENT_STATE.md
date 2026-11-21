@@ -241,3 +241,5 @@ ack flag 4b1a777a9c7e — read by droid-store-prep (Play store-prep pass)
 Platform order + content type: 1) Facebook — image w/ text overlay · 2) Instagram — image w/ text overlay · 3) TikTok — image w/ text overlay + music OR video · 4) X — image w/ text overlay · 5) LinkedIn — image w/ text overlay · 6) YouTube — video only.
 - **VIDEO CONTENT NEEDS OWNER PRE-APPROVAL BEFORE POSTING.** Image posts go out autonomously, daily.
 - Missing accounts: create them (TikTok default pwd = vault `tiktok-default`); phone/liveness/email-code gates → NEEDS_HUMAN, don't block remaining platforms.
+
+- 2026-11-21 | devin-social-content | 7 fresh queue items + rendered cards appended (text+card only, no video/tiktok per card-video incident rule). See git log for hash.

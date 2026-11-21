@@ -811,8 +811,13 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
             assets = [{"video": {"url": vid_url}}]
         elif img_url:
             assets = [{"image": {"url": img_url}}]
+        # `metadata`: Buffer's schema wants metadata.instagram.type for IG
+        # (same shape Prime verified for metadata.facebook.type="post").
+        # InstagramPostMetadataInput requires type + shouldShareToFeed.
+        meta = {"instagram": {"type": "post", "shouldShareToFeed": True}} if svc == "instagram" else None
         res = _buffer_gql(token, mutation, {"input": {
             "channelId": ch["id"],
+            **({"metadata": meta} if meta else {}),
             # CreatePostInput has no "type" field (verified via GraphQL
             # introspection 2026-11-20) — injecting one 400s every
             # instagram post with "unknown field". Leave it out.

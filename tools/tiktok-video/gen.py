@@ -409,7 +409,7 @@ def main():
             f"  {caption(deal, i)}",
             "",
         ]
-    mf = os.path.join(out, "batch1-manifest.txt")
+    mf = os.path.join(out, "manifest.txt")
     open(mf, "w").write("\n".join(manifest))
     print("manifest ->", mf)
 

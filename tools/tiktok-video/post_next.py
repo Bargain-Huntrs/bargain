@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/Volumes/Os_Sites/Bargain/tools/tiktok-video/.venv/bin/python3
 """Post the next queued v2 deal video to @bargain.huntrs.
 
 Reads ~/dev-tmp/tiktok-vids/queue.json, posts the first item with

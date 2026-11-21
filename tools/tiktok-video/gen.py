@@ -159,14 +159,17 @@ def scene_hook(deal):
     tier_pill(d, deal.get("deal_tier"), 560)
     buy_s, sell_s = money(deal["buy_price"], False), money(deal["sell_price"], False)
 
-    f_this = autofit(d, f"THIS {buy_s} ITEM", F_BLACK, W - 160, 150)
+    was_s = f"WAS {sell_s}"
+    f_was = autofit(d, was_s, F_BLACK, W - 160, 150)
     y = 760
-    draw_center_runs(d, y, [("THIS ", f_this, WHITE), (buy_s, f_this, AMBER),
-                            (" ITEM", f_this, WHITE)])
-    f_flip = font(F_BLACK, 118)
-    draw_center(d, y + f_this.size + 60, "FLIPS FOR", f_flip, WHITE)
-    f_sell = autofit(d, sell_s, F_BLACK, W - 160, 320)
-    draw_center(d, y + f_this.size + 60 + f_flip.size + 70, sell_s, f_sell, EMERALD)
+    draw_center(d, y, was_s, f_was, MUTED)
+    ww = tw(d, was_s, f_was)
+    wy = y + f_was.size * 0.55
+    d.line((W / 2 - ww / 2 - 14, wy, W / 2 + ww / 2 + 14, wy), fill=AMBER, width=10)
+    f_now = font(F_BLACK, 118)
+    draw_center(d, y + f_was.size + 60, "NOW", f_now, WHITE)
+    f_buy = autofit(d, buy_s, F_BLACK, W - 160, 320)
+    draw_center(d, y + f_was.size + 60 + f_now.size + 70, buy_s, f_buy, EMERALD)
     return img
 
 def product_card(canvas, d, img_art, cx, cy, cw, ch, pad=44):
@@ -205,21 +208,22 @@ def scene_price(deal, art):
     px0, py0, px1, py1 = 80, 960, W - 80, 1360
     rr(d, (px0, py0, px1, py1), 44, fill=CARD_BG, outline=(40, 55, 48), width=3)
     f_lab, f_val = font(F_BOLD, 54), font(F_BLACK, 84)
-    d.text((px0 + 70, py0 + 78), "BUY", font=f_lab, fill=MUTED)
-    bv = money(deal["buy_price"])
-    d.text((px1 - 70 - tw(d, bv, f_val), py0 + 52), bv, font=f_val, fill=WHITE)
-    d.line((px0 + 60, py0 + 200, px1 - 60, py0 + 200), fill=(45, 60, 53), width=3)
-    d.text((px0 + 70, py0 + 268), "SELL", font=f_lab, fill=MUTED)
+    d.text((px0 + 70, py0 + 78), "WAS", font=f_lab, fill=MUTED)
     sv = money(deal["sell_price"])
-    d.text((px1 - 70 - tw(d, sv, f_val), py0 + 242), sv, font=f_val, fill=EMERALD)
+    d.text((px1 - 70 - tw(d, sv, f_val), py0 + 52), sv, font=f_val, fill=MUTED)
+    d.line((px0 + 60, py0 + 200, px1 - 60, py0 + 200), fill=(45, 60, 53), width=3)
+    d.text((px0 + 70, py0 + 268), "NOW", font=f_lab, fill=MUTED)
+    bv = money(deal["buy_price"])
+    d.text((px1 - 70 - tw(d, bv, f_val), py0 + 242), bv, font=f_val, fill=EMERALD)
     # arrow between rows
     ar = font(F_BOLD, 70)
     d.text((W / 2 - tw(d, "↓", ar) / 2, py0 + 148), "↓", font=ar, fill=AMBER)
 
-    p, m = profit(deal), mult(deal)
-    y = pill(d, W // 2, 1470, f"+{money(p)} PROFIT", font(F_BLACK, 72),
+    p = profit(deal)
+    pct = round((deal.get("roi") or (p / deal["sell_price"])) * 100)
+    y = pill(d, W // 2, 1470, f"SAVE {money(p)}", font(F_BLACK, 72),
              (6, 20, 14), bg=EMERALD, pad_x=48, pad_y=20)
-    pill(d, W // 2, y + 34, f"{m:.1f}X RETURN", font(F_BOLD, 52), AMBER, outline=AMBER)
+    pill(d, W // 2, y + 34, f"{pct}% OFF", font(F_BOLD, 52), AMBER, outline=AMBER)
     return img
 
 def scene_end():
@@ -231,7 +235,7 @@ def scene_end():
     draw_center(d, 860, "FOLLOW", f_sub, MUTED)
     f_h = autofit(d, "@bargain.huntrs", F_BLACK, W - 140, 120)
     draw_center(d, 960, "@bargain.huntrs", f_h, WHITE)
-    draw_center(d, 960 + f_h.size + 50, "for daily flips", font(F_BOLD, 58), MUTED)
+    draw_center(d, 960 + f_h.size + 50, "for daily deals", font(F_BOLD, 58), MUTED)
 
     url = "bargainhuntrs.com"
     f_u = font(F_BOLD, 64)
@@ -336,18 +340,17 @@ def select(deals, n, asins=None):
     return picks
 
 CAPTIONS = {
-    "hook": ["This {b} find flips for {s}.",
-             "{b} in, {s} out — the flip is real.",
-             "Buy at {b}, sell at {s}. Daily finds like this, every day."],
+    "hook": ["Was {s} — now {b}. Save {p}.",
+             "This {s} item just dropped to {b}.",
+             "{p} off retail. Daily finds like this, every day."],
 }
-DISCLOSURE = "Deals may earn us a commission #ad #reseller #arbitrage #sidehustle"
-CTA = "Follow for daily flips — bargainhuntrs.com"
+DISCLOSURE = "Deals may earn us a commission #ad #deals #clearance #bargainhunter"
+CTA = "Follow for daily deals — bargainhuntrs.com"
 
 def caption(deal, i):
     b, s = money(deal["buy_price"], False), money(deal["sell_price"], False)
-    hook = CAPTIONS["hook"][i % 3].format(b=b, s=s)
-    p = profit(deal)
-    return f"{hook} +{money(p)} profit ({mult(deal):.1f}x). {CTA}. {DISCLOSURE}"
+    hook = CAPTIONS["hook"][i % 3].format(b=b, s=s, p=money(profit(deal)))
+    return f"{hook} {CTA}. {DISCLOSURE}"
 
 # ---------- main ----------
 
@@ -401,8 +404,8 @@ def main():
             f"=== {name}.mp4 (~{dur:.1f}s) ===",
             f"title : {title}",
             f"tier  : {deal.get('deal_tier')} | retailer: {deal.get('retailer')}",
-            f"buy   : {money(deal['buy_price'])}  sell: {money(deal['sell_price'])}"
-            f"  profit: +{money(profit(deal))}  ({mult(deal):.1f}x return)",
+            f"was   : {money(deal['sell_price'])}  now: {money(deal['buy_price'])}"
+            f"  save: {money(profit(deal))}  ({round((deal.get('roi') or 0) * 100)}% off)",
             f"asin  : {deal.get('asin')} | source img: {size[0]}x{size[1]}px",
             f"buy   : {deal.get('buy_url')}",
             f"caption (DRAFT):",

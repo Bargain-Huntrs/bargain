@@ -796,6 +796,11 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
         svc = ch.get("service") or ""
         if svc == "facebook":
             continue
+        # HARD RULE: TikTok channels never receive posts. BUFFER_CHANNEL_IDS
+        # allowlists are the primary gate; this is the last line of defense
+        # if the allowlist is ever left empty or misconfigured.
+        if svc == "tiktok":
+            continue
         # Per-service media pick (Buffer assets are URL refs — it fetches
         # them at publish time; see developers.buffer.com/guides/hosting-media):
         #   tiktok channel → the 9:16 .mp4 card video ({video: {url}}),
@@ -808,9 +813,9 @@ def post_buffer(text: str, link: str | None, media: Path | None = None,
             assets = [{"image": {"url": img_url}}]
         res = _buffer_gql(token, mutation, {"input": {
             "channelId": ch["id"],
-            # Buffer createPost rejects instagram channels without an
-            # explicit post type.
-            **({"type": "post"} if svc == "instagram" else {}),
+            # CreatePostInput has no "type" field (verified via GraphQL
+            # introspection 2026-11-20) — injecting one 400s every
+            # instagram post with "unknown field". Leave it out.
             "text": buffer_fit_text(text, link, svc),
             "mode": "shareNow",
             "schedulingType": "automatic",

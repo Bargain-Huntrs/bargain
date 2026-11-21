@@ -66,12 +66,19 @@ def main():
         page = ctx.new_page()
         page.set_default_timeout(45000)
         for url in UPLOAD_URLS:
-            try:
-                page.goto(url, wait_until="domcontentloaded")
-                page.wait_for_selector(FILE_INPUT, state="attached", timeout=15000)
-                break
-            except Exception:
+            for attempt in range(2):  # Studio SPA can boot slowly — one reload retry
+                try:
+                    if attempt:
+                        page.reload(wait_until="domcontentloaded")
+                    else:
+                        page.goto(url, wait_until="domcontentloaded")
+                    page.wait_for_selector(FILE_INPUT, state="attached", timeout=60000)
+                    break
+                except Exception:
+                    continue
+            else:
                 continue
+            break
         else:
             shot(page, args.out, "00-fail-no-upload-page")
             raise SystemExit("upload page didn't present a file input — session may be logged out")
@@ -120,17 +127,39 @@ def main():
                 raise SystemExit("caption editor not found")
             editor.click()
             page.keyboard.press("Meta+a")
+            page.keyboard.press("Backspace")  # Draft.js needs an explicit delete —
+            page.keyboard.press("Meta+a")     # select-all alone can leave residue
+            page.keyboard.press("Backspace")
             page.keyboard.type(caption, delay=8)
             page.wait_for_timeout(1500)
             shot(page, args.out, "03-caption")
 
-        post = None
-        for sel in POST_SELS:
-            post = page.query_selector(sel)
-            if post and post.is_visible():
-                break
-            post = None
-        if not post:
+        def real_post_btn():
+            # exact-text "Post" outside the sidebar — :has-text substring-
+            # matches the "Posts" nav item (clicking it discards the upload)
+            return page.evaluate("""() => {
+                const b=[...document.querySelectorAll('button,div[role=button]')]
+                  .filter(e=>e.innerText.trim()==='Post'&&e.offsetWidth
+                            &&!e.closest('nav')&&!e.closest('[class*=sidebar]'));
+                return b.length}""") > 0
+
+        def click_exact(txt):
+            return page.evaluate("""(txt) => {
+                const b=[...document.querySelectorAll('button,div[role=button]')]
+                  .filter(e=>e.innerText.trim()===txt&&e.offsetWidth
+                            &&!e.closest('nav')&&!e.closest('[class*=sidebar]'));
+                if(b.length){b[b.length-1].click();return true} return false}""", txt)
+
+        def click_modal(txt):
+            # strictly inside a TUX dialog — never the form's own buttons
+            return page.evaluate("""(txt) => {
+                const m=[...document.querySelectorAll('.TUXModal,[role=dialog]')];
+                for(const d of m){
+                  const b=[...d.querySelectorAll('button,div[role=button]')]
+                    .find(e=>e.innerText.trim()===txt&&e.offsetWidth);
+                  if(b){b.click();return true}} return false}""", txt)
+
+        if not real_post_btn():
             shot(page, args.out, "04-fail-no-post-button")
             raise SystemExit("post button not found/enabled")
 
@@ -139,9 +168,29 @@ def main():
             print("DRY RUN — everything staged, Post NOT clicked.")
             print("re-run with --post once the owner approves this video.")
             return
-        post.click()
-        page.wait_for_timeout(6000)
+
+        click_exact("Post")
+        page.wait_for_timeout(3000)
+        # post-click dialogs: "Continue to post?" → Post now;
+        # accidental nav guard "Are you sure you want to exit?" → Cancel + retry
+        for _ in range(3):
+            if click_modal("Post now"):
+                page.wait_for_timeout(3000)
+                continue
+            if click_modal("Cancel"):
+                page.wait_for_timeout(1500)
+                click_exact("Post")
+                page.wait_for_timeout(3000)
+                continue
+            break
+        # verify: success = nav away from /upload (to /content)
+        for _ in range(20):
+            if "upload" not in page.url:
+                break
+            page.wait_for_timeout(3000)
         shot(page, args.out, "05-after-post")
+        if "upload" in page.url:
+            raise SystemExit("Post click never navigated — post NOT confirmed")
         print("POSTED — verify on profile:", page.url)
 
 

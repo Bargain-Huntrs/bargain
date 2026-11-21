@@ -224,7 +224,11 @@ def scene_price(deal, art):
     d.text((W / 2 - tw(d, "↓", ar) / 2, py0 + 148), "↓", font=ar, fill=AMBER)
 
     p = profit(deal)
-    pct = round((deal.get("roi") or (p / deal["sell_price"])) * 100)
+    # % off = (was - now) / was. Do NOT trust deal["roi"] — writers disagree:
+    # profit_calculator stores net_profit/buy_price (flip ROI, can be >1 →
+    # "167% OFF"), while affiliate/rss writers store net/sell_price. Prices
+    # are the single source of truth for the WAS/NOW framing.
+    pct = round(p / deal["sell_price"] * 100)
     y = pill(d, W // 2, 1470, f"SAVE {money(p)}", font(F_BLACK, 72),
              (6, 20, 14), bg=EMERALD, pad_x=48, pad_y=20)
     pill(d, W // 2, y + 34, f"{pct}% OFF", font(F_BOLD, 52), AMBER, outline=AMBER)
@@ -409,7 +413,7 @@ def main():
             f"title : {title}",
             f"tier  : {deal.get('deal_tier')} | retailer: {deal.get('retailer')}",
             f"was   : {money(deal['sell_price'])}  now: {money(deal['buy_price'])}"
-            f"  save: {money(profit(deal))}  ({round((deal.get('roi') or 0) * 100)}% off)",
+            f"  save: {money(profit(deal))}  ({round(profit(deal) / deal['sell_price'] * 100)}% off)",
             f"asin  : {deal.get('asin')} | source img: {size[0]}x{size[1]}px",
             f"buy   : {deal.get('buy_url')}",
             f"caption (DRAFT):",

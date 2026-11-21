@@ -77,11 +77,32 @@ def main():
     print(r.stdout[-1500:])
     if r.returncode != 0 or "POSTED" not in r.stdout:
         sys.exit(f"error: upload failed\n{r.stdout[-800:]}\n{r.stderr[-800:]}")
-    item["status"] = "posted"
-    item["posted_at"] = time.strftime("%Y-%m-%d %H:%M")
+    # verify: post must appear in Studio Posts list — silent drops happen
+    ok = False
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        for _ in range(4):
+            try:
+                b = pw.chromium.connect_over_cdp(CDP, timeout=20000)
+                pg = b.contexts[0].new_page()
+                pg.goto("https://www.tiktok.com/tiktokstudio/content",
+                        wait_until="domcontentloaded", timeout=60000)
+                pg.wait_for_timeout(9000)
+                txt = pg.evaluate("document.body.innerText")
+                frag = item["caption"].split(".")[0][:20]
+                if frag in txt:
+                    ok = True
+                pg.close()
+                break
+            except Exception:
+                time.sleep(10)
+    item["status"] = "posted" if ok else "pending"
+    item["posted_at"] = time.strftime("%Y-%m-%d %H:%M") if ok else None
+    if not ok:
+        sys.exit("error: post submitted but not visible in Studio — held or dropped")
     with open(QUEUE, "w") as f:
         json.dump(q, f, indent=2)
-    print(f"posted {os.path.basename(item['file'])}")
+    print(f"posted + verified {os.path.basename(item['file'])}")
 
 
 if __name__ == "__main__":

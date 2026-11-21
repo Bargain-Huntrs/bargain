@@ -153,23 +153,27 @@ def usable(d):
 
 # ---------- scenes ----------
 
-def scene_hook(deal):
+def scene_hook(deal, art):
+    """Hook scene — the actual product image IS the hook (frame 0 = TikTok cover).
+    Owner directive: nothing generic posts; the marked-down item must be visible."""
     img = base_canvas()
     d = ImageDraw.Draw(img)
-    tier_pill(d, deal.get("deal_tier"), 560)
+    tier_pill(d, deal.get("deal_tier"), 150)
     buy_s, sell_s = money(deal["buy_price"], False), money(deal["sell_price"], False)
 
+    product_card(img, d, art, W // 2, 620, 860, 680)
+
     was_s = f"WAS {sell_s}"
-    f_was = autofit(d, was_s, F_BLACK, W - 160, 150)
-    y = 760
+    f_was = autofit(d, was_s, F_BLACK, W - 160, 130)
+    y = 1080
     draw_center(d, y, was_s, f_was, MUTED)
     ww = tw(d, was_s, f_was)
     wy = y + f_was.size * 0.55
     d.line((W / 2 - ww / 2 - 14, wy, W / 2 + ww / 2 + 14, wy), fill=AMBER, width=10)
-    f_now = font(F_BLACK, 118)
-    draw_center(d, y + f_was.size + 60, "NOW", f_now, WHITE)
-    f_buy = autofit(d, buy_s, F_BLACK, W - 160, 320)
-    draw_center(d, y + f_was.size + 60 + f_now.size + 70, buy_s, f_buy, EMERALD)
+    f_now = font(F_BLACK, 104)
+    draw_center(d, y + f_was.size + 50, "NOW", f_now, WHITE)
+    f_buy = autofit(d, buy_s, F_BLACK, W - 160, 300)
+    draw_center(d, y + f_was.size + 50 + f_now.size + 60, buy_s, f_buy, EMERALD)
     return img
 
 def product_card(canvas, d, img_art, cx, cy, cw, ch, pad=44):
@@ -387,7 +391,7 @@ def main():
         if not art:
             print(f"  !! {name}: image failed, skipping")
             continue
-        scenes = [scene_hook(deal), scene_product(deal, art),
+        scenes = [scene_hook(deal, art), scene_product(deal, art),
                   scene_price(deal, art), scene_end()]
         sp = os.path.join(scenes_dir, name)
         os.makedirs(sp, exist_ok=True)

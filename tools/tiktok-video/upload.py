@@ -20,14 +20,14 @@ Safety:
 import argparse, os, sys, time
 from playwright.sync_api import sync_playwright
 
-CDP = "http://localhost:9224"
+CDP = "http://localhost:9226"  # /tmp/tt-fresh-profile (bargain.huntrs session)
 UPLOAD_URLS = ["https://www.tiktok.com/tiktokstudio/upload",
                "https://www.tiktok.com/upload"]
 
 FILE_INPUT = 'input[type="file"]'
 CAPTION_SELS = [
-    'div[contenteditable="true"][data-placeholder]',
     'div.public-DraftEditor-content[contenteditable="true"]',
+    'div[contenteditable="true"][data-placeholder]',
     'div[contenteditable="true"]',
 ]
 POST_SELS = [
@@ -81,8 +81,33 @@ def main():
 
         page.set_input_files(FILE_INPUT, f)
         print("  file attached:", os.path.basename(f))
-        page.wait_for_selector(CAPTION_SELS[0], timeout=60000)
-        page.wait_for_timeout(4000)
+        for sel in CAPTION_SELS:
+            try:
+                page.wait_for_selector(sel, timeout=60000)
+                break
+            except Exception:
+                continue
+        else:
+            shot(page, args.out, "02-fail-no-caption")
+            raise SystemExit("uploaded but caption editor never appeared")
+        # the "Turn on automatic content checks?" modal appears AFTER upload
+        # processing — give it a moment to pop before dismissing
+        try:
+            page.wait_for_selector('.TUXModal', timeout=15000)
+        except Exception:
+            pass
+        # (modal-scoped only — a bare page "Cancel" could discard the upload)
+        for sel in ['.TUXModal button:has-text("Turn on")',
+                    '.TUXModal button:has-text("Cancel")',
+                    'button:has-text("Got it")']:
+            el = page.query_selector(sel)
+            if el and el.is_visible():
+                try:
+                    el.click(timeout=4000)
+                    page.wait_for_timeout(800)
+                except Exception:
+                    pass
+        page.wait_for_timeout(3000)
         shot(page, args.out, "02-uploaded")
 
         if caption:

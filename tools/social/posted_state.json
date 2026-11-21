@@ -40,5 +40,15 @@
       "at": "2026-11-20 10:00:25.440192",
       "ref": "twitter:6b008aae6f199ec35b6d1a7c (failed: instagram:[{'message': 'Variable \"$input\" got invalid value { channelId: \"6a54518180cc80cdcaa90ab6\", type: \"post\", text: \"Electronics is where the deepest cuts hide.\\\\n\\\\nLaptops, headphones, consoles, drives \u2014 we scan every major retailer and sort by discount so the biggest drops surface first.\\\\n\\\\nhttps://bargainhuntrs.com/categories/electronics\", mode: \"shareNow\", schedulingType: \"automatic\", needsApproval: false, assets: [{ image: [Object] }] }; Expected value of type \"CreatePostInput\" not to include unknown field \"type\", found: { channelId: \"6a54518180cc80cdcaa90ab6\", type: \"post\", text: \"Electronics is where the deepest cuts hide.\\\\n\\\\nLaptops, headphones, consoles, drives \u2014 we scan every major retailer and sort by discount so the biggest drops surface first.\\\\n\\\\nhttps://bargainhuntrs.com/categories/electronics\", mode: \"shareNow\", schedulingType: \"automatic\", needsApproval: false, assets: [{ image: [Object] }] }.', 'locations': [{'line': 1, 'column': 10}], 'extensions': {'code': 'INTERNAL_SERVER_ERROR'}}])"
     }
+  },
+  "2026-11-21": {
+    "facebook": {
+      "at": "2026-11-21 10:00:33.312620",
+      "ref": "677541628783713_122204786516942608"
+    },
+    "buffer": {
+      "at": "2026-11-21 10:00:47.914927",
+      "ref": "instagram:6b01dc43846b0ee9072974b0; twitter:6b01dc4e0247969092f02123"
+    }
   }
 }

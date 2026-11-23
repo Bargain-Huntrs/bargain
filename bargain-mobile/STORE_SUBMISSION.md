@@ -14,10 +14,26 @@ api.bargainhuntrs.com.
 - **Category:** Shopping
 - **Price:** Free
 
-## Play record status
-**No Play record** — the app record cannot be created via API; one manual
-"Create app" step in Play Console (or headed-browser session; Google
-rejects headless sign-in).
+## Play record status — LIVE on Google Play (verified 2026-12-31)
+- **Console app ID:** `4974945556249240068` (dev account `PrimeTransit` /
+  `8349879999610974643`)
+- **Public listing:** https://play.google.com/store/apps/details?id=com.bargainhuntrs.mobile
+  (200, title "BargainHuntrs - Apps on Google Play", icon + 6 screenshots live)
+- **Releases:** vc1 (1.0.0) `completed` on **production (100% rollout since
+  Nov 17, 2026)**, internal, and alpha. Live bundle sha256
+  `2ca84f7d…` is the same artifact as `dist/bargain.aab`.
+- **Declarations:** all 11 actioned Nov 13, 2026 — data safety, target
+  audience, IARC content ratings, ads, ad-ID, privacy policy, sign-in
+  details, financial features, health, government, app-level trader
+  status + ToS. Public data-safety card shows "No data shared" /
+  "Data is encrypted".
+- **SA access:** `eas-play-submit@prime-transit.iam.gserviceaccount.com`
+  has full permissions (granted 2026-12-24; the earlier "no record" 404s
+  were per-app permission invisibility, not absence — same as ClipStakes).
+- **Outstanding:** dashboard notice "Declare your trader status by
+  February 1, 2027" — trader status is already actioned; this is a
+  forward re-attestation deadline, not a current task. Next upload MUST
+  bump `versionCode`/`version` in `app.json` first (still 1/1.0.0).
 
 ## Build (local only — EAS cloud is billing-gated)
 Signed release AAB recipe (used for `dist/bargain.aab`, vc1):
@@ -49,19 +65,19 @@ Uploads the AAB, commits an **internal** track release, writes the en-US
 listing, sets contact details (hello@bargainhuntrs.com), and uploads icon +
 feature graphic from `assets/` when present.
 
-## Console-side checklist (owner step — sign-in is owner-gated)
-- [ ] Create app record — name `BargainHuntrs`, App, Free, default en-US
-- [ ] `node scripts/play-submit.mjs dist/bargain.aab` (AAB + internal track
-      + listing + contact in one shot)
-- [ ] Content rating questionnaire (IARC)
-- [ ] Data safety — email/name/phone collected; affiliate outbound links;
-      encrypted in transit; no data sale
-- [ ] Target audience: adults (deals/arbitrage — NOT for children)
-- [ ] App access → reviewer creds from `docs/play-review/credentials.md`
-      (guest browse also available)
-- [ ] Store listing → `docs/store-listing.md`; screenshots + feature
-      graphic 1024×500 + icon 512×512
-- [ ] Privacy policy URL: https://bargainhuntrs.com/privacy (live, 200)
+## Console-side checklist — ALL DONE (actioned Nov 13, 2026)
+- [x] App record created — `BargainHuntrs`, App, Free, en-US
+- [x] AAB uploaded + releases on internal/alpha/production (vc1 live 100%)
+- [x] Content rating questionnaire (IARC)
+- [x] Data safety — declared + live on the public listing card
+- [x] Target audience declaration
+- [x] Sign-in details / app access declaration
+- [x] Store listing — title/desc/icon/feature graphic/6 phone screenshots
+      (all live; verified via both REST `edits` reads and the public page)
+- [x] Privacy policy URL — https://bargainhuntrs.com/privacy (live, 200)
+- [x] Account-deletion link — https://bargainhuntrs.com/delete-account
+      (live, 200; in-app delete also shipped `c413dd1`)
+- [ ] 2027-02-01 — trader-status re-attestation deadline (dashboard notice)
 
 ## Graphic assets (2026-11-12 — droid-assets)
 

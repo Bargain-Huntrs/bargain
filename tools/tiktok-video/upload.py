@@ -17,7 +17,7 @@ Safety:
   - --post is required for the final submit (owner pre-approval gate)
   - screenshots land in <out>/ so every run is auditable
 """
-import argparse, os, sys, time
+import argparse, json, os, sys, time
 from playwright.sync_api import sync_playwright
 
 CDP = "http://localhost:9226"  # /tmp/tt-fresh-profile (bargain.huntrs session)
@@ -63,6 +63,17 @@ def main():
     with sync_playwright() as pw:
         browser = pw.chromium.connect_over_cdp(args.cdp)
         ctx = browser.contexts[0]
+        cj = os.environ.get("TT_COOKIE_JSON", "/tmp/tt-cookies-bargain.json")
+        if os.path.exists(cj):
+            try:
+                cc = json.load(open(cj))
+                for c in cc:
+                    if c.get("expires") == -1:
+                        c.pop("expires", None)
+                    c.setdefault("sameSite", "Lax")
+                ctx.add_cookies(cc)
+            except Exception:
+                pass
         page = ctx.new_page()
         page.set_default_timeout(45000)
         for url in UPLOAD_URLS:

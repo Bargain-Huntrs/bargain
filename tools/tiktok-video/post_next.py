@@ -51,9 +51,32 @@ def logged_in() -> bool:
         for _ in range(3):
             try:
                 b = pw.chromium.connect_over_cdp(CDP, timeout=20000)
-                names = {c["name"] for c in b.contexts[0].cookies(
+                ctx0 = b.contexts[0]
+                cj = os.environ.get("TT_COOKIE_JSON", "/tmp/tt-cookies-bargain.json")
+                if os.path.exists(cj):
+                    try:
+                        cc = json.load(open(cj))
+                        for c in cc:
+                            if c.get("expires") == -1:
+                                c.pop("expires", None)
+                            c.setdefault("sameSite", "Lax")
+                        ctx0.add_cookies(cc)
+                    except Exception:
+                        pass
+                names = {c["name"] for c in ctx0.cookies(
                     "https://www.tiktok.com")}
-                return "sessionid" in names
+                if "sessionid" in names:
+                    return True
+                pg = b.contexts[0].pages[0] if b.contexts[0].pages else b.contexts[0].new_page()
+                try:
+                    pg.goto("https://www.tiktok.com/tiktokstudio/upload",
+                            wait_until="domcontentloaded", timeout=60000)
+                    pg.wait_for_timeout(6000)
+                except Exception:
+                    pass
+                if pg.query_selector('input[type="file"]'):
+                    return True
+                    return True
             except Exception:
                 time.sleep(5)
     return False
